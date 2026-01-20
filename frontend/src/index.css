@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    overflow-x: hidden;
+  }
+}
+/* Глобальные стили проекта (можно добавить свои) */
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f8fafc;  /* светлый фон, если нужно */
+}
+
+#root {
+  min-height: 100vh;
+}
