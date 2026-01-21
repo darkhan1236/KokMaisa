@@ -1,75 +1,88 @@
 // src/app/components/Features.jsx
-import { Cpu, Smartphone, Cloud, Zap } from 'lucide-react';
+import { Satellite, BarChart, Brain, Smartphone, Cloud, Zap } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
-const features = [
-  {
-    icon: Cpu,
-    title: "Прогноз биомассы на основе ИИ",
-    description: "Продвинутые модели глубокого обучения, обученные на тысячах реальных полевых данных",
-    gradient: "from-green-400 to-emerald-600"
-  },
-  {
-    icon: Smartphone,
-    title: "Поддержка фото с дронов и смартфонов",
-    description: "Работает с изображениями как с профессиональных дронов, так и с обычных смартфонов",
-    gradient: "from-emerald-500 to-teal-600"
-  },
-  {
-    icon: Cloud,
-    title: "Интеграция NDVI и погоды",
-    description: "Комбинирует визуальные данные со спутниковыми NDVI и погодными условиями",
-    gradient: "from-teal-500 to-cyan-600"
-  },
-  {
-    icon: Zap,
-    title: "Мгновенная оценка поля",
-    description: "Получайте точные оценки биомассы за секунды, а не часы или дни",
-    gradient: "from-cyan-500 to-blue-600"
-  }
-];
+export default function Features() {
+  const { t } = useTranslation();
 
-function Features() {
+  const features = [
+    {
+      icon: Satellite,
+      title: t('features.feature1'),
+      description: t('features.feature1Desc'),
+      gradient: "from-green-400 to-emerald-600"
+    },
+    {
+      icon: BarChart,
+      title: t('features.feature2'),
+      description: t('features.feature2Desc'),
+      gradient: "from-emerald-500 to-teal-600"
+    },
+    {
+      icon: Brain,
+      title: t('features.feature3'),
+      description: t('features.feature3Desc'),
+      gradient: "from-teal-500 to-cyan-600"
+    },
+    {
+      icon: Smartphone,
+      title: t('features.feature4'),
+      description: t('features.feature4Desc'),
+      gradient: "from-cyan-500 to-blue-600"
+    },
+    {
+      icon: Cloud,
+      title: t('features.feature5'),
+      description: t('features.feature5Desc'),
+      gradient: "from-blue-500 to-indigo-600"
+    },
+    {
+      icon: Zap,
+      title: t('features.feature6'),
+      description: t('features.feature6Desc'),
+      gradient: "from-indigo-500 to-purple-600"
+    }
+  ];
+
   return (
-    <section className="py-24 px-6 bg-white">
+    <section className="py-24 px-6 bg-white" id="features">
       <div className="max-w-6xl mx-auto">
-        {/* Заголовок секции */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl mb-6 text-gray-900 font-bold">
-            Возможности
+            {t('features.title')}
           </h2>
           <div className="w-16 h-1 bg-green-500 mx-auto rounded-full mb-6"></div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Мощные инструменты для современного управления пастбищами
+            {t('features.subtitle')}
           </p>
         </div>
 
-        {/* Сетка карточек */}
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => {
-            const Icon = feature.icon; // Динамическая иконка
+            const Icon = feature.icon;
 
             return (
               <div
                 key={index}
-                className="group relative bg-gradient-to-br from-gray-50 to-green-50/50 rounded-2xl p-10 shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden"
+                className="group relative bg-gradient-to-br from-gray-50 to-green-50/30 rounded-2xl p-8 md:p-10 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100"
               >
-                {/* Декоративный градиентный фон при ховере */}
+                {/* Декоративный градиентный блик */}
                 <div
-                  className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${feature.gradient} opacity-10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500`}
+                  className={`absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br ${feature.gradient} opacity-10 rounded-full blur-3xl group-hover:scale-125 group-hover:opacity-20 transition-all duration-500`}
                 ></div>
 
-                {/* Иконка в градиентном круге */}
+                {/* Иконка */}
                 <div
-                  className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-lg`}
+                  className={`w-16 h-16 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-md transform group-hover:scale-110 transition-transform duration-300`}
                 >
-                  <Icon className="w-7 h-7 text-white" />
+                  <Icon className="w-8 h-8 text-white" />
                 </div>
 
-                {/* Заголовок и описание */}
-                <h3 className="text-2xl mb-4 text-gray-900 font-semibold">
+                {/* Текст */}
+                <h3 className="text-2xl font-semibold mb-4 text-gray-900">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 text-lg leading-relaxed">
+                <p className="text-gray-700 text-lg leading-relaxed">
                   {feature.description}
                 </p>
               </div>
@@ -80,5 +93,3 @@ function Features() {
     </section>
   );
 }
-
-export default Features; 

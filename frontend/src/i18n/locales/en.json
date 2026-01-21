@@ -1,0 +1,174 @@
+{
+  "nav": {
+    "about": "About",
+    "howItWorks": "How It Works",
+    "features": "Features",
+    "useCases": "Use Cases",
+    "login": "Login",
+    "register": "Sign Up",
+    "backToHome": "Back to Home"
+  },
+  "hero": {
+    "title": "AI-Powered Pasture Biomass Assessment",
+    "subtitle": "Revolutionary platform for precise pasture biomass measurement using computer vision, deep learning, and NDVI data",
+    "cta": "Get Started"
+  },
+  "about": {
+    "title": "What is KokMaisa?",
+    "description": "KokMaisa is an advanced AI platform that predicts pasture biomass (kg/ha) using state-of-the-art deep learning models trained on thousands of real field measurements.",
+    "details": {
+      "part1": "Our models leverage ",
+      "highlight1": "Convolutional Neural Networks (CNNs)",
+      "part2": " and ",
+      "highlight2": "Vision Transformers",
+      "part3": ", combined with NDVI satellite data and ",
+      "highlight3": "environmental parameters",
+      "part4": ", to provide accurate real-time biomass estimates for sustainable pasture management."
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "subtitle": "Four simple steps to get accurate pasture biomass estimates",
+    "step1Title": "Upload Photo",
+    "step1Desc": "Take a picture of the pasture from a drone or smartphone",
+    "step2Title": "AI Analysis",
+    "step2Desc": "Our deep learning algorithms analyze the image along with NDVI data",
+    "step3Title": "Get Results",
+    "step3Desc": "Instant biomass assessment and management recommendations",
+    "step4Title": "Get Results",
+    "step4Desc": "Accurate biomass estimate (kg/ha) with confidence score"
+  },
+  "features": {
+    "title": "Platform Features",
+    "subtitle": "Advanced technologies for accurate analysis",
+    "feature1": "Drone Analysis",
+    "feature1Desc": "High-precision analysis from aerial photography",
+    "feature2": "NDVI Integration",
+    "feature2Desc": "Combining visual data with vegetation index",
+    "feature3": "Deep Learning",
+    "feature3Desc": "Advanced neural networks for accurate assessment",
+    "feature4": "Mobile Photos",
+    "feature4Desc": "Analysis even from smartphone camera",
+    "feature5": "Environmental Data",
+    "feature5Desc": "Considering climate, soil and other factors",
+    "feature6": "Real-time Reports",
+    "feature6Desc": "Instant results and recommendations"
+  },
+  "useCases": {
+    "title": "Use Cases",
+    "subtitle": "Empowering diverse stakeholders in agriculture",
+    "case1": "Farming",
+    "case1Desc": "Optimizing grazing and feed planning",
+    "case2": "Scientific Research",
+    "case2Desc": "Ecosystem monitoring and climate change studies",
+    "case3": "Land Management",
+    "case3Desc": "Pasture condition assessment for decision making"
+  },
+  "metrics": {
+    "title": "Our Metrics",
+    "subtitle": "Built on extensive research and real data",
+    "values": {
+      "images": "10,000+",
+      "accuracy": "RMSE",
+      "coverage": "Multi-season"
+    },
+    "labels": {
+      "images": "Pasture Images",
+      "accuracy": "Optimized",
+      "coverage": "Data Support"
+    },
+    "descriptions": {
+      "imagesDesc": "Trained on over 10,000 pasture images",
+      "accuracyDesc": "Minimized error for accurate biomass prediction",
+      "coverageDesc": "Works with data from different seasons and conditions"
+    }
+  },
+  "footer": {
+    "description": "Revolutionary AI platform for pasture biomass assessment",
+    "quickLinks": "Quick Links",
+    "contact": "Contact",
+    "followUs": "Social Media",
+    "allRightsReserved": "All rights reserved"
+  },
+  "register": {
+    "title": "Sign Up",
+    "subtitle": "Create an account to access the platform",
+    "accountType": "Account Type",
+    "farmer": "Farmer",
+    "agronomist": "Agronomist",
+    "regular": "Regular User",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Enter your full name",
+    "phone": "Phone Number",
+    "phonePlaceholder": "+7 (___) ___-__-__",
+    "email": "Email",
+    "emailPlaceholder": "example@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "confirmPassword": "Confirm Password",
+    "country": "Country",
+    "selectCountry": "Select country",
+    "city": "City",
+    "cityPlaceholder": "Enter your city",
+    "region": "Region / Province",
+    "selectRegion": "Select region",
+    "district": "District / City",
+    "districtPlaceholder": "Enter district or city",
+    "farmAddress": "Farm / Plot Address",
+    "farmAddressPlaceholder": "Specify full address",
+    "gpsCoordinates": "GPS Coordinates (optional)",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "farmSize": "Plot Size (ha)",
+    "farmSizePlaceholder": "e.g.: 100",
+    "professionalInfo": "Professional Information",
+    "education": "Education / Qualification",
+    "selectEducation": "Select education",
+    "specialization": "Specialization",
+    "submitButton": "Sign Up",
+    "haveAccount": "Already have an account?",
+    "loginLink": "Log In",
+    "welcome": "Join the revolution in agricultural technology",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "login": {
+    "title": "Login",
+    "subtitle": "Enter your credentials",
+    "email": "Email",
+    "emailPlaceholder": "example@email.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "forgotPassword": "Forgot password?",
+    "submitButton": "Log In",
+    "noAccount": "Don't have an account?",
+    "registerLink": "Sign Up",
+    "welcome": "Welcome back! Continue analyzing your pasture biomass"
+  },
+  "countries": {
+    "kazakhstan": "Kazakhstan",
+    "russia": "Russia",
+    "kyrgyzstan": "Kyrgyzstan",
+    "uzbekistan": "Uzbekistan"
+  },
+  "regions": {
+    "kz": {
+      "akmola": "Akmola Region",
+      "aktobe": "Aktobe Region",
+      "almaty": "Almaty Region",
+      "atyrau": "Atyrau Region",
+      "eastKazakhstan": "East Kazakhstan Region",
+      "zhambyl": "Zhambyl Region",
+      "westKazakhstan": "West Kazakhstan Region",
+      "karaganda": "Karaganda Region",
+      "kostanay": "Kostanay Region",
+      "kyzylorda": "Kyzylorda Region",
+      "mangystau": "Mangystau Region",
+      "pavlodar": "Pavlodar Region",
+      "northKazakhstan": "North Kazakhstan Region",
+      "turkestan": "Turkestan Region",
+      "almaty_city": "Almaty city",
+      "shymkent": "Shymkent city",
+      "astana": "Astana city"
+    }
+  }
+}
