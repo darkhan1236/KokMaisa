@@ -8,47 +8,97 @@ import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 export function LoginPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { setUser } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ email: "", password: "" });
 
-  const handleSubmit = (e) => {
+  // Модалка "Забыли пароль"
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const result = login(formData.email, formData.password);
+    try {
+      const res = await fetch('http://localhost:8000/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password
+        })
+      });
 
-    if (result.success) {
-      // Получаем текущего пользователя из localStorage
-      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-      
-      // Перенаправляем на соответствующий профиль
-      if (currentUser.accountType === "farmer") {
-        navigate("/profile/farmer");
-      } else if (currentUser.accountType === "agronomist") {
-        navigate("/profile/agronomist");
-      } else {
-        navigate("/");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || t('login.invalidCredentials') || "Неверный email или пароль");
       }
-    } else {
-      setError(result.error);
+
+      localStorage.setItem('token', data.access_token);
+
+      const meRes = await fetch('http://localhost:8000/api/users/me', {
+        headers: { 'Authorization': `Bearer ${data.access_token}` }
+      });
+
+      if (!meRes.ok) throw new Error("Не удалось загрузить профиль");
+
+      const userData = await meRes.json();
+      if (setUser) setUser(userData);
+
+      navigate("/"); // ← на главную
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetEmail.trim()) {
+      setResetMessage(t('login.enterEmail') || "Введите email");
+      return;
+    }
+
+    setResetLoading(true);
+    setResetMessage("");
+
+    try {
+      const res = await fetch('http://localhost:8000/api/users/password-reset-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail.trim() })
+      });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        setResetMessage(t('login.resetEmailSent') || "Письмо со ссылкой отправлено на почту");
+      } else {
+        setResetMessage(result.detail || t('login.resetError') || "Ошибка отправки письма");
+      }
+    } catch (err) {
+      setResetMessage(t('common.connectionError') || "Ошибка соединения");
+    } finally {
+      setResetLoading(false);
     }
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Image */}
+      {/* Левая часть */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-green-500 to-emerald-600">
         <div className="absolute inset-0">
           <img
@@ -58,10 +108,7 @@ export function LoginPage() {
           />
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center p-12 text-white">
-          <Link 
-            to="/" 
-            className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 hover:bg-white/30 transition-all duration-300 hover:scale-110"
-          >
+          <Link to="/" className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 hover:bg-white/30 transition-all duration-300 hover:scale-110">
             <Leaf className="w-12 h-12 text-white" />
           </Link>
           <Link to="/" className="hover:scale-105 transition-transform duration-300">
@@ -73,22 +120,17 @@ export function LoginPage() {
         </div>
       </div>
 
-      {/* Right Side - Form */}
+      {/* Правая часть */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
-          {/* Header with language switcher */}
           <div className="flex justify-between items-center mb-6">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors duration-300"
-            >
+            <Link to="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors duration-300">
               <ArrowLeft className="w-5 h-5" />
               <span>{t('nav.backToHome')}</span>
             </Link>
             <LanguageSwitcher />
           </div>
 
-          {/* Logo for mobile */}
           <Link to="/" className="lg:hidden flex items-center gap-3 mb-8 justify-center hover:opacity-80 transition-opacity">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
               <Leaf className="w-7 h-7 text-white" />
@@ -97,23 +139,17 @@ export function LoginPage() {
           </Link>
 
           <div className="mb-8">
-            <h2 className="text-3xl mb-2 text-gray-900">
-              {t('login.title')}
-            </h2>
-            <p className="text-gray-600">
-              {t('login.subtitle')}
-            </p>
+            <h2 className="text-3xl mb-2 text-gray-900">{t('login.title')}</h2>
+            <p className="text-gray-600">{t('login.subtitle')}</p>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label htmlFor="email" className="block mb-2 text-gray-700">
                 {t('login.email')}
@@ -135,15 +171,18 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="password" className="text-gray-700">
                   {t('login.password')}
                 </label>
-                <a href="#" className="text-sm text-green-600 hover:text-green-700 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(true)}
+                  className="text-sm text-green-600 hover:text-green-700 transition-colors"
+                >
                   {t('login.forgotPassword')}
-                </a>
+                </button>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -164,24 +203,28 @@ export function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl"
+              disabled={loading}
+              className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${
+                loading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              {t('login.submitButton')}
+              {loading ? (
+                <>
+                  <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                  <span>{t('common.loading')}</span>
+                </>
+              ) : (
+                t('login.submitButton')
+              )}
             </button>
 
-            {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -193,16 +236,72 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Register Link */}
             <Link
               to="/register"
-              className="block w-full text-center py-3 border-2 border-green-500 text-green-600 rounded-xl hover:bg-green-50 transition-all duration-300"
+              className="block w-full text-center py-3 border-2 border-green-500 text-green-600 rounded-xl hover:bg-green-50 transition-all duration-300 font-medium"
             >
               {t('login.registerLink')}
             </Link>
           </form>
         </div>
       </div>
+
+      {/* Модальное окно сброса пароля */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-2xl font-bold mb-4 text-center">
+              {t('login.resetPassword')}
+            </h3>
+            <p className="text-gray-600 mb-6 text-center">
+              {t('login.resetInstructions')}
+            </p>
+
+            <input
+              type="email"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              placeholder={t('login.emailPlaceholder')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            />
+
+            {resetMessage && (
+              <p className={`mb-4 text-center ${resetMessage.includes('отправлена') ? 'text-green-600' : 'text-red-600'}`}>
+                {resetMessage}
+              </p>
+            )}
+
+            <button
+              onClick={handleResetPassword}
+              disabled={resetLoading}
+              className={`w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2 ${
+                resetLoading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
+            >
+              {resetLoading ? (
+                <>
+                  <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                  <span>{t('common.sending')}</span>
+                </>
+              ) : (
+                t('login.sendResetLink')
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowResetModal(false);
+                setResetMessage("");
+                setResetEmail("");
+              }}
+              className="mt-4 w-full text-gray-600 hover:text-gray-800 text-center"
+            >
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

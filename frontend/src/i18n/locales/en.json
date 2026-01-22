@@ -6,7 +6,10 @@
     "useCases": "Use Cases",
     "login": "Login",
     "register": "Sign Up",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "profile": "Profile",
+    "myFarms": "My Farms",
+    "logout": "Logout"
   },
   "hero": {
     "title": "AI-Powered Pasture Biomass Assessment",
@@ -142,8 +145,34 @@
     "submitButton": "Log In",
     "noAccount": "Don't have an account?",
     "registerLink": "Sign Up",
-    "welcome": "Welcome back! Continue analyzing your pasture biomass"
+    "welcome": "Welcome back! Continue analyzing your pasture biomass",
+    "invalidCredentials": "Invalid email or password",
+    "enterEmail": "Please enter your email",
+    "resetPassword": "Reset Password",
+    "resetInstructions": "Enter your email and we’ll send you a password reset link",
+    "sendResetLink": "Send Reset Link",
+    "resetEmailSent": "Password reset email has been sent",
+    "resetError": "Error sending reset email"
   },
+  "reset": {
+    "title": "Set New Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "submit": "Save New Password",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "success": "Password successfully changed. Redirecting to login...",
+    "error": "Error resetting password. Token may be invalid or expired.",
+    "tokenMissing": "Invalid link",
+    "backToLogin": "Back to Login"
+  },
+  "common": {
+    "connectionError": "Connection error",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "sending": "Sending...",
+    "close": "Close"
+},
   "countries": {
     "kazakhstan": "Kazakhstan",
     "russia": "Russia",

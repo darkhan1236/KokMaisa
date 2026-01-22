@@ -1,12 +1,15 @@
 {
   "nav": {
     "about": "О проекте",
-    "howItWorks": "Как это работает",
+    "howItWorks": "Как работает",
     "features": "Функции",
     "useCases": "Применение",
-    "login": "Вход",
+    "login": "Войти",
     "register": "Регистрация",
-    "backToHome": "На главную"
+    "backToHome": "На главную",
+    "profile": "Профиль",
+    "myFarms": "Мои фермы",
+    "logout": "Выйти"
   },
   "hero": {
     "title": "Оценка биомассы пастбищ с помощью ИИ",
@@ -132,8 +135,8 @@
     "passwordMismatch": "Пароли не совпадают"
   },
   "login": {
-    "title": "Вход в систему",
-    "subtitle": "Введите ваши учетные данные",
+    "title": "Вход",
+    "subtitle": "Введите свои данные",
     "email": "Email",
     "emailPlaceholder": "example@email.com",
     "password": "Пароль",
@@ -141,8 +144,34 @@
     "forgotPassword": "Забыли пароль?",
     "submitButton": "Войти",
     "noAccount": "Нет аккаунта?",
-    "registerLink": "Зарегистрироваться",
-    "welcome": "С возвращением! Продолжайте анализировать вашу пастбищную биомассу"
+    "registerLink": "Регистрация",
+    "welcome": "С возвращением! Продолжайте анализировать биомассу пастбищ",
+    "invalidCredentials": "Неверный email или пароль",
+    "enterEmail": "Введите email",
+    "resetPassword": "Сброс пароля",
+    "resetInstructions": "Введите ваш email, и мы вышлем ссылку для сброса пароля",
+    "sendResetLink": "Отправить ссылку",
+    "resetEmailSent": "Письмо для сброса пароля отправлено",
+    "resetError": "Ошибка при отправке письма"
+  },
+  "reset": {
+    "title": "Установка нового пароля",
+    "newPassword": "Новый пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "submit": "Сохранить новый пароль",
+    "passwordMismatch": "Пароли не совпадают",
+    "passwordTooShort": "Пароль должен быть минимум 6 символов",
+    "success": "Пароль успешно изменён. Перенаправляем на страницу входа...",
+    "error": "Ошибка сброса пароля. Токен может быть недействителен или просрочен.",
+    "tokenMissing": "Ссылка недействительна",
+    "backToLogin": "Вернуться к входу"
+  },
+  "common": {
+    "loading": "Загрузка...",
+    "sending": "Отправка...",
+    "close": "Закрыть",
+    "connectionError": "Ошибка соединения с сервером",
+    "saving": "Сохранение..."
   },
   "countries": {
     "kazakhstan": "Казахстан",

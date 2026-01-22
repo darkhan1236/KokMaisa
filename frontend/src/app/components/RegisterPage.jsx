@@ -3,17 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { useAuth } from "@/contexts/AuthContext";
 import { 
-  Leaf, 
-  Eye, 
-  EyeOff, 
-  Mail, 
-  Lock, 
-  User, 
-  ArrowLeft, 
-  Phone, 
-  MapPin, 
-  Navigation,
-  GraduationCap
+  Leaf, Eye, EyeOff, Mail, Lock, User, ArrowLeft, Phone, 
+  MapPin, Navigation, GraduationCap 
 } from "lucide-react";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
@@ -21,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function RegisterPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { register } = useAuth();
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [accountType, setAccountType] = useState("farmer");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -34,7 +27,6 @@ export function RegisterPage() {
     confirmPassword: "",
     country: "",
     city: "",
-    // Поля для агронома
     education: "",
     specializations: []
   });
@@ -54,76 +46,110 @@ export function RegisterPage() {
     { value: "pasture", label: { ru: "Пастбищное хозяйство", kk: "Жайылым шаруашылығы", en: "Pasture Management" } }
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     // Валидация
     if (formData.password !== formData.confirmPassword) {
       setError(t('register.passwordMismatch') || "Пароли не совпадают");
+      setLoading(false);
       return;
     }
 
     if (formData.password.length < 6) {
       setError("Пароль должен содержать минимум 6 символов");
+      setLoading(false);
       return;
     }
 
-    // Для агронома проверяем дополнительные поля
+    if (formData.password.length > 72) {
+      setError("Пароль слишком длинный (максимум 72 символа)");
+      setLoading(false);
+      return;
+    }
+
     if (accountType === "agronomist") {
       if (!formData.education) {
         setError("Укажите образование");
+        setLoading(false);
         return;
       }
       if (formData.specializations.length === 0) {
         setError("Выберите хотя бы одну специализацию");
+        setLoading(false);
         return;
       }
     }
 
-    // Подготовка данных для регистрации
-    const userData = {
-      fullName: formData.fullName,
-      email: formData.email,
+    const payload = {
+      full_name: formData.fullName.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
       password: formData.password,
-      phone: formData.phone,
-      country: formData.country,
-      city: formData.city,
-      accountType: accountType,
+      account_type: accountType,
+      country: formData.country.trim(),
+      city: formData.city.trim(),
+      ...(accountType === "agronomist" && {
+        education: formData.education,
+        specializations: formData.specializations
+      })
     };
 
-    // Добавляем поля агронома если нужно
-    if (accountType === "agronomist") {
-      userData.education = formData.education;
-      userData.specializations = formData.specializations;
-    }
+    try {
+      const res = await fetch('http://localhost:8000/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-    const result = register(userData);
+      const data = await res.json();
 
-    if (result.success) {
-      // Перенаправляем на соответствующий профиль
-      if (accountType === "farmer") {
-        navigate("/profile/farmer");
-      } else {
-        navigate("/profile/agronomist");
+      if (!res.ok) {
+        let errMsg = data.detail || t('register.error') || "Ошибка регистрации";
+        if (errMsg.includes("телефона уже существует")) {
+          errMsg = t('register.phoneExists') || "Пользователь с таким номером телефона уже зарегистрирован";
+        } else if (errMsg.includes("email уже существует")) {
+          errMsg = t('register.emailExists') || "Пользователь с таким email уже зарегистрирован";
+        }
+        throw new Error(errMsg);
       }
-    } else {
-      setError(result.error);
+
+      // Сохраняем токен
+      localStorage.setItem('token', data.access_token);
+
+      // Получаем данные пользователя
+      const meRes = await fetch('http://localhost:8000/api/users/me', {
+        headers: { 'Authorization': `Bearer ${data.access_token}` }
+      });
+
+      if (!meRes.ok) {
+        throw new Error(t('register.profileLoadError') || "Не удалось загрузить профиль");
+      }
+
+      const userData = await meRes.json();
+      if (setUser) setUser(userData);
+
+      // Всегда на главную после успеха
+      navigate("/");
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [e.target.name]: e.target.value
-    });
+    }));
   };
 
   const handleSelectChange = (name, value) => {
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const toggleSpecialization = (value) => {
@@ -140,7 +166,7 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      {/* Left Side - Image */}
+      {/* Левая часть с фоном */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-green-500 to-emerald-600">
         <div className="absolute inset-0">
           <img
@@ -150,10 +176,7 @@ export function RegisterPage() {
           />
         </div>
         <div className="relative z-10 flex flex-col justify-center items-center p-12 text-white">
-          <Link 
-            to="/" 
-            className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 hover:bg-white/30 transition-all duration-300 hover:scale-110"
-          >
+          <Link to="/" className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 hover:bg-white/30 transition-all duration-300 hover:scale-110">
             <Leaf className="w-12 h-12 text-white" />
           </Link>
           <Link to="/" className="hover:scale-105 transition-transform duration-300">
@@ -165,22 +188,17 @@ export function RegisterPage() {
         </div>
       </div>
 
-      {/* Right Side - Form */}
+      {/* Правая часть — форма */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 md:p-8 bg-white overflow-y-auto">
         <div className="w-full max-w-2xl">
-          {/* Header with language switcher */}
           <div className="flex justify-between items-center mb-6">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors duration-300"
-            >
+            <Link to="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors duration-300">
               <ArrowLeft className="w-5 h-5" />
               <span>{t('nav.backToHome')}</span>
             </Link>
             <LanguageSwitcher />
           </div>
 
-          {/* Logo for mobile */}
           <Link to="/" className="lg:hidden flex items-center gap-3 mb-8 justify-center hover:opacity-80 transition-opacity">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
               <Leaf className="w-7 h-7 text-white" />
@@ -189,15 +207,10 @@ export function RegisterPage() {
           </Link>
 
           <div className="mb-8">
-            <h2 className="text-3xl mb-2 text-gray-900">
-              {t('register.title')}
-            </h2>
-            <p className="text-gray-600">
-              {t('register.subtitle')}
-            </p>
+            <h2 className="text-3xl mb-2 text-gray-900">{t('register.title')}</h2>
+            <p className="text-gray-600">{t('register.subtitle')}</p>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
               {error}
@@ -205,7 +218,7 @@ export function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Account Type Selection */}
+            {/* Выбор типа аккаунта */}
             <div>
               <label className="block mb-3 text-gray-700 font-medium">
                 {t('register.accountType')}
@@ -215,9 +228,7 @@ export function RegisterPage() {
                   type="button"
                   onClick={() => setAccountType("farmer")}
                   className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                    accountType === "farmer"
-                      ? "border-green-500 bg-green-50 text-green-700"
-                      : "border-gray-300 hover:border-green-300"
+                    accountType === "farmer" ? "border-green-500 bg-green-50 text-green-700" : "border-gray-300 hover:border-green-300"
                   }`}
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -225,13 +236,12 @@ export function RegisterPage() {
                     <span className="text-sm font-medium">{t('register.farmer')}</span>
                   </div>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => setAccountType("agronomist")}
                   className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                    accountType === "agronomist"
-                      ? "border-green-500 bg-green-50 text-green-700"
-                      : "border-gray-300 hover:border-green-300"
+                    accountType === "agronomist" ? "border-green-500 bg-green-50 text-green-700" : "border-gray-300 hover:border-green-300"
                   }`}
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -242,9 +252,8 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Basic Fields */}
+            {/* Основные поля */}
             <div className="grid md:grid-cols-2 gap-4">
-              {/* Full Name */}
               <div className="md:col-span-2">
                 <label htmlFor="fullName" className="block mb-2 text-gray-700">
                   {t('register.fullName')} <span className="text-red-500">*</span>
@@ -266,7 +275,6 @@ export function RegisterPage() {
                 </div>
               </div>
 
-              {/* Phone */}
               <div>
                 <label htmlFor="phone" className="block mb-2 text-gray-700">
                   {t('register.phone')} <span className="text-red-500">*</span>
@@ -288,7 +296,6 @@ export function RegisterPage() {
                 </div>
               </div>
 
-              {/* Email */}
               <div>
                 <label htmlFor="email" className="block mb-2 text-gray-700">
                   {t('register.email')} <span className="text-red-500">*</span>
@@ -311,9 +318,8 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Location Fields */}
+            {/* Местоположение */}
             <div className="grid md:grid-cols-2 gap-4">
-              {/* Country */}
               <div>
                 <label htmlFor="country" className="block mb-2 text-gray-700">
                   {t('register.country')} <span className="text-red-500">*</span>
@@ -334,7 +340,6 @@ export function RegisterPage() {
                 </Select>
               </div>
 
-              {/* City */}
               <div>
                 <label htmlFor="city" className="block mb-2 text-gray-700">
                   {t('register.city')} <span className="text-red-500">*</span>
@@ -352,7 +357,7 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Agronomist-specific fields */}
+            {/* Поля агронома */}
             {accountType === "agronomist" && (
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -360,7 +365,6 @@ export function RegisterPage() {
                   {t('register.professionalInfo')}
                 </h3>
 
-                {/* Education */}
                 <div className="mb-4">
                   <label htmlFor="education" className="block mb-2 text-gray-700">
                     {t('register.education')} <span className="text-red-500">*</span>
@@ -382,7 +386,6 @@ export function RegisterPage() {
                   </Select>
                 </div>
 
-                {/* Specializations */}
                 <div>
                   <label className="block mb-2 text-gray-700">
                     {t('register.specialization')} <span className="text-red-500">*</span>
@@ -407,9 +410,8 @@ export function RegisterPage() {
               </div>
             )}
 
-            {/* Password Fields */}
+            {/* Пароли */}
             <div className="grid md:grid-cols-2 gap-4">
-              {/* Password */}
               <div>
                 <label htmlFor="password" className="block mb-2 text-gray-700">
                   {t('register.password')} <span className="text-red-500">*</span>
@@ -438,7 +440,6 @@ export function RegisterPage() {
                 </div>
               </div>
 
-              {/* Confirm Password */}
               <div>
                 <label htmlFor="confirmPassword" className="block mb-2 text-gray-700">
                   {t('register.confirmPassword')} <span className="text-red-500">*</span>
@@ -468,15 +469,25 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Кнопка отправки */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl font-medium"
+              disabled={loading}
+              className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl font-medium flex items-center justify-center gap-2 ${
+                loading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
             >
-              {t('register.submitButton')}
+              {loading ? (
+                <>
+                  <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                  <span>{t('common.loading')}</span>
+                </>
+              ) : (
+                t('register.submitButton')
+              )}
             </button>
 
-            {/* Divider */}
+            {/* Разделитель */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -488,7 +499,7 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* Login Link */}
+            {/* Ссылка на логин */}
             <Link
               to="/login"
               className="block w-full text-center py-3 border-2 border-green-500 text-green-600 rounded-xl hover:bg-green-50 transition-all duration-300 font-medium"

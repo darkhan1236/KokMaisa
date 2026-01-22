@@ -1,18 +1,19 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';  // Если нужно для перевода в App
+import { useTranslation } from 'react-i18next';
 
 // Импорт страниц
-import  HomePage  from '@/app/components/HomePage';
+import HomePage from '@/app/components/HomePage';
 import { RegisterPage } from '@/app/components/RegisterPage';
 import { LoginPage } from '@/app/components/LoginPage';
 import { ProfileFarmer } from '@/app/components/ProfileFarmer';
 import { ProfileAgronomist } from '@/app/components/ProfileAgronomist';
+import { ResetPassword } from '@/app/components/ResetPassword';
 
-// Импорт контекста аутентификации
+// Импорт контекста
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
-// Компонент для защищённых роутов
+// Защищённый роут
 function ProtectedRoute({ children, allowedTypes }) {
   const { user, loading } = useAuth();
 
@@ -21,7 +22,7 @@ function ProtectedRoute({ children, allowedTypes }) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('loading')}</p>  // Переводим "Загрузка..." через i18n
+          <p className="text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -31,22 +32,22 @@ function ProtectedRoute({ children, allowedTypes }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedTypes && !allowedTypes.includes(user.accountType)) {
-    return <Navigate to="/" replace />;  // Или на /profile/unauthorized, если добавишь
+  if (allowedTypes && !allowedTypes.includes(user.account_type)) {
+    return <Navigate to="/" replace />;
   }
 
   return children;
 }
 
-// Основные роуты
+// Главные роуты
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
-      
-      {/* Защищённые роуты по ролям */}
+
+      {/* Защищённые */}
       <Route
         path="/profile/farmer"
         element={
@@ -63,20 +64,22 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      
-      {/* Опционально: редирект для неизвестных путей */}
+
+      {/* Пока заглушка для профиля (можно позже сделать общий /profile) */}
+      <Route path="/profile" element={<Navigate to="/" replace />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-// Главный компонент App
+// Главный App
 export default function App() {
-  const { t } = useTranslation();  // Если нужно глобально переводить в App
+  const { t } = useTranslation();
 
   return (
     <BrowserRouter>
-      <AuthProvider>  {/* Оборачиваем в провайдер аутентификации */}
+      <AuthProvider>
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
