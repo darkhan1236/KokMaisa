@@ -6,16 +6,20 @@ import { useTranslation } from 'react-i18next';
 import HomePage from '@/app/components/HomePage';
 import { RegisterPage } from '@/app/components/RegisterPage';
 import { LoginPage } from '@/app/components/LoginPage';
-import { ProfileFarmer } from '@/app/components/ProfileFarmer';
-import { ProfileAgronomist } from '@/app/components/ProfileAgronomist';
+import ProfileFarmer from '@/app/components/ProfileFarmer';
+import ProfileAgronomist from '@/app/components/ProfileAgronomist';
+import PasturesPage from '@/app/components/PasturesPage';   
+import DronesPage from '@/app/components/DronesPage';
+import AIChatPage from '@/app/components/AIChatPage';
 import { ResetPassword } from '@/app/components/ResetPassword';
 
-// Импорт контекста
+// Импорт контекста и ProtectedRoute
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
-// Защищённый роут
+// Защищённый роут (у тебя уже есть)
 function ProtectedRoute({ children, allowedTypes }) {
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
 
   if (loading) {
     return (
@@ -46,8 +50,9 @@ function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Защищённые */}
+      {/* Защищённые роуты */}
       <Route
         path="/profile/farmer"
         element={
@@ -65,9 +70,35 @@ function AppRoutes() {
         }
       />
 
-      {/* Пока заглушка для профиля (можно позже сделать общий /profile) */}
+      {/* Новый маршрут для пастбищ — только для фермеров */}
+      <Route
+        path="/pastures"
+        element={
+          <ProtectedRoute allowedTypes={['farmer']}>
+            <PasturesPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Дроны — только для фермеров */}
+      <Route
+        path="/drones"
+        element={
+          <ProtectedRoute allowedTypes={['farmer']}>
+            <DronesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-chat"
+        element={
+          <ProtectedRoute allowedTypes={['farmer', 'agronomist']}>
+            <AIChatPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Заглушки */}
       <Route path="/profile" element={<Navigate to="/" replace />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -75,8 +106,6 @@ function AppRoutes() {
 
 // Главный App
 export default function App() {
-  const { t } = useTranslation();
-
   return (
     <BrowserRouter>
       <AuthProvider>

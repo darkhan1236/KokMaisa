@@ -1,15 +1,24 @@
 {
   "nav": {
-    "about": "About",
     "howItWorks": "How It Works",
     "features": "Features",
     "useCases": "Use Cases",
-    "login": "Login",
-    "register": "Sign Up",
-    "backToHome": "Back to Home",
     "profile": "Profile",
     "myFarms": "My Farms",
-    "logout": "Logout"
+    "myPastures": "My Pastures",
+    "myDrones": "My Drones",
+    "backToHome": "Back to Home",
+    "biomassDashboard": "Biomass Dashboard",
+    "pastureMap": "Pasture Map",
+    "aiConsultant": "AI Consultant",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login",
+    "register": "Register"
+  },
+  "roles": {
+    "farmer": "Farmer",
+    "agronomist": "Agronomist"
   },
   "hero": {
     "title": "AI-Powered Pasture Biomass Assessment",
@@ -171,7 +180,12 @@
     "saving": "Saving...",
     "loading": "Loading...",
     "sending": "Sending...",
-    "close": "Close"
+    "close": "Close",
+    "pleaseLogin": "Please log in",
+    "copy": "Copy",
+    "copied": "Copied",
+    "clearChat": "Clear chat",
+    "send": "Send"
 },
   "countries": {
     "kazakhstan": "Kazakhstan",
@@ -198,6 +212,121 @@
       "almaty_city": "Almaty city",
       "shymkent": "Shymkent city",
       "astana": "Astana city"
+    }
+  },
+  "pastures": {
+    "title": "Pastures",
+    "subtitle": "Monitor pasture condition and biomass",
+    "addPasture": "Add Pasture",
+    "mapTitle": "Pasture Map",
+    "listTitle": "Pasture List",
+    "noPastures": "You don’t have any pastures yet",
+    "addFirstPasture": "Add your first pasture",
+
+    "name": "Pasture Name",
+    "namePlaceholder": "North Pasture",
+    "farm": "Farm",
+    "selectFarm": "Select farm",
+    "area": "Area (ha)",
+
+    "grassType": "Grass Type",
+    "selectGrassType": "Select grass type",
+
+    "coordinates": "GPS Coordinates",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+
+    "growthConditions": "Growth Conditions",
+    "sunlight": "Sunlight",
+    "humidity": "Humidity",
+    "wind": "Wind",
+
+    "good": "Good",
+
+    "biomassTrend": "Biomass Trend",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "thisYear": "This Year",
+
+    "selectPasture": "Select a pasture to view details",
+    "analyzeBiomass": "Analyze Biomass",
+    "confirmDelete": "Are you sure you want to delete this pasture?",
+
+    "grassTypes": {
+      "alfalfa": "Alfalfa",
+      "clover": "Clover",
+      "timothy": "Timothy Grass",
+      "fescue": "Fescue",
+      "brome": "Brome",
+      "wheatgrass": "Wheatgrass",
+      "mixed": "Mixed"
+    },
+
+    "rating": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "average": "Average",
+      "low": "Low"
+    },
+
+    "stats": {
+      "pastures": "Pastures",
+      "hectares": "Hectares",
+      "avgBiomass": "Average Biomass (kg/ha)",
+      "analyses": "Analyses"
+    }
+  },
+  "drones": {
+    "title": "My Drones",
+    "subtitle": "Manage drones for pasture monitoring",
+    "addDrone": "Add Drone",
+    "name": "Drone Name",
+    "namePlaceholder": "My Drone",
+    "model": "Model",
+    "selectModel": "Select Model",
+    "otherModel": "Other Model",
+    "serialNumber": "Serial Number",
+    "confirmDelete": "Are you sure you want to delete this drone?",
+    "active": "Active",
+    "inactive": "Inactive",
+    "battery": "Battery",
+    "signal": "Signal",
+    "good": "Good",
+    "video": "Video",
+    "lastFlight": "Last Flight",
+    "start": "Start",
+    "stop": "Stop",
+    "videoStream": "Video Stream",
+    "connectingStream": "Connecting to video stream...",
+    "ensureDroneConnected": "Make sure the drone is connected to the network",
+    "record": "Record",
+    "screenshot": "Screenshot",
+    "stats": {
+      "total": "Total Drones",
+      "active": "Active",
+      "streams": "Video Streams"
+    },
+    "noDrones": "You don't have any drones yet",
+    "addFirstDrone": "Add your first drone to start pasture monitoring"
+  },
+  "ai": {
+    "title": "AI Consultant",
+    "subtitle": "Agronomy and Pasture Specialist",
+    "welcome": "Hello, {{name}}! I'm KokMaisa AI Consultant.\n\n...",
+    "thinking": "AI is analyzing data...",
+    "inputPlaceholder": "Ask a question about your farm...",
+    "dataUsageNote": "AI uses your farm data for personalized recommendations",
+    "suggestedQuestions": "Popular questions:",
+    "droneAdvice": "Drone monitoring recommendations:\n\n**Best conditions for flight:**\n- Time: 10:00-14:00 (minimal shadows)\n- Weather: no precipitation, wind <10 m/s\n- Altitude: 50-100 m\n\n**Camera settings:**\n- RGB for visual inspection\n- Multispectral for NDVI\n- Resolution: at least 2 cm/pixel\n\nWould you like to schedule an automated flight?",
+    "biomassAdvice": "Based on your farm data, here's the biomass analysis:\n\n**Current status:**\n- Average biomass: ~2,200 kg/ha\n- Level: good\n\n**Recommendations:**\n1. Stocking rate: 1.5-2 heads/ha\n2. Rest period: 25-30 days\n3. Best grazing time: morning hours\n\nWould you like a detailed plan for a specific pasture?",
+    "weatherAdvice": "Weather forecast and pasture impact:\n\n**Current:**\n- Temperature: 22°C\n- Humidity: 65%\n- Precipitation this week: 12 mm\n\n**7-day forecast:**\n- Light rain expected\n- Temperature 18-25°C\n\n**Impact:** Expected biomass growth +8-12%\n\nRecommended: conduct drone survey in the next few days.",
+    "rotationAdvice": "Optimal rotational grazing plan (30-day cycle):\n\n| Week | Pasture     | Action    |\n|------|-------------|-----------|\n| 1    | Northern    | Graze     |\n| 2    | Eastern     | Graze     |\n| 3    | Southern    | Graze     |\n| 4    | Western     | Graze     |\n\n**Principles:** high density, short graze, 21+ days rest.\nWould you like to customize this for your farms?",
+    "defaultResponse": "Thank you for your question! I'm KokMaisa AI Consultant.\n\n**What I can help with:**\n- 🌾 Pasture biomass analysis\n- 📊 Rotational grazing planning\n- 🛰️ Drone monitoring optimization\n- 🌤️ Weather impact assessment\n- 📈 Yield forecasting\n\nAsk anything about your farm — I'll do my best to provide useful recommendations!",
+    "suggestions": {
+      "biomass": "What is the current biomass on my pastures?",
+      "rotation": "How to optimize the grazing rotation plan?",
+      "droneMonitoring": "When is the best time for drone monitoring?",
+      "weatherImpact": "How does weather affect grass growth?"
     }
   }
 }
