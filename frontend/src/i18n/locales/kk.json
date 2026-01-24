@@ -14,7 +14,9 @@
     "settings": "Параметрлер",
     "logout": "Шығу",
     "login": "Кіру",
-    "register": "Тіркелу"
+    "register": "Тіркелу",
+    "assignedFarms": "Тағайындалған фермалар",
+    "assignedPastures": "Тағайындалған жайылымдар"
   },
   "roles": {
     "farmer": "Фермер",
@@ -185,7 +187,39 @@
     "copy": "Көшіру",
     "copied": "Көшірілді",
     "clearChat": "Чатты тазалау",
-    "send": "Жіберу"
+    "send": "Жіберу",
+    "week": "Апта",
+    "month": "Ай",
+    "year": "Жыл",
+    "hectares": "га",
+    "all": "Барлығы",
+    "export": "Экспорт",
+    "refresh": "Жаңарту",
+    "mapLayers": "Карта қабаттары",
+    "filterByStatus": "Күйі бойынша сүзгі",
+    "satellite": "Спутник",
+    "terrain": "Жер бедері",
+    "coordinates": "Координаттар",
+    "notSpecified": "Көрсетілмеген",
+    "moreDetails": "Толығырақ",
+    "saveChanges": "Өзгерістерді сақтау",
+    "saveSettings": "Баптауларды сақтау",
+    "help": "Көмек",
+    "documentation": "Құжаттама",
+    "user": "Пайдаланушы",
+    "login": "Кіру",
+    "home": "Басты бетке",
+    "save": "Сақтау",
+    "cancel": "Бас тарту",
+    "edit": "Өңдеу",
+    "delete": "Жою",
+    "open": "Ашу",
+    "today": "Бүгін",
+    "quickActions": "Жылдам әрекеттер",
+    "statistics": "Статистика",
+    "dateLocale": "kk-KZ",
+    "accessDenied": "Кіруге рұқсат жоқ",
+    "view": "Қарау"
 
   },
   "countries": {
@@ -223,14 +257,14 @@
     "listTitle": "Жайылымдар тізімі",
     "noPastures": "Сізде әзірге жайылымдар жоқ",
     "addFirstPasture": "Алғашқы жайылымды қосыңыз",
-
+    "biomassDashboard": "Биомасса",
     "name": "Жайылым атауы",
     "namePlaceholder": "Солтүстік жайылым",
     "farm": "Ферма",
     "selectFarm": "Ферманы таңдаңыз",
-    "area": "Аумағы (га)",
-
+    "biomass": "Биомасса",
     "grassType": "Шөп түрі",
+    "lastAnalysis": "Соңғы талдау",
     "selectGrassType": "Шөп түрін таңдаңыз",
 
     "coordinates": "GPS координаттары",
@@ -329,5 +363,306 @@
       "droneMonitoring": "Дрондармен мониторингті қашан жасаған дұрыс?",
       "weatherImpact": "Ауа райы шөптің өсуіне қалай әсер етеді?"
     }
+  },
+  "biomass": {
+      "title": "Биомасса дашборды",
+      "subtitle": "Жайылымдарының жағдайы туралы аналитика және өнімділік болжамдары",
+      "avgBiomass": "Орташа биомасса",
+      "unit": "кг/га",
+      "totalArea": "Жалпы аумағы",
+      "plots": "учаскелер",
+      "health": "Денсаулығы",
+      "forecast": "Болжам",
+      "nextMonth": "келесі айға",
+      "growth": "Өсу",
+      "biomassTrend": "Биомасса динамикасы",
+      "trendDescription": "Жыл бойы биомассаның өзгеруі өсімдік беті ескерілгенде",
+      "weeklyTrend": "Аптасына динамика",
+      "weeklyComparison": "Оңтайлы көрсеткіштермен салыстыру",
+      "pastureComparison": "Жайылымдарды салыстыру",
+      "biomassName": "Биомасса (кг/га)",
+      "rainfall": "Жауын-шашын (мм)",
+      "actual": "Нақты",
+      "optimal": "Оңтайлы",
+      "grassTypes": "Шөп түрлері",
+      "distribution": "Түрлер бойынша ағымдарын",
+      "healthIndicators": "Денсаулық көрсеткіштері",
+      "keyMetrics": "Жайылымдардың жағдайының негізгі көрсеткіштері",
+      "index": "индексі",
+      "highVegetation": "Жоғары өсімдіктік қоршау",
+      "soilMoisture": "Топырақ ылғалдылығы",
+      "irrigationNeeded": "Суару қажет",
+      "coverDensity": "Қоршау тығыздығы",
+      "excellentCoverage": "Керемет қоршау",
+      "grassHeight": "Шөп биіктігі",
+      "optimalHeight": "Оңтайлы биіктік",
+      "notifications": "Ескертпелер",
+      "recentEvents": "Соңғы оқиғалар",
+      "lowBiomass": "Төмен биомасса",
+      "eastSlopeAttention": "'Шығыс бөктемесінің' учаскесі назар аудартады",
+      "today": "Бүгін",
+      "optimalGrazing": "Жайылымның оңтайлы уақыты",
+      "riverValleyRecommended": "'Өндіріс өндіктіктеп' учаскесінде жайылымды ұсынамыз",
+      "yesterday": "Кеше",
+      "analysisComplete": "Талдау аяқталды",
+      "allPasturesAnalyzed": "Барлық жайылымдар сәтті талданды",
+      "twoDaysAgo": "2 күн бұрын",
+      "allNotifications": "Барлық ескертпелер",
+      "northField": "Солтүстік өндіктік",
+      "eastSlope": "Шығыс бөктемесі",
+      "riverValley": "Өндіріс өндіктіктеп",
+      "hillyPasture": "Төбелі жайылым",
+      "pasture": "Жайылым",
+      "week1": "Апта 1",
+      "week2": "Апта 2",
+      "week3": "Апта 3",
+      "week4": "Апта 4"
+    },
+    "months": {
+      "jan": "Қаңт",
+      "feb": "Ақп",
+      "mar": "Сәу",
+      "apr": "Сәр",
+      "may": "Мам",
+      "jun": "Мау",
+      "jul": "Шіл",
+      "aug": "Там",
+      "sep": "Қыр",
+      "oct": "Қаз",
+      "nov": "Қар",
+      "dec": "Жел"
+    },
+    "settings": {
+    "title": "Баптаулар",
+    "subtitle": "Профиль мен қолданба баптауларын басқару",
+    "pleaseLogin": "Жүйеге кіріңіз",
+    "quickActions": "Жылдам әрекеттер",
+
+    "tabs": {
+      "profile": "Профиль",
+      "notifications": "Хабарламалар",
+      "display": "Көрсету",
+      "security": "Қауіпсіздік",
+      "data": "Деректер"
+    },
+
+    "profile": {
+      "title": "Пайдаланушы профилі",
+      "description": "Жеке деректер мен байланыс ақпаратын басқару",
+      "fullName": "Толық аты-жөні",
+      "fullNamePlaceholder": "Атыңызды енгізіңіз",
+      "email": "Email",
+      "phone": "Телефон",
+      "address": "Мекенжай",
+      "addressPlaceholder": "Қала, облыс",
+      "bio": "Өзіңіз туралы",
+      "bioPlaceholder": "Өзіңіз туралы қысқаша жазыңыз..."
+    },
+
+    "notifications": {
+      "title": "Хабарламалар",
+      "description": "Хабарламаларды алу тәсілдерін баптау",
+      "channels": "Хабарлама арналары",
+      "types": "Хабарлама түрлері",
+
+      "email": "Email хабарламалар",
+      "emailDesc": "Хабарламаларды пошта арқылы алу",
+
+      "push": "Push хабарламалар",
+      "pushDesc": "Браузердегі хабарламалар",
+
+      "drone": "Дрон хабарламалары",
+      "droneDesc": "Ұшу күйі және техникалық ескертулер",
+
+      "biomass": "Биомасса хабарламалары",
+      "biomassDesc": "Жайылым жағдайының өзгеруі",
+
+      "weather": "Ауа райы хабарламалары",
+      "weatherDesc": "Ауа райы болжамы мен ескертулер",
+
+      "weeklyReport": "Апталық есеп",
+      "weeklyReportDesc": "Апталық қорытынды email арқылы"
+    },
+
+    "display": {
+      "title": "Көрсету",
+      "description": "Сыртқы түрі мен тілді баптау",
+      "theme": "Тақырып",
+      "light": "Жарық",
+      "dark": "Қараңғы",
+      "system": "Жүйелік",
+      "language": "Тіл",
+      "mapStyle": "Карта стилі",
+      "units": "Өлшем бірліктері"
+    },
+
+    "security": {
+      "title": "Қауіпсіздік",
+      "description": "Аккаунт қауіпсіздігі баптаулары",
+      "changePassword": "Құпиясөзді өзгерту",
+      "lastChanged": "Соңғы өзгеріс: {{time}}",
+      "change": "Өзгерту"
+    },
+
+    "data": {
+      "title": "Деректер",
+      "description": "Деректерді импорттау және экспорттау",
+      "export": "Деректерді экспорттау",
+      "exportDesc": "Барлық деректерді жүктеу",
+      "exportBtn": "Экспорттау",
+
+      "import": "Деректерді импорттау",
+      "importDesc": "Деректерді жүйеге жүктеу",
+      "importBtn": "Импорттау"
+    },
+
+    "dangerZone": {
+      "title": "Қауіпті аймақ",
+      "description": "Қайтарылмайтын әрекеттер",
+      "deleteAccount": "Аккаунтты жою",
+      "deleteWarning": "Бұл әрекетті кері қайтару мүмкін емес",
+      "deleteBtn": "Жою"
+    }
+  },
+  "languages": {
+    "ru": "Орысша",
+    "kk": "Қазақша",
+    "en": "Ағылшынша"
+  },
+
+  "mapStyles": {
+    "satellite": "Спутник",
+    "terrain": "Жер бедері",
+    "street": "Сызба"
+  },
+
+  "units": {
+    "metric": "Метрлік (км, га, кг)",
+    "imperial": "Империялық (миля, акр, фунт)"
+  },
+  "profile": {
+    "farms": {
+      "title": "Менің фермаларым",
+      "mapTitle": "Фермалар картасы",
+      "addFarm": "Ферма қосу",
+      "newFarm": "Жаңа ферма",
+      "name": "Ферма атауы",
+      "namePlaceholder": "Менің фермам",
+      "location": "Орналасқан жері",
+      "locationPlaceholder": "Аудан, облыс",
+      "area": "Аумағы",
+      "gpsCoordinates": "GPS координаттары",
+      "latitude": "Ендік",
+      "longitude": "Бойлық",
+      "selectOnMap": "Картадан орынды таңдаңыз",
+      "confirmDelete": "Бұл ферманы жойғыңыз келетініне сенімдісіз бе?",
+      "empty": {
+        "title": "Сізде әзірге фермалар жоқ",
+        "description": "Жұмысты бастау үшін алғашқы фермаңызды қосыңыз"
+      }
+    },
+    "pleaseLogin": "Жүйеге кіріңіз",
+    "stats": {
+      "assignedFarms": "Тағайындалған фермалар",
+      "analyses": "Талдаулар",
+      "specializations": "Мамандану бағыттары",
+      "reports": "Есептер",
+      "farms": "Фермалар",
+      "pastures": "Жайылымдар",
+      "drones": "Дрондар",
+      "hectares": "Гектар"
+    },
+    "contactInfo": {
+      "title": "Байланыс ақпараты"
+    },
+    "professionalInfo": {
+      "title": "Кәсіби ақпарат",
+      "education": "Білімі",
+      "specializations": "Мамандану бағыттары"
+    },
+    "quickActions": {
+      "title": "Жылдам әрекеттер",
+      "pastureAnalysis": "Жайылымды талдау",
+      "biomassDashboard": "Биомасса дашборды",
+      "aiConsultant": "AI кеңесші",
+      "managePastures": "Жайылымдарды басқару",
+      "myDrones": "Менің дрондарым",
+      "biomassAnalysis": "Биомассаны талдау"
+    },
+    "assignedFarms": {
+      "title": "Тағайындалған фермалар",
+      "description": "Сізге қолжетімді фермалар",
+      "area": "Аумағы",
+      "owner": "Иесі",
+      "empty": {
+        "title": "Сізде әзірге тағайындалған фермалар жоқ",
+        "description": "Фермерлер сізді өз шаруашылықтарына бірлесіп жұмыс істеуге шақыра алады"
+      }
+    },
+    "recentActivity": {
+      "title": "Соңғы белсенділік",
+      "welcome": {
+        "title": "KokMaisa-ға қош келдіңіз",
+        "message": "Сіздің агроном аккаунтыңыз сәтті құрылды. Фермерлерден бірлесіп жұмыс істеу үшін шақыруларды күтіңіз."
+      }
+    }
+  },
+  "education": {
+    "bachelor": "Бакалавр",
+    "master": "Магистр",
+    "phd": "PhD",
+    "doctorate": "Докторантура"
+  },
+  "specializations": {
+    "agronomy": "Агрономия",
+    "livestock": "Мал шаруашылығы",
+    "soilScience": "Топырақтану",
+    "plantProtection": "Өсімдіктерді қорғау",
+    "pasture": "Жайылым шаруашылығы"
+  },
+  "farms": {
+    "title": "Менің фермаларым",
+    "subtitle": "Сіздің ауыл шаруашылық нысандарыңызды басқару",
+    "addFarm": "Ферма қосу",
+    "editFarm": "Ферманы өңдеу",
+    "mapTitle": "Сіздің фермаларыңыздың картасы",
+    "listTitle": "Фермалар тізімі",
+    "name": "Ферма атауы",
+    "namePlaceholder": "Жасыл Аңғар фермасы",
+    "region": "Облыс",
+    "selectRegion": "Облысты таңдаңыз",
+    "regionNotSpecified": "Облыс көрсетілмеген",
+    "area": "Ауданы",
+    "address": "Мекенжайы",
+    "addressPlaceholder": "Алматы облысы, Қаскелең ауылы",
+    "phone": "Телефон",
+    "description": "Сипаттама",
+    "descriptionPlaceholder": "Ферманың қысқаша сипаттамасы...",
+    "gpsCoordinates": "GPS координаттары",
+    "latitude": "Ендік",
+    "longitude": "Бұрыш",
+    "confirmDelete": "Бұл ферманы жоюға сенімдісіз бе?",
+    "empty": {
+      "title": "Сізде әзірге ферма жоқ"
+    },
+    "addFirstFarm": "Бірінші ферманы қосу",
+    "stats": {
+      "farms": "Фермалар",
+      "hectares": "Гектар",
+      "pastures": "Жайылымдар",
+      "regions": "Облыстар"
+    },
+    "pasturesCount": "Жайылымдар",
+    "location": "Орналасуы",
+    "withoutRegion": "Облыссыз",
+    "farmsCount": "ферма"
+  },
+  "pasturesAnalysis": {
+    "title": "Жайылымдарды талдау",
+    "subtitle": "Тағайындалған жайылымдарды қарау және талдау",
+    "noAssignedPastures": "Сізге әзірге жайылымдар тағайындалмаған",
+    "selectPasture": "Толық мәліметтерді қарау үшін жайылымды таңдаңыз",
+    "analyze": "Талдау жүргізу",
+    "startAnalysis": "Талдау басталды (тест)"
   }
 }

@@ -1,8 +1,8 @@
 // src/app/components/ProfileAgronomist.jsx
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
-import Header from "@/app/components/Header"; // ← твой глобальный Header с меню профиля
+import { useTranslation } from 'react-i18next';
+import Header from "@/app/components/Header";
 import {
   User,
   MapPin,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 export default function ProfileAgronomist() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -26,12 +27,14 @@ export default function ProfileAgronomist() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md mx-4">
-          <p className="text-gray-600 mb-6 text-lg">Пожалуйста, войдите в систему</p>
+          <p className="text-gray-600 mb-6 text-lg">
+            {t('profile.pleaseLogin')}
+          </p>
           <button
             onClick={() => navigate("/login")}
             className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-xl"
           >
-            Войти
+            {t('nav.login')}
           </button>
         </div>
       </div>
@@ -40,27 +43,28 @@ export default function ProfileAgronomist() {
 
   const assignedFarms = user?.profile?.assignedFarms || [];
 
+  // Можно оставить маппинг на русском, если это официальные термины в Казахстане
+  // Или полностью перевести через i18n — здесь оставлен гибридный подход
   const educationLabels = {
-    bachelor: "Бакалавр",
-    master: "Магистр",
-    phd: "Кандидат наук",
-    doctorate: "Доктор наук",
+    bachelor:   t('education.bachelor'),
+    master:     t('education.master'),
+    phd:        t('education.phd'),
+    doctorate:  t('education.doctorate'),
   };
 
   const specializationLabels = {
-    agronomy: "Агрономия",
-    livestock: "Животноводство",
-    soilScience: "Почвоведение",
-    plantProtection: "Защита растений",
-    pasture: "Пастбищное хозяйство",
+    agronomy:        t('specializations.agronomy'),
+    livestock:       t('specializations.livestock'),
+    soilScience:     t('specializations.soilScience'),
+    plantProtection: t('specializations.plantProtection'),
+    pasture:         t('specializations.pasture'),
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Глобальный Header с меню профиля и LanguageSwitcher */}
       <Header />
 
-      {/* Hero Section — точь-в-точь как в Vercel */}
+      {/* Hero */}
       <div className="relative pt-20 pb-32 bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700">
         <div
           className="absolute inset-0 pointer-events-none"
@@ -76,18 +80,18 @@ export default function ProfileAgronomist() {
             </div>
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-                {user.full_name || "Агроном"}
+                {user.full_name || t('roles.agronomist')}
               </h1>
               <p className="text-white/90 text-xl">{user.email}</p>
               <span className="inline-block mt-4 px-5 py-2 bg-white/25 text-white rounded-full text-lg font-medium backdrop-blur-sm">
-                Агроном
+                {t('roles.agronomist')}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards — наложены поверх hero */}
+      {/* Stats */}
       <div className="max-w-7xl mx-auto px-6 -mt-24 md:-mt-20 relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
@@ -97,7 +101,7 @@ export default function ProfileAgronomist() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{assignedFarms.length}</p>
-                <p className="text-sm text-gray-600">Назначено ферм</p>
+                <p className="text-sm text-gray-600">{t('profile.stats.assignedFarms')}</p>
               </div>
             </div>
           </div>
@@ -109,7 +113,7 @@ export default function ProfileAgronomist() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">0</p>
-                <p className="text-sm text-gray-600">Анализов</p>
+                <p className="text-sm text-gray-600">{t('profile.stats.analyses')}</p>
               </div>
             </div>
           </div>
@@ -123,7 +127,7 @@ export default function ProfileAgronomist() {
                 <p className="text-3xl font-bold text-gray-900">
                   {user.specializations?.length || 0}
                 </p>
-                <p className="text-sm text-gray-600">Специализаций</p>
+                <p className="text-sm text-gray-600">{t('profile.stats.specializations')}</p>
               </div>
             </div>
           </div>
@@ -135,7 +139,7 @@ export default function ProfileAgronomist() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">0</p>
-                <p className="text-sm text-gray-600">Отчётов</p>
+                <p className="text-sm text-gray-600">{t('profile.stats.reports')}</p>
               </div>
             </div>
           </div>
@@ -147,9 +151,11 @@ export default function ProfileAgronomist() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column */}
           <div className="space-y-6">
-            {/* Contact Info */}
+            {/* Контакты */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-5">Контактная информация</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-5">
+                {t('profile.contactInfo.title')}
+              </h3>
               <div className="space-y-5">
                 <div className="flex items-center gap-4">
                   <Mail className="w-6 h-6 text-gray-500" />
@@ -157,33 +163,33 @@ export default function ProfileAgronomist() {
                 </div>
                 <div className="flex items-center gap-4">
                   <Phone className="w-6 h-6 text-gray-500" />
-                  <span className="text-gray-900">{user.phone || "Не указан"}</span>
+                  <span className="text-gray-900">{user.phone || t('common.notSpecified')}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <MapPin className="w-6 h-6 text-gray-500" />
                   <span className="text-gray-900">
-                    {user.city || "Не указано"}, {user.country || "Казахстан"}
+                    {user.city || t('common.notSpecified')}, {user.country || t('countries.kazakhstan')}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Professional Info */}
+            {/* Профессиональная информация */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-3">
                 <GraduationCap className="w-6 h-6 text-blue-600" />
-                Профессиональная информация
+                {t('profile.professionalInfo.title')}
               </h3>
               <div className="space-y-6">
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">Образование</p>
+                  <p className="text-sm text-gray-600 mb-2">{t('profile.professionalInfo.education')}</p>
                   <p className="text-gray-900 font-medium flex items-center gap-3">
                     <Award className="w-5 h-5 text-blue-600" />
-                    {educationLabels[user.education] || user.education || "Не указано"}
+                    {educationLabels[user.education] || user.education || t('common.notSpecified')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-3">Специализации</p>
+                  <p className="text-sm text-gray-600 mb-3">{t('profile.professionalInfo.specializations')}</p>
                   <div className="flex flex-wrap gap-2">
                     {user.specializations?.length ? (
                       user.specializations.map((spec) => (
@@ -195,35 +201,37 @@ export default function ProfileAgronomist() {
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-500">Не указаны</span>
+                      <span className="text-gray-500">{t('common.notSpecified')}</span>
                     )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Быстрые действия */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-5">Быстрые действия</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-5">
+                {t('profile.quickActions.title')}
+              </h3>
               <div className="space-y-3">
                 <Link
-                  to="/pastures"
+                  to="/pastures-analysis"
                   className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
                 >
                   <div className="flex items-center gap-4">
                     <Wheat className="w-6 h-6 text-amber-600" />
-                    <span className="text-gray-900 font-medium">Анализ пастбищ</span>
+                    <span className="text-gray-900 font-medium">{t('profile.quickActions.pastureAnalysis')}</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
                 </Link>
 
                 <Link
-                  to="/dashboard/biomass"
+                  to="/biomass-dashboard"
                   className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
                 >
                   <div className="flex items-center gap-4">
                     <BarChart3 className="w-6 h-6 text-purple-600" />
-                    <span className="text-gray-900 font-medium">Дашборд биомассы</span>
+                    <span className="text-gray-900 font-medium">{t('profile.quickActions.biomassDashboard')}</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
                 </Link>
@@ -234,7 +242,7 @@ export default function ProfileAgronomist() {
                 >
                   <div className="flex items-center gap-4">
                     <FileText className="w-6 h-6 text-green-600" />
-                    <span className="text-gray-900 font-medium">AI Консультант</span>
+                    <span className="text-gray-900 font-medium">{t('profile.quickActions.aiConsultant')}</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
                 </Link>
@@ -244,15 +252,15 @@ export default function ProfileAgronomist() {
 
           {/* Right Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Assigned Farms */}
+            {/* Назначенные фермы */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-2xl font-semibold text-gray-900">
-                    Назначенные фермы
+                    {t('profile.assignedFarms.title')}
                   </h3>
                   <p className="text-gray-600 mt-2">
-                    Фермы, к которым у вас есть доступ
+                    {t('profile.assignedFarms.description')}
                   </p>
                 </div>
               </div>
@@ -261,10 +269,10 @@ export default function ProfileAgronomist() {
                 <div className="text-center py-20 bg-gray-50 rounded-2xl">
                   <Briefcase className="w-20 h-20 text-gray-400 mx-auto mb-6" />
                   <p className="text-xl text-gray-700 mb-3">
-                    У вас пока нет назначенных ферм
+                    {t('profile.assignedFarms.empty.title')}
                   </p>
                   <p className="text-gray-500 max-w-md mx-auto">
-                    Фермеры могут пригласить вас для сотрудничества на их объектах
+                    {t('profile.assignedFarms.empty.description')}
                   </p>
                 </div>
               ) : (
@@ -282,20 +290,20 @@ export default function ProfileAgronomist() {
                           <div className="space-y-2 text-gray-600">
                             <p className="flex items-center gap-3">
                               <MapPin className="w-5 h-5 text-gray-500" />
-                              {farm.location || "Не указано"}
+                              {farm.location || t('common.notSpecified')}
                             </p>
                             {farm.area && (
                               <p>
-                                Площадь:{" "}
+                                {t('profile.assignedFarms.area')}:{' '}
                                 <span className="text-gray-900 font-medium">
-                                  {farm.area} га
+                                  {farm.area} {t('units.ha')}
                                 </span>
                               </p>
                             )}
                             {farm.owner && (
                               <p className="flex items-center gap-3">
                                 <User className="w-5 h-5 text-gray-500" />
-                                Владелец: {farm.owner}
+                                {t('profile.assignedFarms.owner')}: {farm.owner}
                               </p>
                             )}
                           </div>
@@ -304,7 +312,7 @@ export default function ProfileAgronomist() {
                           to={`/farms/${farm.id}`}
                           className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm hover:shadow-md whitespace-nowrap mt-4 sm:mt-0"
                         >
-                          Открыть
+                          {t('common.open')}
                         </Link>
                       </div>
                     </div>
@@ -313,10 +321,10 @@ export default function ProfileAgronomist() {
               )}
             </div>
 
-            {/* Recent Activity */}
+            {/* Последняя активность */}
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
               <h3 className="text-2xl font-semibold text-gray-900 mb-8">
-                Последняя активность
+                {t('profile.recentActivity.title')}
               </h3>
               <div className="space-y-6">
                 <div className="flex items-start gap-5 p-6 bg-gray-50 rounded-2xl">
@@ -325,12 +333,14 @@ export default function ProfileAgronomist() {
                   </div>
                   <div>
                     <p className="text-lg font-medium text-gray-900 mb-1">
-                      Добро пожаловать в KokMaisa
+                      {t('profile.recentActivity.welcome.title')}
                     </p>
                     <p className="text-gray-600">
-                      Ваш аккаунт агронома успешно создан. Ожидайте приглашений от фермеров для совместной работы.
+                      {t('profile.recentActivity.welcome.message')}
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">Сегодня</p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      {t('common.today')}
+                    </p>
                   </div>
                 </div>
               </div>

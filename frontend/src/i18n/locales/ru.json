@@ -14,7 +14,9 @@
     "settings": "Настройки",
     "logout": "Выход",
     "login": "Войти",
-    "register": "Регистрация"
+    "register": "Регистрация",
+    "assignedFarms": "Назначенные фермы",
+    "assignedPastures": "Назначенные пастбища"
   },
   "hero": {
     "title": "Оценка биомассы пастбищ с помощью ИИ",
@@ -185,8 +187,39 @@
     "copied": "Скопировано",
     "clearChat": "Очистить чат",
     "send": "Отправить",
-    "pleaseLogin": "Войдите в систему"
-
+    "pleaseLogin": "Войдите в систему",
+    "week": "Неделя",
+    "month": "Месяц",
+    "year": "Год",
+    "hectares": "га",
+    "all": "Все",
+    "export": "Экспорт",
+    "refresh": "Обновить",
+    "mapLayers": "Слои карты",
+    "filterByStatus": "Фильтр по состоянию",
+    "satellite": "Спутник",
+    "terrain": "Рельеф",
+    "coordinates": "Координаты",
+    "notSpecified": "Не указано",
+    "moreDetails": "Подробнее",
+    "saveChanges": "Сохранить изменения",
+    "saveSettings": "Сохранить настройки",
+    "help": "Справка",
+    "documentation": "Документация",
+    "user": "Пользователь",
+    "open": "Открыть",
+    "today": "Сегодня",
+    "login": "Войти",
+    "home": "На главную",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "quickActions": "Быстрые действия",
+    "statistics": "Статистика",
+    "dateLocale": "ru-RU",
+    "accessDenied": "Доступ запрещён",
+    "view": "Просмотр"
   },
   "countries": {
     "kazakhstan": "Казахстан",
@@ -216,6 +249,8 @@
     }
   },
   "pastures": {
+    "biomass": "Биомасса",
+    "lastAnalysis": "Последний анализ",
     "title": "Пастбища",
     "subtitle": "Мониторинг состояния пастбищ и биомассы",
     "addPasture": "Добавить пастбище",
@@ -223,7 +258,7 @@
     "listTitle": "Список пастбищ",
     "noPastures": "У вас пока нет пастбищ",
     "addFirstPasture": "Добавьте первое пастбище",
-
+    "biomassDashboard": "Биомасса",
     "name": "Название пастбища",
     "namePlaceholder": "Северное пастбище",
     "farm": "Ферма",
@@ -329,5 +364,303 @@
       "droneMonitoring": "Когда лучше проводить мониторинг дронами?",
       "weatherImpact": "Как погода влияет на рост травы?"
     }
+  },
+  "biomass": {
+      "title": "Дашборд биомассы",
+      "subtitle": "Аналитика состояния пастбищ и прогнозы урожайности",
+      "avgBiomass": "Средняя биомасса",
+      "unit": "кг/га",
+      "totalArea": "Общая площадь",
+      "plots": "участков",
+      "health": "Здоровье",
+      "forecast": "Прогноз",
+      "nextMonth": "на след. мес.",
+      "growth": "Рост",
+      "biomassTrend": "Динамика биомассы",
+      "trendDescription": "Изменение биомассы за год с учетом осадков",
+      "weeklyTrend": "Недельная динамика",
+      "weeklyComparison": "Сравнение с оптимальными показателями",
+      "pastureComparison": "Сравнение пастбищ",
+      "biomassName": "Биомасса (кг/га)",
+      "rainfall": "Осадки (мм)",
+      "actual": "Фактическая",
+      "optimal": "Оптимальная",
+      "grassTypes": "Типы трав",
+      "distribution": "Распределение по видам",
+      "healthIndicators": "Показатели здоровья",
+      "keyMetrics": "Ключевые метрики состояния пастбищ",
+      "index": "индекс",
+      "highVegetation": "Высокая вегетация",
+      "soilMoisture": "Влажность почвы",
+      "irrigationNeeded": "Требуется полив",
+      "coverDensity": "Плотность покрова",
+      "excellentCoverage": "Отличное покрытие",
+      "grassHeight": "Высота травы",
+      "optimalHeight": "Оптимальная высота",
+      "notifications": "Уведомления",
+      "recentEvents": "Последние события",
+      "lowBiomass": "Низкая биомасса",
+      "eastSlopeAttention": "Участок 'Восточный склон' требует внимания",
+      "today": "Сегодня",
+      "optimalGrazing": "Оптимальное время для выпаса",
+      "riverValleyRecommended": "Рекомендуется выпас на участке 'Долина реки'",
+      "yesterday": "Вчера",
+      "analysisComplete": "Анализ завершен",
+      "allPasturesAnalyzed": "Все пастбища проанализированы успешно",
+      "twoDaysAgo": "2 дня назад",
+      "allNotifications": "Все уведомления",
+      "northField": "Северное поле",
+      "eastSlope": "Восточный склон",
+      "riverValley": "Долина реки",
+      "hillyPasture": "Холмистое пастбище",
+      "pasture": "Пастбище",
+      "week1": "Нед 1",
+      "week2": "Нед 2",
+      "week3": "Нед 3",
+      "week4": "Нед 4"
+    },
+    "months": {
+      "jan": "Янв",
+      "feb": "Фев",
+      "mar": "Мар",
+      "apr": "Апр",
+      "may": "Май",
+      "jun": "Июн",
+      "jul": "Июл",
+      "aug": "Авг",
+      "sep": "Сен",
+      "oct": "Окт",
+      "nov": "Ноя",
+      "dec": "Дек"
+    },
+    "settings": {
+    "title": "Настройки",
+    "subtitle": "Управление профилем и настройками приложения",
+    "pleaseLogin": "Войдите в систему",
+    "quickActions": "Быстрые действия",
+
+    "tabs": {
+      "profile": "Профиль",
+      "notifications": "Уведомления",
+      "display": "Отображение",
+      "security": "Безопасность",
+      "data": "Данные"
+    },
+
+    "profile": {
+      "title": "Профиль пользователя",
+      "description": "Управление личными данными и контактной информацией",
+      "fullName": "Полное имя",
+      "fullNamePlaceholder": "Введите имя",
+      "email": "Email",
+      "phone": "Телефон",
+      "address": "Адрес",
+      "addressPlaceholder": "Город, область",
+      "bio": "О себе",
+      "bioPlaceholder": "Расскажите немного о себе..."
+    },
+
+    "notifications": {
+      "title": "Уведомления",
+      "description": "Настройте способы получения уведомлений",
+      "channels": "Каналы уведомлений",
+      "types": "Типы уведомлений",
+
+      "email": "Email уведомления",
+      "emailDesc": "Получать уведомления на почту",
+
+      "push": "Push-уведомления",
+      "pushDesc": "Уведомления в браузере",
+
+      "drone": "Уведомления о дронах",
+      "droneDesc": "Статус полетов и технические оповещения",
+
+      "biomass": "Уведомления о биомассе",
+      "biomassDesc": "Изменения состояния пастбищ",
+
+      "weather": "Погодные уведомления",
+      "weatherDesc": "Прогноз погоды и предупреждения",
+
+      "weeklyReport": "Еженедельный отчет",
+      "weeklyReportDesc": "Сводка за неделю на email"
+    },
+
+    "display": {
+      "title": "Отображение",
+      "description": "Настройки внешнего вида и языка",
+      "theme": "Тема",
+      "light": "Светлая",
+      "dark": "Тёмная",
+      "system": "Системная",
+      "language": "Язык",
+      "mapStyle": "Стиль карты",
+      "units": "Единицы измерения"
+    },
+
+    "security": {
+      "title": "Безопасность",
+      "description": "Настройки безопасности аккаунта",
+      "changePassword": "Сменить пароль",
+      "lastChanged": "Последнее изменение: {{time}}",
+      "change": "Изменить"
+    },
+
+    "data": {
+      "title": "Данные",
+      "description": "Импорт и экспорт пользовательских данных",
+      "export": "Экспорт данных",
+      "exportDesc": "Скачать все ваши данные",
+      "exportBtn": "Экспортировать",
+
+      "import": "Импорт данных",
+      "importDesc": "Загрузить данные в систему",
+      "importBtn": "Импортировать"
+    },
+
+    "dangerZone": {
+      "title": "Опасная зона",
+      "description": "Необратимые действия",
+      "deleteAccount": "Удалить аккаунт",
+      "deleteWarning": "Это действие нельзя отменить",
+      "deleteBtn": "Удалить"
+    }
+  },
+  "languages": {
+    "ru": "Русский",
+    "kk": "Қазақша",
+    "en": "English"
+  },
+  "mapStyles": {
+    "satellite": "Спутник",
+    "terrain": "Рельеф",
+    "street": "Схема"
+  },
+  "units": {
+    "metric": "Метрическая (км, га, кг)",
+    "imperial": "Имперская (мили, акры, фунты)"
+  },
+  "profile": {
+    "farms": {
+      "title": "Мои фермы",
+      "mapTitle": "Карта ферм",
+      "addFarm": "Добавить ферму",
+      "newFarm": "Новая ферма",
+      "name": "Название фермы",
+      "namePlaceholder": "Моя ферма",
+      "location": "Местоположение",
+      "locationPlaceholder": "Район, область",
+      "area": "Площадь",
+      "gpsCoordinates": "GPS координаты",
+      "latitude": "Широта",
+      "longitude": "Долгота",
+      "selectOnMap": "Выберите местоположение на карте",
+      "confirmDelete": "Вы уверены, что хотите удалить эту ферму?",
+      "empty": {
+        "title": "У вас пока нет ферм",
+        "description": "Добавьте свою первую ферму, чтобы начать работу"
+      }},
+    "pleaseLogin": "Пожалуйста, войдите в систему",
+    "stats": {
+      "assignedFarms": "Назначено ферм",
+      "analyses": "Анализов",
+      "specializations": "Специализаций",
+      "reports": "Отчётов",
+      "farms": "Ферм",
+      "pastures": "Пастбищ",
+      "drones": "Дронов",
+      "hectares": "Гектаров"
+    },
+    "contactInfo": {
+      "title": "Контактная информация"
+    },
+    "professionalInfo": {
+      "title": "Профессиональная информация",
+      "education": "Образование",
+      "specializations": "Специализации"
+    },
+    "quickActions": {
+      "title": "Быстрые действия",
+      "pastureAnalysis": "Анализ пастбищ",
+      "biomassDashboard": "Дашборд биомассы",
+      "aiConsultant": "AI Консультант",
+      "managePastures": "Управление пастбищами",
+      "myDrones": "Мои дроны",
+      "biomassAnalysis": "Анализ биомассы"
+    },
+    "assignedFarms": {
+      "title": "Назначенные фермы",
+      "description": "Фермы, к которым у вас есть доступ",
+      "area": "Площадь",
+      "owner": "Владелец",
+      "empty": {
+        "title": "У вас пока нет назначенных ферм",
+        "description": "Фермеры могут пригласить вас для сотрудничества на их объектах"
+      }
+    },
+    "recentActivity": {
+      "title": "Последняя активность",
+      "welcome": {
+        "title": "Добро пожаловать в KokMaisa",
+        "message": "Ваш аккаунт агронома успешно создан. Ожидайте приглашений от фермеров для совместной работы."
+      }
+    }
+  },
+  "education": {
+    "bachelor": "Бакалавр",
+    "master": "Магистр",
+    "phd": "Кандидат наук",
+    "doctorate": "Доктор наук"
+  },
+  "specializations": {
+    "agronomy": "Агрономия",
+    "livestock": "Животноводство",
+    "soilScience": "Почвоведение",
+    "plantProtection": "Защита растений",
+    "pasture": "Пастбищное хозяйство"
+  },
+  "farms": {
+    "title": "Мои фермы",
+    "subtitle": "Управление вашими сельскохозяйственными объектами",
+    "addFarm": "Добавить ферму",
+    "editFarm": "Редактировать ферму",
+    "mapTitle": "Карта ваших ферм",
+    "listTitle": "Список ферм",
+    "name": "Название фермы",
+    "namePlaceholder": "Ферма Зеленая Долина",
+    "region": "Регион",
+    "selectRegion": "Выберите регион",
+    "regionNotSpecified": "Регион не указан",
+    "area": "Площадь",
+    "address": "Адрес",
+    "addressPlaceholder": "Алматинская область, с. Каскелен",
+    "phone": "Телефон",
+    "description": "Описание",
+    "descriptionPlaceholder": "Краткое описание фермы...",
+    "gpsCoordinates": "GPS координаты",
+    "latitude": "Широта",
+    "longitude": "Долгота",
+    "confirmDelete": "Вы уверены, что хотите удалить эту ферму?",
+    "empty": {
+      "title": "У вас пока нет ферм",
+      "addFirstFarm": "Добавить первую ферму"
+    },
+    "stats": {
+      "farms": "Ферм",
+      "hectares": "Гектаров",
+      "pastures": "Пастбищ",
+      "regions": "Регионов"
+    },
+    "pasturesCount": "Пастбищ",
+    "location": "Расположение",
+    "withoutRegion": "Без региона",
+    "farmsCount": "ферм"
+  },
+  "pasturesAnalysis": {
+    "title": "Анализ пастбищ",
+    "subtitle": "Просмотр и анализ назначенных пастбищ",
+    "noAssignedPastures": "Вам пока не назначены пастбища",
+    "selectPasture": "Выберите пастбище для просмотра деталей",
+    "analyze": "Провести анализ",
+    "startAnalysis": "Анализ запущен (заглушка)"
   }
 }

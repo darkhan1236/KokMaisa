@@ -144,7 +144,7 @@ export default function PasturesPage() {
             opacity: 0.3,
           }}
         />
-        <div className="relative max-w-7xl mx-auto px-6 pt-12">
+        <div className="relative max-w-7xl mb-10 mx-auto px-6 pt-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">

@@ -23,7 +23,6 @@ export default function Header() {
   const { user, logout } = useAuth();
   const userMenuRef = useRef(null);
 
-  // Показываем navLinks ТОЛЬКО на главной странице
   const isHomePage = location.pathname === "/";
   const navLinks = isHomePage ? [
     { label: t('nav.howItWorks'), href: "#how-it-works" },
@@ -71,18 +70,46 @@ export default function Header() {
     return "/profile";
   };
 
-  // Меню пользователя — все переводы через nav.*
+  // Определяем, является ли пользователь агрономом
+  const isAgronomist = user?.account_type === "agronomist";
+
+  // Меню пользователя — адаптируем под тип аккаунта
   const userMenuItems = [
-    { label: t('nav.profile'),          icon: User,              href: getProfilePath(),     color: "text-primary" },
-    { label: t('nav.myFarms'),          icon: LandPlot,          href: "/farms",             color: "text-primary" },
-    { label: t('nav.myPastures'),       icon: Wheat,             href: "/pastures",          color: "text-primary" },
-    { label: t('nav.myDrones'),         icon: Plane,             href: "/drones",            color: "text-primary" },
+    { label: t('nav.profile'), icon: User, href: getProfilePath(), color: "text-primary" },
+
+    // Фермы
+    {
+      label: isAgronomist ? t('nav.assignedFarms') : t('nav.myFarms'),
+      icon: LandPlot,
+      href: "/farms",
+      color: "text-primary"
+    },
+
+    // Пастбища
+    {
+      label: isAgronomist ? t('nav.assignedPastures') : t('nav.myPastures'),
+      icon: Wheat,
+      href: isAgronomist ? "/pastures-analysis" : "/pastures",
+      color: "text-primary"
+    },
+
+    // Дроны — только для фермера
+    ...(!isAgronomist ? [{
+      label: t('nav.myDrones'),
+      icon: Plane,
+      href: "/drones",
+      color: "text-primary"
+    }] : []),
+
     { type: "divider" },
-    { label: t('nav.biomassDashboard'), icon: BarChart3,         href: "/dashboard/biomass", color: "text-amber-600" },
-    { label: t('nav.pastureMap'),       icon: Map,               href: "/dashboard/map",     color: "text-amber-600" },
+
+    { label: t('nav.biomassDashboard'), icon: BarChart3, href: "/biomass-dashboard", color: "text-amber-600" },
+    { label: t('nav.pastureMap'), icon: Map, href: "/pastures-map", color: "text-amber-600" },
+
     { type: "divider" },
-    { label: t('nav.aiConsultant'),     icon: MessageSquareText, href: "/ai-chat",          color: "text-blue-600" },
-    { label: t('nav.settings'),         icon: Settings,          href: "/settings",          color: "text-muted-foreground" },
+
+    { label: t('nav.aiConsultant'), icon: MessageSquareText, href: "/ai-chat", color: "text-blue-600" },
+    { label: t('nav.settings'), icon: Settings, href: "/settings", color: "text-muted-foreground" },
   ];
 
   return (
@@ -147,7 +174,7 @@ export default function Header() {
                     <User className="w-4 h-4 text-white" />
                   </div>
                   <span className="font-medium max-w-32 truncate">
-                    {user.full_name || user.email?.split("@")[0] || "Пользователь"}
+                    {user.full_name || user.email?.split("@")[0] || t('common.user')}
                   </span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`}
@@ -158,7 +185,7 @@ export default function Header() {
                   <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50">
                     <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
                       <p className="font-semibold text-gray-900">
-                        {user.full_name || "Пользователь"}
+                        {user.full_name || t('common.user')}
                       </p>
                       <p className="text-sm text-gray-500">
                         {user.email}
@@ -261,7 +288,7 @@ export default function Header() {
             {user ? (
               <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
                 <div className="px-4 py-3">
-                  <p className="font-semibold text-gray-900">{user.full_name || "Пользователь"}</p>
+                  <p className="font-semibold text-gray-900">{user.full_name || t('common.user')}</p>
                   <p className="text-sm text-gray-500">{user.email}</p>
                 </div>
 

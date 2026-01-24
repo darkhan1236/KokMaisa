@@ -14,7 +14,9 @@
     "settings": "Settings",
     "logout": "Logout",
     "login": "Login",
-    "register": "Register"
+    "register": "Register",
+    "assignedFarms": "Assigned Farms",
+    "assignedPastures": "Assigned Pastures"
   },
   "roles": {
     "farmer": "Farmer",
@@ -185,7 +187,40 @@
     "copy": "Copy",
     "copied": "Copied",
     "clearChat": "Clear chat",
-    "send": "Send"
+    "send": "Send",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "hectares": "hectares",
+    "all": "All",
+    "export": "Export",
+    "refresh": "Refresh",
+    "mapLayers": "Map layers",
+    "filterByStatus": "Filter by status",
+    "satellite": "Satellite",
+    "terrain": "Terrain",
+    "coordinates": "Coordinates",
+    "notSpecified": "Not specified",
+    "moreDetails": "More details",
+    "saveChanges": "Save changes",
+    "saveSettings": "Save settings",
+    "help": "Help",
+    "documentation": "Documentation",
+    "user": "User",
+    "open": "Open",
+    "today": "Today",
+    "login": "Log in",
+    "home": "Home",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "quickActions": "Quick Actions",
+    "statistics": "Statistics",
+    "dateLocale": "en-US",
+    "accessDenied": "Access Denied",
+    "view": "View"
+
 },
   "countries": {
     "kazakhstan": "Kazakhstan",
@@ -222,13 +257,14 @@
     "listTitle": "Pasture List",
     "noPastures": "You don’t have any pastures yet",
     "addFirstPasture": "Add your first pasture",
-
+    "biomassDashboard": "Biomass",
     "name": "Pasture Name",
     "namePlaceholder": "North Pasture",
     "farm": "Farm",
     "selectFarm": "Select farm",
-    "area": "Area (ha)",
-
+    "area": "Area",
+    "biomass": "Biomass",
+    "lastAnalysis": "Last Analysis",
     "grassType": "Grass Type",
     "selectGrassType": "Select grass type",
 
@@ -328,5 +364,306 @@
       "droneMonitoring": "When is the best time for drone monitoring?",
       "weatherImpact": "How does weather affect grass growth?"
     }
+  },
+  "biomass": {
+      "title": "Biomass Dashboard",
+      "subtitle": "Pasture analytics and yield forecasts",
+      "avgBiomass": "Average Biomass",
+      "unit": "kg/ha",
+      "totalArea": "Total Area",
+      "plots": "plots",
+      "health": "Health",
+      "forecast": "Forecast",
+      "nextMonth": "next month",
+      "growth": "Growth",
+      "biomassTrend": "Biomass Dynamics",
+      "trendDescription": "Biomass change over the year with rainfall",
+      "weeklyTrend": "Weekly Dynamics",
+      "weeklyComparison": "Comparison with optimal indicators",
+      "pastureComparison": "Pasture Comparison",
+      "biomassName": "Biomass (kg/ha)",
+      "rainfall": "Rainfall (mm)",
+      "actual": "Actual",
+      "optimal": "Optimal",
+      "grassTypes": "Grass Types",
+      "distribution": "Distribution by species",
+      "healthIndicators": "Health Indicators",
+      "keyMetrics": "Key pasture condition metrics",
+      "index": "index",
+      "highVegetation": "High vegetation",
+      "soilMoisture": "Soil Moisture",
+      "irrigationNeeded": "Irrigation needed",
+      "coverDensity": "Cover Density",
+      "excellentCoverage": "Excellent coverage",
+      "grassHeight": "Grass Height",
+      "optimalHeight": "Optimal height",
+      "notifications": "Notifications",
+      "recentEvents": "Recent events",
+      "lowBiomass": "Low Biomass",
+      "eastSlopeAttention": "The 'Eastern slope' plot needs attention",
+      "today": "Today",
+      "optimalGrazing": "Optimal grazing time",
+      "riverValleyRecommended": "Grazing recommended on 'River Valley'",
+      "yesterday": "Yesterday",
+      "analysisComplete": "Analysis Complete",
+      "allPasturesAnalyzed": "All pastures analyzed successfully",
+      "twoDaysAgo": "2 days ago",
+      "allNotifications": "All notifications",
+      "northField": "North Field",
+      "eastSlope": "East Slope",
+      "riverValley": "River Valley",
+      "hillyPasture": "Hilly Pasture",
+      "pasture": "Pasture",
+      "week1": "Week 1",
+      "week2": "Week 2",
+      "week3": "Week 3",
+      "week4": "Week 4"
+    },
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your profile and application settings",
+    "pleaseLogin": "Please log in",
+    "quickActions": "Quick actions",
+
+    "tabs": {
+      "profile": "Profile",
+      "notifications": "Notifications",
+      "display": "Display",
+      "security": "Security",
+      "data": "Data"
+    },
+
+    "profile": {
+      "title": "User profile",
+      "description": "Manage personal data and contact information",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "Enter your name",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "addressPlaceholder": "City, region",
+      "bio": "About me",
+      "bioPlaceholder": "Tell us a little about yourself..."
+    },
+
+    "notifications": {
+      "title": "Notifications",
+      "description": "Configure how you receive notifications",
+      "channels": "Notification channels",
+      "types": "Notification types",
+
+      "email": "Email notifications",
+      "emailDesc": "Receive notifications by email",
+
+      "push": "Push notifications",
+      "pushDesc": "Browser notifications",
+
+      "drone": "Drone notifications",
+      "droneDesc": "Flight status and technical alerts",
+
+      "biomass": "Biomass notifications",
+      "biomassDesc": "Pasture condition changes",
+
+      "weather": "Weather notifications",
+      "weatherDesc": "Weather forecasts and alerts",
+
+      "weeklyReport": "Weekly report",
+      "weeklyReportDesc": "Weekly summary sent by email"
+    },
+
+    "display": {
+      "title": "Display",
+      "description": "Appearance and language settings",
+      "theme": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "language": "Language",
+      "mapStyle": "Map style",
+      "units": "Units"
+    },
+
+    "security": {
+      "title": "Security",
+      "description": "Account security settings",
+      "changePassword": "Change password",
+      "lastChanged": "Last changed: {{time}}",
+      "change": "Change"
+    },
+
+    "data": {
+      "title": "Data",
+      "description": "Import and export your data",
+      "export": "Export data",
+      "exportDesc": "Download all your data",
+      "exportBtn": "Export",
+
+      "import": "Import data",
+      "importDesc": "Upload data into the system",
+      "importBtn": "Import"
+    },
+
+    "dangerZone": {
+      "title": "Danger zone",
+      "description": "Irreversible actions",
+      "deleteAccount": "Delete account",
+      "deleteWarning": "This action cannot be undone",
+      "deleteBtn": "Delete"
+    }
+  },
+  "languages": {
+    "ru": "Russian",
+    "kk": "Kazakh",
+    "en": "English"
+  },
+
+  "mapStyles": {
+    "satellite": "Satellite",
+    "terrain": "Terrain",
+    "street": "Street"
+  },
+
+  "units": {
+    "metric": "Metric (km, ha, kg)",
+    "imperial": "Imperial (miles, acres, pounds)"
+  },
+  "profile": {
+    "farms": {
+      "title": "My Farms",
+      "mapTitle": "Farm Map",
+      "addFarm": "Add Farm",
+      "newFarm": "New Farm",
+      "name": "Farm Name",
+      "namePlaceholder": "My Farm",
+      "location": "Location",
+      "locationPlaceholder": "District, region",
+      "area": "Area",
+      "gpsCoordinates": "GPS Coordinates",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "selectOnMap": "Select location on the map",
+      "confirmDelete": "Are you sure you want to delete this farm?",
+      "empty": {
+        "title": "You don't have any farms yet",
+        "description": "Add your first farm to get started"
+      }
+    },
+    "pleaseLogin": "Please log in",
+    "stats": {
+      "assignedFarms": "Assigned farms",
+      "analyses": "Analyses",
+      "specializations": "Specializations",
+      "reports": "Reports",
+      "farms": "Farms",
+      "pastures": "Pastures",
+      "drones": "Drones",
+      "hectares": "Hectares"
+    },
+    "contactInfo": {
+      "title": "Contact information"
+    },
+    "professionalInfo": {
+      "title": "Professional information",
+      "education": "Education",
+      "specializations": "Specializations"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "pastureAnalysis": "Pasture analysis",
+      "biomassDashboard": "Biomass dashboard",
+      "aiConsultant": "AI Consultant",
+      "managePastures": "Manage Pastures",
+      "myDrones": "My Drones",
+      "biomassAnalysis": "Biomass Analysis"
+    },
+    "assignedFarms": {
+      "title": "Assigned farms",
+      "description": "Farms you have access to",
+      "area": "Area",
+      "owner": "Owner",
+      "empty": {
+        "title": "You don't have any assigned farms yet",
+        "description": "Farmers can invite you to collaborate on their farms"
+      }
+    },
+    "recentActivity": {
+      "title": "Recent activity",
+      "welcome": {
+        "title": "Welcome to KokMaisa",
+        "message": "Your agronomist account has been successfully created. Please wait for invitations from farmers to collaborate."
+      }
+    }
+  },
+  "education": {
+    "bachelor": "Bachelor's degree",
+    "master": "Master's degree",
+    "phd": "PhD",
+    "doctorate": "Doctorate"
+  },
+  "specializations": {
+    "agronomy": "Agronomy",
+    "livestock": "Livestock farming",
+    "soilScience": "Soil science",
+    "plantProtection": "Plant protection",
+    "pasture": "Pasture management"
+  },
+  "farms": {
+    "title": "My Farms",
+    "subtitle": "Manage your agricultural facilities",
+    "addFarm": "Add Farm",
+    "editFarm": "Edit Farm",
+    "mapTitle": "Map of Your Farms",
+    "listTitle": "Farms List",
+    "name": "Farm Name",
+    "namePlaceholder": "Green Valley Farm",
+    "region": "Region",
+    "selectRegion": "Select Region",
+    "regionNotSpecified": "Region not specified",
+    "area": "Area",
+    "address": "Address",
+    "addressPlaceholder": "Almaty Region, Kaskelen village",
+    "phone": "Phone",
+    "description": "Description",
+    "descriptionPlaceholder": "Brief farm description...",
+    "gpsCoordinates": "GPS Coordinates",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "confirmDelete": "Are you sure you want to delete this farm?",
+    "empty": {
+      "title": "You don't have any farms yet"
+    },
+    "addFirstFarm": "Add your first farm",
+    "stats": {
+      "farms": "Farms",
+      "hectares": "Hectares",
+      "pastures": "Pastures",
+      "regions": "Regions"
+    },
+    "pasturesCount": "Pastures",
+    "location": "Location",
+    "withoutRegion": "Without Region",
+    "farmsCount": "farms"
+  },
+  "pasturesAnalysis": {
+    "title": "Pasture Analysis",
+    "subtitle": "View and analyze assigned pastures",
+    "noAssignedPastures": "No pastures assigned to you yet",
+    "selectPasture": "Select a pasture to view details",
+    "analyze": "Analyze",
+    "startAnalysis": "Analysis started (placeholder)"
   }
 }

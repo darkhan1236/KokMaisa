@@ -11,7 +11,12 @@ import ProfileAgronomist from '@/app/components/ProfileAgronomist';
 import PasturesPage from '@/app/components/PasturesPage';   
 import DronesPage from '@/app/components/DronesPage';
 import AIChatPage from '@/app/components/AIChatPage';
+import FarmsPage from '@/app/components/FarmsPage';
+import PasturesMapPage from '@/app/components/PasturesMapPage';
+import SettingsPage from '@/app/components/SettingsPage';
+import PasturesAnalysisPage from '@/app/components/PasturesAnalysisPage';
 import { ResetPassword } from '@/app/components/ResetPassword';
+import BiomassDashboardPage from '@/app/components/BiomassDashboardPage';
 
 // Импорт контекста и ProtectedRoute
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -70,6 +75,15 @@ function AppRoutes() {
         }
       />
 
+      <Route
+        path="/pastures-analysis"
+        element={
+          <ProtectedRoute allowedTypes={['agronomist']}>
+            <PasturesAnalysisPage />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Новый маршрут для пастбищ — только для фермеров */}
       <Route
         path="/pastures"
@@ -96,10 +110,21 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/farms" element={<FarmsPage />} />
+      <Route path="/biomass-dashboard" element={<BiomassDashboardPage />} />
+      <Route path="/pastures-map" element={<PasturesMapPage />} />
 
       {/* Заглушки */}
       <Route path="/profile" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
