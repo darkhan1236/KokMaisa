@@ -10,7 +10,7 @@ from app.api.users.commands.login_user import execute as login_execute
 from app.api.users.commands.reset_password import request_reset, execute_reset
 from app.api.users.schemas.user_schemas import UserCreate, UserLogin, PasswordResetRequest, PasswordReset, UserRead
 from app.api.users.crud.user_crud import get_user_by_id
-from database.base import get_db
+from database.db import get_db
 from core.security import CurrentUser, Token, create_access_token
 from core.config import settings
 

@@ -6,6 +6,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useAuth } from "@/contexts/AuthContext";
+import logo from '@/assets/kokmaisa-logo.svg';
 
 import {
   Leaf, Menu, X, User, LogOut, LandPlot,

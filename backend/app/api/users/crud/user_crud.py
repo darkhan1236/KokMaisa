@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 
 from core.security import get_password_hash
-from database.models import User
+from model.models import User
 from app.api.users.schemas.user_schemas import UserCreate, UserRead
 
 

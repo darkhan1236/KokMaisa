@@ -24,8 +24,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Подключаем модели
-from database.base import Base
-from database.models import *  # noqa
+from database.db import Base
+from model.models import *  # noqa
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:

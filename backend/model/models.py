@@ -1,8 +1,8 @@
-# backend/database/models.py
+# backend/model/models.py
 from sqlalchemy import Column, Integer, String, DateTime, Enum, JSON, func
 from sqlalchemy.dialects.postgresql import UUID
 
-from database.base import Base
+from database.db import Base
 
 
 class User(Base):
