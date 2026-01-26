@@ -10,42 +10,29 @@ import {
   MapPin,
   Phone,
   Mail,
-  Plus,
-  Trash2,
   Map as MapIcon,
   Wheat,
   Plane,
   BarChart3,
   ChevronRight,
   X,
-  Check,
 } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
 
 export default function ProfileFarmer() {
   const { t } = useTranslation();
-  const { user, addFarm, updateProfile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [showAddFarm, setShowAddFarm] = useState(false);
-  const [farmData, setFarmData] = useState({
-    name: "",
-    location: "",
-    area: "",
-    coordinates: { lat: "", lng: "" },
-  });
+  const [selectedFarm, setSelectedFarm] = useState(null);
 
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md mx-4">
-          <p className="text-gray-600 mb-6 text-lg">
-            {t('profile.pleaseLogin')}
-          </p>
-          <button
-            onClick={() => navigate("/login")}
-            className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-xl"
-          >
-            {t('nav.login')}
-          </button>
+          <p className="text-gray-600 mb-6 text-lg">{t('profile.pleaseLogin')}</p>
+          <Button onClick={() => navigate("/login")}>{t('nav.login')}</Button>
         </div>
       </div>
     );
@@ -55,42 +42,13 @@ export default function ProfileFarmer() {
   const pastures = user?.profile?.pastures || [];
   const drones = user?.profile?.drones || [];
 
-  const handleLocationSelect = (location) => {
-    setFarmData({
-      ...farmData,
-      coordinates: {
-        lat: location.lat.toFixed(6),
-        lng: location.lng.toFixed(6),
-      },
-    });
-  };
-
-  const handleAddFarm = (e) => {
-    e.preventDefault();
-    addFarm(farmData);
-    setFarmData({
-      name: "",
-      location: "",
-      area: "",
-      coordinates: { lat: "", lng: "" },
-    });
-    setShowAddFarm(false);
-  };
-
-  const handleDeleteFarm = (farmId) => {
-    if (window.confirm(t('profile.farms.confirmDelete'))) {
-      const updatedFarms = farms.filter((f) => f.id !== farmId);
-      updateProfile({ farms: updatedFarms });
-    }
-  };
-
   const farmMarkers = farms
     .filter((f) => f.coordinates?.lat && f.coordinates?.lng)
     .map((f) => ({
       lat: parseFloat(f.coordinates.lat),
       lng: parseFloat(f.coordinates.lng),
       title: f.name,
-      description: f.location,
+      description: `${f.area || '?'} га | ${f.region || 'Неизвестно'}`,
       type: "farm",
     }));
 
@@ -137,7 +95,7 @@ export default function ProfileFarmer() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{farms.length}</p>
-                <p className="text-sm text-gray-600">{t('profile.stats.farms')}</p>
+                <p className="text-sm text-gray-600">Фермы</p>
               </div>
             </div>
           </div>
@@ -149,7 +107,7 @@ export default function ProfileFarmer() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{pastures.length}</p>
-                <p className="text-sm text-gray-600">{t('profile.stats.pastures')}</p>
+                <p className="text-sm text-gray-600">Пастбища</p>
               </div>
             </div>
           </div>
@@ -161,7 +119,7 @@ export default function ProfileFarmer() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">{drones.length}</p>
-                <p className="text-sm text-gray-600">{t('profile.stats.drones')}</p>
+                <p className="text-sm text-gray-600">Дроны</p>
               </div>
             </div>
           </div>
@@ -175,7 +133,7 @@ export default function ProfileFarmer() {
                 <p className="text-3xl font-bold text-gray-900">
                   {totalArea.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">{t('profile.stats.hectares')}</p>
+                <p className="text-sm text-gray-600">Гектаров</p>
               </div>
             </div>
           </div>
@@ -187,62 +145,75 @@ export default function ProfileFarmer() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column */}
           <div className="space-y-6">
-            {/* Контактная информация */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-5">
-                {t('profile.contactInfo.title')}
-              </h3>
-              <div className="space-y-5">
+            {/* Contact Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Контактная информация</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 <div className="flex items-center gap-4">
                   <Mail className="w-6 h-6 text-gray-500" />
                   <span className="text-gray-900">{user.email}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <Phone className="w-6 h-6 text-gray-500" />
-                  <span className="text-gray-900">{user.phone || t('common.notSpecified')}</span>
+                  <span className="text-gray-900">
+                    {user.phone || t('common.notSpecified')}
+                  </span>
                 </div>
                 <div className="flex items-center gap-4">
                   <MapPin className="w-6 h-6 text-gray-500" />
                   <span className="text-gray-900">
-                    {user.city || t('common.notSpecified')}, {user.country || t('countries.kazakhstan')}
+                    {user.city || t('common.notSpecified')}, {user.country || 'Kazakhstan'}
                   </span>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Карта ферм */}
+            {/* Farm Map */}
             {farmMarkers.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {t('profile.farms.mapTitle')}
-                </h3>
-                <LeafletMap
-                  center={[
-                    parseFloat(farmMarkers[0]?.lat || 51.1605),
-                    parseFloat(farmMarkers[0]?.lng || 71.4704),
-                  ]}
-                  zoom={8}
-                  markers={farmMarkers}
-                  height="300px"
-                />
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Карта ферм</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LeafletMap
+                    center={[
+                      parseFloat(farmMarkers[0]?.lat || 51.1605),
+                      parseFloat(farmMarkers[0]?.lng || 71.4704),
+                    ]}
+                    zoom={8}
+                    markers={farmMarkers}
+                    height="300px"
+                  />
+                </CardContent>
+              </Card>
             )}
 
-            {/* Быстрые действия */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-5">
-                {t('profile.quickActions.title')}
-              </h3>
-              <div className="space-y-2">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Быстрые действия</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Link
+                  to="/farms"
+                  className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-4">
+                    <MapIcon className="w-6 h-6 text-green-600" />
+                    <span className="text-gray-900 font-medium">Управлять фермами</span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
+                </Link>
+
                 <Link
                   to="/pastures"
                   className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
                 >
                   <div className="flex items-center gap-4">
                     <Wheat className="w-6 h-6 text-amber-600" />
-                    <span className="text-gray-900 font-medium">
-                      {t('profile.quickActions.managePastures')}
-                    </span>
+                    <span className="text-gray-900 font-medium">Пастбища</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
                 </Link>
@@ -253,9 +224,7 @@ export default function ProfileFarmer() {
                 >
                   <div className="flex items-center gap-4">
                     <Plane className="w-6 h-6 text-blue-600" />
-                    <span className="text-gray-900 font-medium">
-                      {t('profile.quickActions.myDrones')}
-                    </span>
+                    <span className="text-gray-900 font-medium">Дроны</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
                 </Link>
@@ -266,229 +235,238 @@ export default function ProfileFarmer() {
                 >
                   <div className="flex items-center gap-4">
                     <BarChart3 className="w-6 h-6 text-purple-600" />
-                    <span className="text-gray-900 font-medium">
-                      {t('profile.quickActions.biomassAnalysis')}
-                    </span>
+                    <span className="text-gray-900 font-medium">Анализ биомассы</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
                 </Link>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Right Column — Мои фермы */}
+          {/* Right Column - Farms List */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {t('profile.farms.title')}
-                </h3>
-                <button
-                  onClick={() => setShowAddFarm(!showAddFarm)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
-                >
-                  {showAddFarm ? (
-                    <>
-                      <X className="w-5 h-5" />
-                      <span>{t('common.cancel')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      <span>{t('profile.farms.addFarm')}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Форма добавления */}
-              {showAddFarm && (
-                <form
-                  onSubmit={handleAddFarm}
-                  className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-200"
-                >
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">
-                    {t('profile.farms.newFarm')}
-                  </h4>
-
-                  <div className="grid md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
-                        {t('profile.farms.name')} *
-                      </label>
-                      <input
-                        type="text"
-                        value={farmData.name}
-                        onChange={(e) => setFarmData({ ...farmData, name: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder={t('profile.farms.namePlaceholder')}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
-                        {t('profile.farms.location')} *
-                      </label>
-                      <input
-                        type="text"
-                        value={farmData.location}
-                        onChange={(e) => setFarmData({ ...farmData, location: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder={t('profile.farms.locationPlaceholder')}
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
-                        {t('profile.farms.area')} (га)
-                      </label>
-                      <input
-                        type="number"
-                        value={farmData.area}
-                        onChange={(e) => setFarmData({ ...farmData, area: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                        placeholder="100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
-                        {t('profile.farms.gpsCoordinates')}
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={farmData.coordinates.lat}
-                          onChange={(e) =>
-                            setFarmData({
-                              ...farmData,
-                              coordinates: { ...farmData.coordinates, lat: e.target.value },
-                            })
-                          }
-                          className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                          placeholder={t('profile.farms.latitude')}
-                        />
-                        <input
-                          type="text"
-                          value={farmData.coordinates.lng}
-                          onChange={(e) =>
-                            setFarmData({
-                              ...farmData,
-                              coordinates: { ...farmData.coordinates, lng: e.target.value },
-                            })
-                          }
-                          className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
-                          placeholder={t('profile.farms.longitude')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      {t('profile.farms.selectOnMap')}
-                    </label>
-                    <LeafletMap
-                      center={[51.1605, 71.4704]}
-                      zoom={6}
-                      selectable={true}
-                      onLocationSelect={handleLocationSelect}
-                      height="300px"
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
-                    >
-                      <Check className="w-5 h-5" />
-                      {t('common.save')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddFarm(false)}
-                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
-                    >
-                      {t('common.cancel')}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* Список ферм */}
-              {farms.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <MapIcon className="w-10 h-10 text-gray-400" />
-                  </div>
-                  <p className="text-lg text-gray-600 mb-2">
-                    {t('profile.farms.empty.title')}
-                  </p>
-                  <p className="text-gray-500">
-                    {t('profile.farms.empty.description')}
-                  </p>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Мои фермы</CardTitle>
+                  <Link
+                    to="/farms"
+                    className="text-sm text-green-600 hover:text-green-700 font-medium"
+                  >
+                    Управлять →
+                  </Link>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {farms.map((farm) => (
-                    <div
-                      key={farm.id}
-                      className="p-6 bg-gray-50 rounded-2xl border border-gray-200 hover:border-green-300 transition-colors"
+              </CardHeader>
+              <CardContent>
+                {farms.length === 0 ? (
+                  <div className="text-center py-16">
+                    <MapIcon className="w-20 h-20 text-gray-400 mx-auto mb-4" />
+                    <p className="text-lg text-gray-600 mb-2">
+                      У вас еще нет ферм
+                    </p>
+                    <p className="text-gray-500 mb-4">
+                      Создайте свою первую ферму, чтобы начать
+                    </p>
+                    <Link
+                      to="/farms"
+                      className="inline-block px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                            {farm.name}
-                          </h4>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4" />
-                              {farm.location || t('common.notSpecified')}
-                            </p>
-                            {farm.area && (
-                              <p>
-                                {t('profile.farms.area')}:{' '}
-                                <span className="text-gray-900 font-medium">
-                                  {farm.area} {t('units.ha')}
-                                </span>
+                      Добавить ферму
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {farms.map((farm) => (
+                      <div
+                        key={farm.id}
+                        className="p-6 bg-gray-50 rounded-2xl border border-gray-200 hover:border-green-300 transition-colors cursor-pointer"
+                        onClick={() => setSelectedFarm(farm)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                              {farm.name}
+                            </h4>
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {farm.region || 'Неизвестно'}
+                              </span>
+                              <span className="font-medium">
+                                {farm.area} га
+                              </span>
+                              {farm.type && (
+                                <Badge variant="secondary">{farm.type}</Badge>
+                              )}
+                            </div>
+                            {farm.description && (
+                              <p className="text-sm text-gray-600 line-clamp-2">
+                                {farm.description}
                               </p>
                             )}
-                            {farm.coordinates?.lat && farm.coordinates?.lng && (
-                              <p className="font-mono text-xs">
-                                GPS: {farm.coordinates.lat}, {farm.coordinates.lng}
-                              </p>
+                            {farm.crops && farm.crops.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {farm.crops.slice(0, 3).map((crop) => (
+                                  <Badge key={crop} variant="outline" className="text-xs">
+                                    {crop}
+                                  </Badge>
+                                ))}
+                                {farm.crops.length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{farm.crops.length - 3}
+                                  </Badge>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
-
-                        <div className="flex gap-2">
-                          <Link
-                            to={`/farms/${farm.id}`}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title={t('common.open')}
-                          >
-                            <ChevronRight className="w-5 h-5" />
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteFarm(farm.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            title={t('common.delete')}
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
+
+      {/* Farm Detail Modal */}
+      {selectedFarm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="relative h-48 bg-gradient-to-br from-green-500 to-emerald-600 rounded-t-2xl">
+              <button
+                onClick={() => setSelectedFarm(null)}
+                className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+              <div className="absolute bottom-4 left-6">
+                <h2 className="text-2xl font-bold text-white">{selectedFarm.name}</h2>
+                <p className="text-white/80">{selectedFarm.region || 'Неизвестно'}</p>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-50 rounded-xl p-4">
+                  <p className="text-sm text-green-700">Площадь</p>
+                  <p className="text-xl font-bold text-green-900">
+                    {selectedFarm.area} га
+                  </p>
+                </div>
+                {selectedFarm.type && (
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <p className="text-sm text-blue-700">Тип фермы</p>
+                    <p className="text-xl font-bold text-blue-900">
+                      {selectedFarm.type}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {selectedFarm.address && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-gray-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Адрес</p>
+                    <p className="text-gray-900">{selectedFarm.address}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedFarm.ownerName && (
+                <div className="flex items-start gap-3">
+                  <User className="w-5 h-5 text-gray-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Владелец</p>
+                    <p className="text-gray-900">{selectedFarm.ownerName}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedFarm.phone && (
+                <div className="flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-gray-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Телефон</p>
+                    <p className="text-gray-900">{selectedFarm.phone}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedFarm.description && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Описание</p>
+                  <p className="text-gray-900">{selectedFarm.description}</p>
+                </div>
+              )}
+
+              {selectedFarm.crops && selectedFarm.crops.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Культуры</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedFarm.crops.map((crop) => (
+                      <Badge key={crop}>{crop}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedFarm.equipment && selectedFarm.equipment.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Оборудование</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedFarm.equipment.map((equip) => (
+                      <Badge key={equip} variant="secondary">
+                        {equip}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedFarm.coordinates?.lat && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Местоположение</p>
+                  <LeafletMap
+                    center={[
+                      parseFloat(selectedFarm.coordinates.lat),
+                      parseFloat(selectedFarm.coordinates.lng),
+                    ]}
+                    zoom={12}
+                    markers={[
+                      {
+                        lat: parseFloat(selectedFarm.coordinates.lat),
+                        lng: parseFloat(selectedFarm.coordinates.lng),
+                        title: selectedFarm.name,
+                      },
+                    ]}
+                    height="200px"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <Link
+                  to="/farms"
+                  onClick={() => setSelectedFarm(null)}
+                  className="flex-1 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium text-center"
+                >
+                  Редактировать
+                </Link>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedFarm(null)}
+                  className="px-6"
+                >
+                  Закрыть
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 # backend/model/models.py
-from sqlalchemy import Column, Integer, String, DateTime, Enum, JSON, func
-from sqlalchemy.dialects.postgresql import UUID
-
+import datetime
+from sqlalchemy import Column, Date, Integer, String, DateTime, Enum, JSON, func, Float, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from database.db import Base
 
 
@@ -20,7 +20,83 @@ class User(Base):
 
     # Для агронома
     education = Column(String(100))
-    specializations = Column(JSON)  # JSONB for array of specializations, e.g. ["agronomy", "livestock"]
+    specializations = Column(JSON)  # массив специализаций, например ["agronomy", "livestock"]
 
-    # Мультиязычность: храним ключи, переводы на фронте
-    # Если нужно хранить переводы в БД, можно добавить JSON поля, но по умолчанию ключи
+    # Связи
+    farms = relationship("Farm", foreign_keys="Farm.owner_id", back_populates="owner")
+    consulting_farms = relationship("Farm", foreign_keys="Farm.agronomist_id", back_populates="agronomist")
+
+
+class Farm(Base):
+    __tablename__ = "farms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)          # владелец — фермер
+    agronomist_id = Column(Integer, ForeignKey("users.id"), nullable=True)      # консультирующий агроном (опционально)
+
+    name = Column(String, nullable=False)
+    address = Column(String)
+    region = Column(String, nullable=False)
+    area = Column(Float, nullable=False)  # площадь в га (вводится вручную)
+    description = Column(Text)
+
+    coordinates_lat = Column(Float)   # центральная точка фермы
+    coordinates_lng = Column(Float)
+
+    phone = Column(String)
+    owner_name = Column(String)
+    owner_iin = Column(String(12))
+
+    farm_type = Column(String)
+    established_date = Column(Date)
+    crops = Column(JSON)
+    equipment = Column(JSON)
+    status = Column(String, default="active")
+
+    photos = Column(JSON)  # массив URL фотографий
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    # Связи
+    owner = relationship("User", foreign_keys=[owner_id], back_populates="farms")
+    agronomist = relationship("User", foreign_keys=[agronomist_id], back_populates="consulting_farms")
+    pastures = relationship("Pasture", back_populates="farm", cascade="all, delete-orphan")
+    drones = relationship("Drone", back_populates="farm", cascade="all, delete-orphan")
+
+
+class Pasture(Base):
+    __tablename__ = "pastures"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id"), nullable=False)
+
+    name = Column(String, nullable=False)
+    area = Column(Float, nullable=False)  # площадь в га
+    pasture_type = Column(String)         # тип пастбища
+    coordinates_lat = Column(Float)       # центральная точка
+    coordinates_lng = Column(Float)
+    description = Column(Text)
+    status = Column(String, default="active")
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    farm = relationship("Farm", back_populates="pastures")
+
+
+class Drone(Base):
+    __tablename__ = "drones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id"), nullable=False)
+
+    model = Column(String, nullable=False)
+    serial_number = Column(String, unique=True, nullable=False)
+    status = Column(String, default="active")
+    description = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    farm = relationship("Farm", back_populates="drones")

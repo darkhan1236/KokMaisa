@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
+const API_BASE = 'http://localhost:8000/api';  // или process.env.REACT_APP_API_URL
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthProvider');
@@ -14,30 +16,80 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const loadUser = async () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const res = await fetch('http://localhost:8000/api/users/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem('token');
-          setIsAuthenticated(false);
-        }
-      } catch (err) {
-        localStorage.removeItem('token');
-        setIsAuthenticated(false);
-      }
-    } else {
+  const getToken = () => localStorage.getItem('token');
+
+  const apiFetch = async (endpoint, options = {}) => {
+    const token = getToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    };
+
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('token');
       setIsAuthenticated(false);
+      setUser(null);
+      throw new Error('Сессия истекла. Пожалуйста, войдите заново.');
     }
-    setLoading(false);
+
+    if (!res.ok) {
+      let errorData;
+      try {
+        errorData = await res.json();
+      } catch {
+        errorData = { detail: 'Неизвестная ошибка' };
+      }
+      throw new Error(errorData.detail || `Ошибка ${res.status}`);
+    }
+
+    return res.json();
   };
+
+  const loadUser = async () => {
+    const token = getToken();
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const data = await apiFetch('/users/me');
+      setUser(data);
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error(err);
+      localStorage.removeItem('token');
+      setIsAuthenticated(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ────────────────────────────────────────────────
+  // Функции для работы с фермами
+  // ────────────────────────────────────────────────
+
+  const getFarms = () => apiFetch('/farms');
+
+  const createFarm = (farmData) => apiFetch('/farms', {
+    method: 'POST',
+    body: JSON.stringify(farmData),
+  });
+
+  const updateFarm = (id, farmData) => apiFetch(`/farms/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(farmData),
+  });
+
+  const deleteFarm = (id) => apiFetch(`/farms/${id}`, {
+    method: 'DELETE',
+  });
 
   useEffect(() => {
     loadUser();
@@ -55,7 +107,12 @@ export function AuthProvider({ children }) {
     isAuthenticated,
     setUser,
     logout,
-    loadUser  // можно вызывать вручную после логина/регистрации
+    loadUser,
+    // фермы
+    getFarms,
+    createFarm,
+    updateFarm,
+    deleteFarm,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
