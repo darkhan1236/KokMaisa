@@ -1,0 +1,32 @@
+/* src/app/styles/leaflet-overrides.css */
+
+/* Fix Leaflet map z-index issues */
+.leaflet-pane,
+.leaflet-tile-pane,
+.leaflet-map-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-tooltip-pane,
+.leaflet-popup-pane {
+  z-index: 0 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  position: absolute;
+  z-index: 1 !important;
+  pointer-events: none;
+}
+
+.leaflet-control {
+  z-index: 2 !important;
+  pointer-events: auto;
+}
+
+/* Ensure modals and dropdowns are above map */
+[data-radix-popper-content-wrapper],
+[role="dialog"],
+[data-state="open"] {
+  z-index: 9999 !important;
+}

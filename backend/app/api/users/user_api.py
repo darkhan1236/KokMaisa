@@ -87,8 +87,5 @@ def password_reset(
 
 
 @router.get("/me", response_model=UserRead)
-def get_current_user_info(current_user_id: CurrentUser, db: Session = Depends(get_db)):
-    user = get_user_by_id(db, current_user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return UserRead.model_validate(user)
+def get_current_user_info(current_user: CurrentUser):
+    return UserRead.model_validate(current_user)

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from 'react-i18next';
 import Header from "@/app/components/Header";
 import LeafletMap from "@/app/features/map/LeafletMap";
+import "@/app/styles/leaflet-overrides.css";
 import {
   Wheat,
   Plus,

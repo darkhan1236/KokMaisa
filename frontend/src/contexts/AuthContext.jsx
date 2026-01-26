@@ -75,7 +75,7 @@ export function AuthProvider({ children }) {
   // Функции для работы с фермами
   // ────────────────────────────────────────────────
 
-  const getFarms = () => apiFetch('/farms');
+  const getFarms = () => apiFetch('/farms/');
 
   const createFarm = (farmData) => apiFetch('/farms', {
     method: 'POST',
