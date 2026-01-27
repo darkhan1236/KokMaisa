@@ -1,4 +1,3 @@
-# backend/app/api/users/schemas/user_schemas.py
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List
@@ -41,6 +40,7 @@ class UserRead(BaseModel):
     country: str
     city: str
     created_at: datetime
+    profile_photo: Optional[str] = None  # Добавляем фото профиля
     education: Optional[str]
     specializations: Optional[List[str]]
     
@@ -54,3 +54,22 @@ class PasswordResetRequest(BaseModel):
 class PasswordReset(BaseModel):
     token: str
     new_password: str = Field(..., min_length=6)
+    
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, max_length=255)
+    phone: Optional[str] = Field(None, max_length=50)
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=6)
+    country: Optional[str] = Field(None, max_length=100)
+    city: Optional[str] = Field(None, max_length=100)
+    profile_photo: Optional[str] = None  # Добавляем обновление фото
+    education: Optional[str] = None
+    specializations: Optional[List[str]] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfilePhotoUpdate(BaseModel):
+    photo_base64: str  
+    mime_type: str  

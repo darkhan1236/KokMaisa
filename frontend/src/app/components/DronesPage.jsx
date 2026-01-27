@@ -1,5 +1,5 @@
 // src/app/components/DronesPage.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from 'react-i18next';
@@ -21,75 +21,180 @@ import {
   MapPin,
   Clock,
   Signal,
+  Loader2,
+  Edit3,
 } from "lucide-react";
 
 export default function DronesPage() {
   const { t } = useTranslation();
-  const { user, addDrone, updateProfile } = useAuth();
+  const { 
+    user, 
+    isAuthenticated, 
+    loading: authLoading,
+    getFarms,
+    getDrones,
+    createDrone,
+    updateDrone,
+    deleteDrone,
+    updateDroneStatus,
+  } = useAuth();
+  
   const navigate = useNavigate();
+
+  const [drones, setDrones] = useState([]);
+  const [farms, setFarms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
   const [showAddDrone, setShowAddDrone] = useState(false);
+  const [editingDrone, setEditingDrone] = useState(null);
   const [selectedDrone, setSelectedDrone] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+
   const [droneData, setDroneData] = useState({
-    name: "",
     model: "",
-    serialNumber: "",
+    serial_number: "",
+    description: "",
+    farm_id: "",
   });
 
-  if (!user || user.account_type !== "farmer") {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md mx-4">
-          <p className="text-gray-600 mb-6 text-lg">
-            {t('common.pleaseLogin')}
-          </p>
-          <button
-            onClick={() => navigate("/login")}
-            className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-xl"
-          >
-            {t('nav.login')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Загрузка данных
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
 
-  const drones = user?.profile?.drones || [];
+    loadData();
+  }, [authLoading, isAuthenticated]);
 
-  const handleAddDrone = (e) => {
-    e.preventDefault();
-    addDrone({
-      ...droneData,
-      id: Date.now().toString(),
-      status: "inactive",
-      battery: 100,
-      signal: "good",
-      lastFlight: null,
-    });
-    setDroneData({
-      name: "",
-      model: "",
-      serialNumber: "",
-    });
-    setShowAddDrone(false);
-  };
-
-  const handleDeleteDrone = (droneId) => {
-    if (window.confirm(t('drones.confirmDelete'))) {
-      const updatedDrones = drones.filter((d) => d.id !== droneId);
-      updateProfile({ drones: updatedDrones });
-      if (selectedDrone?.id === droneId) {
-        setSelectedDrone(null);
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [dronesData, farmsData] = await Promise.all([
+        getDrones(),
+        getFarms()
+      ]);
+      
+      setDrones(dronesData || []);
+      setFarms(farmsData || []);
+    } catch (err) {
+      setError(err.message || "Не удалось загрузить данные");
+      console.error(err);
+      
+      if (err.message.includes("Сессия истекла")) {
+        navigate("/login");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleDroneStatus = (droneId) => {
-    const updatedDrones = drones.map((d) =>
-      d.id === droneId
-        ? { ...d, status: d.status === "active" ? "inactive" : "active" }
-        : d
-    );
-    updateProfile({ drones: updatedDrones });
+  const resetForm = () => {
+    setDroneData({
+      model: "",
+      serial_number: "",
+      description: "",
+      farm_id: "",
+    });
+    setEditingDrone(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      if (!droneData.model.trim()) throw new Error("Модель обязательна");
+      if (!droneData.serial_number.trim()) throw new Error("Серийный номер обязателен");
+      if (!droneData.farm_id) throw new Error("Выберите ферму");
+
+      const payload = {
+        model: droneData.model.trim(),
+        serial_number: droneData.serial_number.trim(),
+        description: droneData.description?.trim() || null,
+        farm_id: parseInt(droneData.farm_id),
+      };
+
+      if (editingDrone) {
+        await updateDrone(editingDrone.id, payload);
+      } else {
+        await createDrone(payload);
+      }
+
+      resetForm();
+      setShowAddDrone(false);
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Ошибка при сохранении");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditDrone = (drone) => {
+    setEditingDrone(drone);
+    setDroneData({
+      model: drone.model || "",
+      serial_number: drone.serial_number || "",
+      description: drone.description || "",
+      farm_id: drone.farm_id?.toString() || "",
+    });
+    setShowAddDrone(true);
+  };
+
+  const handleDeleteDrone = async (droneId) => {
+    if (!window.confirm(t('drones.confirmDelete') || "Вы уверены, что хотите удалить дрон?")) {
+      return;
+    }
+
+    setDeletingId(droneId);
+    
+    try {
+      // Оптимистичное обновление
+      setDrones(prev => prev.filter(d => d.id !== droneId));
+      
+      if (selectedDrone?.id === droneId) {
+        setSelectedDrone(null);
+      }
+      
+      await deleteDrone(droneId);
+      setError(null);
+      
+    } catch (err) {
+      setError(err.message || "Ошибка удаления");
+      // Восстанавливаем данные при ошибке
+      await loadData();
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleToggleStatus = async (droneId) => {
+    try {
+      const drone = drones.find(d => d.id === droneId);
+      if (!drone) return;
+
+      const newStatus = drone.status === "active" ? "inactive" : "active";
+      
+      // Оптимистичное обновление
+      setDrones(prev => prev.map(d => 
+        d.id === droneId ? { ...d, status: newStatus } : d
+      ));
+      
+      await updateDroneStatus(droneId, newStatus);
+      
+    } catch (err) {
+      setError(err.message || "Ошибка изменения статуса");
+      await loadData();
+    }
   };
 
   const droneModels = [
@@ -101,20 +206,33 @@ export default function DronesPage() {
     t('drones.otherModel'),
   ];
 
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Загрузка дронов...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const activeDrones = drones.filter(d => d.status === "active").length;
+  const totalDrones = drones.length;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mx-6 mt-4 rounded-r">
+          <p>{error}</p>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="relative pt-20 pb-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.344 0L13.858 8.485 15.272 9.9l9.9-9.9h-2.828zM32 0l-3.486 3.485 1.415 1.415L34.343 0H32z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-            opacity: 0.3,
-          }}
-        />
-        <div className="relative max-w-7xl mx-auto px-6 pt-12">
+        <div className="relative max-w-7xl mb-10 mx-auto px-6 pt-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
@@ -126,7 +244,7 @@ export default function DronesPage() {
             </div>
             <button
               type="button"
-              onClick={() => setShowAddDrone(true)}
+              onClick={() => { resetForm(); setShowAddDrone(true); }}
               className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-colors border border-white/30 shrink-0"
             >
               <Plus className="w-5 h-5" />
@@ -145,7 +263,7 @@ export default function DronesPage() {
                 <Plane className="w-7 h-7 text-blue-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{drones.length}</p>
+                <p className="text-3xl font-bold text-gray-900">{totalDrones}</p>
                 <p className="text-sm text-gray-600">{t('drones.stats.total')}</p>
               </div>
             </div>
@@ -157,9 +275,7 @@ export default function DronesPage() {
                 <Wifi className="w-7 h-7 text-green-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">
-                  {drones.filter((d) => d.status === "active").length}
-                </p>
+                <p className="text-3xl font-bold text-gray-900">{activeDrones}</p>
                 <p className="text-sm text-gray-600">{t('drones.stats.active')}</p>
               </div>
             </div>
@@ -181,92 +297,6 @@ export default function DronesPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Add Drone Modal */}
-        {showAddDrone && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {t('drones.addDrone')}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowAddDrone(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddDrone} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    {t('drones.name')} *
-                  </label>
-                  <input
-                    type="text"
-                    value={droneData.name}
-                    onChange={(e) => setDroneData({ ...droneData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder={t('drones.namePlaceholder')}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    {t('drones.model')} *
-                  </label>
-                  <select
-                    value={droneData.model}
-                    onChange={(e) => setDroneData({ ...droneData, model: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                  >
-                    <option value="">{t('drones.selectModel')}</option>
-                    {droneModels.map((model) => (
-                      <option key={model} value={model}>
-                        {model}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    {t('drones.serialNumber')}
-                  </label>
-                  <input
-                    type="text"
-                    value={droneData.serialNumber}
-                    onChange={(e) => setDroneData({ ...droneData, serialNumber: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
-                    placeholder="XXXXXXXXXX"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
-                  >
-                    <Check className="w-5 h-5" />
-                    {t('common.save')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddDrone(false)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Drones Grid */}
         {drones.length === 0 ? (
           <div className="bg-white rounded-2xl p-16 text-center border border-gray-200 shadow-sm">
             <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -280,7 +310,7 @@ export default function DronesPage() {
             </p>
             <button
               type="button"
-              onClick={() => setShowAddDrone(true)}
+              onClick={() => { resetForm(); setShowAddDrone(true); }}
               className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
             >
               <Plus className="w-5 h-5" />
@@ -319,10 +349,10 @@ export default function DronesPage() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">
-                        {drone.name}
+                        {drone.model}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        {drone.model}
+                        Серийный: {drone.serial_number}
                       </p>
                     </div>
                   </div>
@@ -337,37 +367,29 @@ export default function DronesPage() {
                   </div>
                 </div>
 
-                {/* Drone Stats */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <Battery className="w-4 h-4 mx-auto text-green-600 mb-1" />
-                    <p className="text-xs text-gray-600">{t('drones.battery')}</p>
-                    <p className="text-sm font-medium text-gray-900">{drone.battery || 85}%</p>
-                  </div>
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <Signal className="w-4 h-4 mx-auto text-green-600 mb-1" />
-                    <p className="text-xs text-gray-600">{t('drones.signal')}</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {drone.status === "active" ? t('drones.good') : "-"}
-                    </p>
-                  </div>
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <Video className="w-4 h-4 mx-auto text-amber-600 mb-1" />
-                    <p className="text-xs text-gray-600">{t('drones.video')}</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {drone.status === "active" ? "4K" : "-"}
-                    </p>
-                  </div>
+                {/* Принадлежность ферме */}
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600">Ферма:</p>
+                  <p className="font-medium text-gray-900">
+                    {farms.find(f => f.id === drone.farm_id)?.name || "Неизвестно"}
+                  </p>
                 </div>
 
-                {/* Last Flight */}
-                {drone.lastFlight && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-                    <Clock className="w-4 h-4" />
-                    <span>
-                      {t('drones.lastFlight')}:{" "}
-                      {new Date(drone.lastFlight).toLocaleDateString()}
-                    </span>
+                {/* Дата создания */}
+                {drone.created_at && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600">Добавлен:</p>
+                    <p className="text-gray-900">
+                      {new Date(drone.created_at).toLocaleDateString('ru-RU')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Описание */}
+                {drone.description && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600">Описание:</p>
+                    <p className="text-gray-900 text-sm">{drone.description}</p>
                   </div>
                 )}
 
@@ -377,7 +399,7 @@ export default function DronesPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleDroneStatus(drone.id);
+                      handleToggleStatus(drone.id);
                     }}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl transition-colors ${
                       drone.status === "active"
@@ -401,12 +423,12 @@ export default function DronesPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Здесь можно открыть видеопоток или модалку
+                      handleEditDrone(drone);
                     }}
                     className="p-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
-                    title={t('drones.videoStream')}
+                    title="Редактировать"
                   >
-                    <Camera className="w-5 h-5" />
+                    <Edit3 className="w-5 h-5" />
                   </button>
                   <button
                     type="button"
@@ -414,10 +436,15 @@ export default function DronesPage() {
                       e.stopPropagation();
                       handleDeleteDrone(drone.id);
                     }}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                    title={t('common.delete')}
+                    disabled={deletingId === drone.id}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+                    title="Удалить"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    {deletingId === drone.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -425,60 +452,225 @@ export default function DronesPage() {
           </div>
         )}
 
-        {/* Video Stream Section */}
-        {selectedDrone && selectedDrone.status === "active" && (
+        {/* Детали выбранного дрона */}
+        {selectedDrone && (
           <div className="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900">
-                {t('drones.videoStream')}: {selectedDrone.name}
+                Детали дрона: {selectedDrone.model}
               </h3>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-sm text-gray-600">LIVE</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  selectedDrone.status === "active" ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                }`} />
+                <span className="text-sm text-gray-600">
+                  {selectedDrone.status === "active" ? "ОНЛАЙН" : "ОФФЛАЙН"}
+                </span>
               </div>
             </div>
 
-            <div className="aspect-video bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200">
-              <div className="text-center">
-                <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">
-                  {t('drones.connectingStream')}
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  {t('drones.ensureDroneConnected')}
-                </p>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Информация</h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-600">Модель</p>
+                    <p className="font-medium">{selectedDrone.model}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Серийный номер</p>
+                    <p className="font-mono font-medium">{selectedDrone.serial_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Статус</p>
+                    <p className={`font-medium ${
+                      selectedDrone.status === "active" ? "text-green-600" : "text-gray-600"
+                    }`}>
+                      {selectedDrone.status === "active" ? "Активен" : "Неактивен"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Дата добавления</p>
+                    <p className="font-medium">
+                      {new Date(selectedDrone.created_at).toLocaleDateString('ru-RU')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Принадлежность</h4>
+                {(() => {
+                  const farm = farms.find(f => f.id === selectedDrone.farm_id);
+                  return farm ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-600">Ферма</p>
+                        <p className="font-medium">{farm.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Регион</p>
+                        <p className="font-medium">{farm.region}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Площадь фермы</p>
+                        <p className="font-medium">{farm.area} га</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">Информация о ферме не найдена</p>
+                  );
+                })()}
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  51.1605, 71.4704
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  00:00:00
-                </span>
+            {selectedDrone.description && (
+              <div className="mt-6 pt-6 border-t">
+                <h4 className="font-medium text-gray-900 mb-2">Описание</h4>
+                <p className="text-gray-700">{selectedDrone.description}</p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  {t('drones.record')}
-                </button>
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  {t('drones.screenshot')}
-                </button>
+            )}
+
+            {/* Кнопки управления */}
+            {selectedDrone.status === "active" && (
+              <div className="mt-6 pt-6 border-t">
+                <h4 className="font-medium text-gray-900 mb-4">Управление</h4>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    <Camera className="w-5 h-5 inline mr-2" />
+                    Запустить камеру
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+                  >
+                    <Video className="w-5 h-5 inline mr-2" />
+                    Начать запись
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Модальное окно добавления/редактирования дрона */}
+      {showAddDrone && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white z-10 pb-4 border-b">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {editingDrone ? "Редактировать дрон" : t('drones.addDrone')}
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setShowAddDrone(false); resetForm(); }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  {t('drones.model')} *
+                </label>
+                <select
+                  value={droneData.model}
+                  onChange={(e) => setDroneData({ ...droneData, model: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">{t('drones.selectModel')}</option>
+                  {droneModels.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  {t('drones.serialNumber')} *
+                </label>
+                <input
+                  type="text"
+                  value={droneData.serial_number}
+                  onChange={(e) => setDroneData({ ...droneData, serial_number: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  placeholder="SN-1234567890"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Ферма *
+                </label>
+                <select
+                  value={droneData.farm_id}
+                  onChange={(e) => setDroneData({ ...droneData, farm_id: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Выберите ферму</option>
+                  {farms.map((farm) => (
+                    <option key={farm.id} value={farm.id}>
+                      {farm.name} ({farm.region})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Описание (необязательно)
+                </label>
+                <textarea
+                  value={droneData.description}
+                  onChange={(e) => setDroneData({ ...droneData, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Дополнительная информация о дроне..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Сохранение...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      {editingDrone ? "Сохранить изменения" : t('common.save')}
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddDrone(false); resetForm(); }}
+                  disabled={submitting}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

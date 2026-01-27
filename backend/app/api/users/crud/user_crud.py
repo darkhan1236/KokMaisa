@@ -1,9 +1,8 @@
-# backend/app/api/users/crud/user_crud.py
 from sqlalchemy.orm import Session
 
 from core.security import get_password_hash
 from model.models import User
-from app.api.users.schemas.user_schemas import UserCreate, UserRead
+from app.api.users.schemas.user_schemas import UserCreate, UserRead, UserUpdate
 
 
 def create_user(db: Session, user_data: UserCreate):
@@ -37,3 +36,51 @@ def update_password(db: Session, user: User, new_password: str):
     db.commit()
     db.refresh(user)
     return user
+
+
+def update_user(db: Session, user: User, user_data: UserUpdate):
+    # Обновляем только разрешенные поля
+    update_data = user_data.dict(exclude_unset=True)
+    
+    for field, value in update_data.items():
+        if field == "password" and value:
+            # Хешируем новый пароль
+            user.hashed_password = get_password_hash(value)
+        elif hasattr(user, field):
+            setattr(user, field, value)
+    
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_user_photo(db: Session, user_id: int, photo_url: str, mime_type: str):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError("Пользователь не найден")
+    
+    user.profile_photo = photo_url
+    user.photo_mime_type = mime_type
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_user_photo(db: Session, user_id: int):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError("Пользователь не найден")
+    
+    user.profile_photo = None
+    user.photo_mime_type = None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_user_profile(db: Session, user_id: int):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        return None
+    
+    return UserRead.model_validate(user)

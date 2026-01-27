@@ -1,4 +1,3 @@
-# backend/app/api/users/commands/login_user.py
 from datetime import timedelta
 from sqlalchemy.orm import Session
 
@@ -26,6 +25,7 @@ def execute(db: Session, login_data: UserLogin):
         account_type=user.account_type,
         country=user.country,
         city=user.city,
+        profile_photo=user.profile_photo,  # Добавляем фото
         created_at=user.created_at.isoformat(),
         education=user.education,
         specializations=user.specializations

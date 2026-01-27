@@ -18,6 +18,9 @@ class User(Base):
     city = Column(String(100), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
+    profile_photo = Column(String(500), nullable=True)  # URL или путь к файлу
+    photo_mime_type = Column(String(50), nullable=True)  # MIME тип изображения
+
     # Для агронома
     education = Column(String(100))
     specializations = Column(JSON)  # массив специализаций, например ["agronomy", "livestock"]

@@ -113,6 +113,84 @@ export default function Header() {
     { label: t('nav.settings'), icon: Settings, href: "/settings", color: "text-muted-foreground" },
   ];
 
+  // Функция для отображения фото или инициалов в хедере
+  const renderHeaderProfileImage = (size = "w-8 h-8", textSize = "text-sm") => {
+    if (!user) return null;
+    
+    const initials = user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || "U";
+    
+    if (user.profile_photo) {
+      return (
+        <div className={`${size} rounded-full flex items-center justify-center overflow-hidden border border-white/30`}>
+          <img 
+            src={`http://127.0.0.1:8000${user.profile_photo}`}
+            alt={user.full_name || user.email || t('common.user')}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              const parent = e.target.parentElement;
+              if (parent) {
+                parent.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                parent.style.display = 'flex';
+                parent.style.alignItems = 'center';
+                parent.style.justifyContent = 'center';
+                const span = document.createElement('span');
+                span.className = `${textSize} font-bold text-white`;
+                span.textContent = initials;
+                parent.appendChild(span);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className={`${size} rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center border border-white/30`}>
+        <span className={`${textSize} font-bold text-white`}>{initials}</span>
+      </div>
+    );
+  };
+
+  // Функция для отображения фото в мобильном меню
+  const renderMobileProfileImage = () => {
+    if (!user) return null;
+    
+    const initials = user.full_name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || "U";
+    
+    if (user.profile_photo) {
+      return (
+        <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden border border-gray-300">
+          <img 
+            src={`http://127.0.0.1:8000${user.profile_photo}`}
+            alt={user.full_name || user.email || t('common.user')}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              const parent = e.target.parentElement;
+              if (parent) {
+                parent.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                parent.style.display = 'flex';
+                parent.style.alignItems = 'center';
+                parent.style.justifyContent = 'center';
+                const span = document.createElement('span');
+                span.className = "text-lg font-bold text-white";
+                span.textContent = initials;
+                parent.appendChild(span);
+              }
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center border border-gray-300">
+        <span className="text-lg font-bold text-white">{initials}</span>
+      </div>
+    );
+  };
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -171,9 +249,7 @@ export default function Header() {
                       : "text-white hover:bg-white/10 border border-white/30"
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
+                  {renderHeaderProfileImage()}
                   <span className="font-medium max-w-32 truncate">
                     {user.full_name || user.email?.split("@")[0] || t('common.user')}
                   </span>
@@ -184,16 +260,20 @@ export default function Header() {
 
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50">
-                    <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
-                      <p className="font-semibold text-gray-900">
-                        {user.full_name || t('common.user')}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {user.email}
-                      </p>
-                      <span className="inline-block mt-2 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                        {user.account_type === "farmer" ? t('roles.farmer') : t('roles.agronomist')}
-                      </span>
+                    {/* Заголовок с фото профиля */}
+                    <div className="flex items-center gap-3 px-5 py-4 bg-gray-50 border-b border-gray-200">
+                      {renderHeaderProfileImage("w-12 h-12", "text-base")}
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {user.full_name || t('common.user')}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {user.email}
+                        </p>
+                        <span className="inline-block mt-2 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          {user.account_type === "farmer" ? t('roles.farmer') : t('roles.agronomist')}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="py-2 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
@@ -288,9 +368,13 @@ export default function Header() {
 
             {user ? (
               <div className="flex flex-col gap-3 border-t border-gray-200 pt-4">
-                <div className="px-4 py-3">
-                  <p className="font-semibold text-gray-900">{user.full_name || t('common.user')}</p>
-                  <p className="text-sm text-gray-500">{user.email}</p>
+                {/* Информация пользователя с фото в мобильном меню */}
+                <div className="flex items-center gap-3 px-4 py-3">
+                  {renderMobileProfileImage()}
+                  <div>
+                    <p className="font-semibold text-gray-900">{user.full_name || t('common.user')}</p>
+                    <p className="text-sm text-gray-500">{user.email}</p>
+                  </div>
                 </div>
 
                 {userMenuItems.map((item, index) =>

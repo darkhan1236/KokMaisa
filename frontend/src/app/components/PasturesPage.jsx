@@ -1,5 +1,5 @@
 // src/app/components/PasturesPage.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from 'react-i18next';
@@ -21,130 +21,241 @@ import {
   Droplets,
   Sun,
   Wind,
+  Loader2,
+  Edit3,
 } from "lucide-react";
 
 export default function PasturesPage() {
   const { t } = useTranslation();
-  const { user, addPasture, updateProfile } = useAuth();
+  const { 
+    user, 
+    isAuthenticated, 
+    loading: authLoading,
+    getFarms,
+    getPastures, 
+    createPasture, 
+    updatePasture, 
+    deletePasture 
+  } = useAuth();
+  
   const navigate = useNavigate();
+
+  const [pastures, setPastures] = useState([]);
+  const [farms, setFarms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
   const [showAddPasture, setShowAddPasture] = useState(false);
+  const [editingPasture, setEditingPasture] = useState(null);
   const [selectedPasture, setSelectedPasture] = useState(null);
+
   const [pastureData, setPastureData] = useState({
     name: "",
-    farmId: "",
+    farm_id: "",
     area: "",
-    coordinates: { lat: "", lng: "" },
-    grassType: "",
+    pasture_type: "",
+    coordinates_lat: "",
+    coordinates_lng: "",
+    description: "",
+    status: "active",
   });
 
-  if (!user || user.account_type !== "farmer") {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md mx-4">
-          <p className="text-gray-600 mb-6 text-lg">
-            {t('common.pleaseLogin')}
-          </p>
-          <button
-            onClick={() => navigate("/login")}
-            className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full font-medium hover:from-green-600 hover:to-emerald-700 transition-all shadow-md hover:shadow-xl"
-          >
-            {t('nav.login')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Загрузка данных
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
 
-  const pastures = user?.profile?.pastures || [];
-  const farms = user?.profile?.farms || [];
+    loadData();
+  }, [authLoading, isAuthenticated]);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [pasturesData, farmsData] = await Promise.all([
+        getPastures(),
+        getFarms()
+      ]);
+      
+      setPastures(pasturesData || []);
+      setFarms(farmsData || []);
+    } catch (err) {
+      setError(err.message || "Не удалось загрузить данные");
+      console.error(err);
+      
+      if (err.message.includes("Сессия истекла")) {
+        navigate("/login");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLocationSelect = (location) => {
-    setPastureData({
-      ...pastureData,
-      coordinates: {
-        lat: location.lat.toFixed(6),
-        lng: location.lng.toFixed(6),
-      },
-    });
+    setPastureData(prev => ({
+      ...prev,
+      coordinates_lat: location.lat.toFixed(6),
+      coordinates_lng: location.lng.toFixed(6),
+    }));
   };
 
-  const handleAddPasture = (e) => {
-    e.preventDefault();
-    addPasture({
-      ...pastureData,
-      id: Date.now().toString(),
-      biomassEstimate: Math.floor(Math.random() * 2000) + 1500,
-      lastAnalysis: new Date().toISOString(),
-    });
+  const resetForm = () => {
     setPastureData({
       name: "",
-      farmId: "",
+      farm_id: "",
       area: "",
-      coordinates: { lat: "", lng: "" },
-      grassType: "",
+      pasture_type: "",
+      coordinates_lat: "",
+      coordinates_lng: "",
+      description: "",
+      status: "active",
     });
-    setShowAddPasture(false);
+    setEditingPasture(null);
   };
 
-  const handleDeletePasture = (pastureId) => {
-    if (window.confirm(t('pastures.confirmDelete'))) {
-      const updatedPastures = pastures.filter((p) => p.id !== pastureId);
-      updateProfile({ pastures: updatedPastures });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      // Валидация
+      if (!pastureData.name.trim()) throw new Error("Название обязательно");
+      if (!pastureData.farm_id) throw new Error("Выберите ферму");
+      if (!pastureData.area || isNaN(parseFloat(pastureData.area)) || parseFloat(pastureData.area) <= 0) {
+        throw new Error("Площадь должна быть положительным числом");
+      }
+
+      const payload = {
+        name: pastureData.name.trim(),
+        farm_id: parseInt(pastureData.farm_id),
+        area: parseFloat(pastureData.area),
+        pasture_type: pastureData.pasture_type || null,
+        coordinates_lat: pastureData.coordinates_lat ? parseFloat(pastureData.coordinates_lat) : null,
+        coordinates_lng: pastureData.coordinates_lng ? parseFloat(pastureData.coordinates_lng) : null,
+        description: pastureData.description?.trim() || null,
+        status: pastureData.status,
+      };
+
+      if (editingPasture) {
+        await updatePasture(editingPasture.id, payload);
+      } else {
+        await createPasture(payload);
+      }
+
+      resetForm();
+      setShowAddPasture(false);
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Ошибка при сохранении");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditPasture = (pasture) => {
+    setEditingPasture(pasture);
+    setPastureData({
+      name: pasture.name || "",
+      farm_id: pasture.farm_id?.toString() || "",
+      area: pasture.area?.toString() || "",
+      pasture_type: pasture.pasture_type || "",
+      coordinates_lat: pasture.coordinates_lat?.toString() || "",
+      coordinates_lng: pasture.coordinates_lng?.toString() || "",
+      description: pasture.description || "",
+      status: pasture.status || "active",
+    });
+    setShowAddPasture(true);
+  };
+
+  const handleDeletePasture = async (pastureId) => {
+    if (!window.confirm(t('pastures.confirmDelete') || "Вы уверены, что хотите удалить пастбище?")) {
+      return;
+    }
+
+    try {
+      // Оптимистичное обновление UI - удаляем сразу
+      setPastures(prev => {
+        const updated = prev.filter(p => p.id !== pastureId);
+        return updated;
+      });
+      
+      // Снимаем выделение если удаляем выбранное пастбище
       if (selectedPasture?.id === pastureId) {
         setSelectedPasture(null);
       }
+      
+      // Выполняем запрос на удаление на сервере
+      await deletePasture(pastureId);
+      
+      // Обновляем статистику
+      // Можно также добавить уведомление об успехе
+      console.log("Пастбище успешно удалено");
+      
+    } catch (err) {
+      // Если ошибка - показываем сообщение и восстанавливаем данные
+      setError(err.message || "Ошибка удаления");
+      console.error("Ошибка удаления:", err);
+      
+      // Перезагружаем данные с сервера чтобы синхронизировать состояние
+      await loadData();
     }
   };
 
   // Статистика
   const totalArea = pastures.reduce((acc, p) => acc + parseFloat(p.area || 0), 0);
-  const avgBiomass =
-    pastures.length > 0
-      ? Math.round(
-          pastures.reduce((acc, p) => acc + (p.biomassEstimate || 0), 0) / pastures.length
-        )
-      : 0;
+  const avgBiomass = pastures.length > 0 ? 1850 : 0; // Заглушка
 
   const pastureMarkers = pastures
-    .filter((p) => p.coordinates?.lat && p.coordinates?.lng)
+    .filter((p) => p.coordinates_lat && p.coordinates_lng)
     .map((p) => ({
-      lat: parseFloat(p.coordinates.lat),
-      lng: parseFloat(p.coordinates.lng),
+      lat: parseFloat(p.coordinates_lat),
+      lng: parseFloat(p.coordinates_lng),
       title: p.name,
-      description: `${p.area} га | ${p.biomassEstimate} кг/га`,
+      description: `${p.area} га | ${p.pasture_type || 'Без типа'}`,
       type: "pasture",
     }));
 
   const grassTypes = [
-    t('pastures.grassTypes.alfalfa'),
-    t('pastures.grassTypes.clover'),
-    t('pastures.grassTypes.timothy'),
-    t('pastures.grassTypes.fescue'),
-    t('pastures.grassTypes.brome'),
-    t('pastures.grassTypes.wheatgrass'),
-    t('pastures.grassTypes.mixed'),
+    "Люцерна",
+    "Клевер",
+    "Тимофеевка",
+    "Овсяница",
+    "Костер",
+    "Пырей",
+    "Смешанный",
   ];
 
-  const getBiomassRating = (biomass) => {
-    if (biomass >= 2500) return { label: t('pastures.rating.excellent'), color: "text-green-600" };
-    if (biomass >= 2000) return { label: t('pastures.rating.good'), color: "text-amber-600" };
-    if (biomass >= 1500) return { label: t('pastures.rating.average'), color: "text-orange-600" };
-    return { label: t('pastures.rating.low'), color: "text-red-600" };
-  };
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-green-600 mx-auto mb-4" />
+          <p className="text-gray-600">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mx-6 mt-4 rounded-r">
+          <p>{error}</p>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="relative pt-20 pb-16 bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.344 0L13.858 8.485 15.272 9.9l9.9-9.9h-2.828zM32 0l-3.486 3.485 1.415 1.415L34.343 0H32z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-            opacity: 0.3,
-          }}
-        />
         <div className="relative max-w-7xl mb-10 mx-auto px-6 pt-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
@@ -155,7 +266,7 @@ export default function PasturesPage() {
             </div>
             <button
               type="button"
-              onClick={() => setShowAddPasture(true)}
+              onClick={() => { resetForm(); setShowAddPasture(true); }}
               className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-colors border border-white/30 shrink-0"
             >
               <Plus className="w-5 h-5" />
@@ -211,9 +322,9 @@ export default function PasturesPage() {
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">
-                  {pastures.filter((p) => p.lastAnalysis).length}
+                  {farms.length}
                 </p>
-                <p className="text-sm text-gray-600">{t('pastures.stats.analyses')}</p>
+                <p className="text-sm text-gray-600">Фермы</p>
               </div>
             </div>
           </div>
@@ -230,16 +341,18 @@ export default function PasturesPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 {t('pastures.mapTitle')}
               </h3>
-              <LeafletMap
-                center={
-                  pastureMarkers.length > 0
-                    ? [pastureMarkers[0].lat, pastureMarkers[0].lng]
-                    : [51.1605, 71.4704]
-                }
-                zoom={8}
-                markers={pastureMarkers}
-                height="400px"
-              />
+              <div className="rounded-xl overflow-hidden border border-gray-200">
+                <LeafletMap
+                  center={
+                    pastureMarkers.length > 0
+                      ? [pastureMarkers[0].lat, pastureMarkers[0].lng]
+                      : [48.0, 68.0]
+                  }
+                  zoom={pastureMarkers.length > 0 ? 8 : 6}
+                  markers={pastureMarkers}
+                  height="400px"
+                />
+              </div>
             </div>
 
             {/* Список пастбищ */}
@@ -256,7 +369,7 @@ export default function PasturesPage() {
                   <p className="text-gray-600 mb-2">{t('pastures.noPastures')}</p>
                   <button
                     type="button"
-                    onClick={() => setShowAddPasture(true)}
+                    onClick={() => { resetForm(); setShowAddPasture(true); }}
                     className="text-green-600 hover:underline font-medium"
                   >
                     {t('pastures.addFirstPasture')}
@@ -264,67 +377,85 @@ export default function PasturesPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {pastures.map((pasture) => {
-                    const rating = getBiomassRating(pasture.biomassEstimate || 0);
-                    return (
-                      <div
-                        key={pasture.id}
-                        className={`p-6 rounded-2xl border cursor-pointer transition-all ${
-                          selectedPasture?.id === pasture.id
-                            ? "border-green-400 bg-green-50"
-                            : "border-gray-200 hover:border-green-300 bg-gray-50"
-                        }`}
-                        onClick={() => setSelectedPasture(pasture)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h4 className="font-semibold text-gray-900">{pasture.name}</h4>
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-medium ${rating.color} bg-current/10`}
-                              >
-                                {rating.label}
+                  {pastures.map((pasture) => (
+                    <div
+                      key={pasture.id}
+                      className={`p-6 rounded-2xl border cursor-pointer transition-all ${
+                        selectedPasture?.id === pasture.id
+                          ? "border-green-400 bg-green-50"
+                          : "border-gray-200 hover:border-green-300 bg-gray-50"
+                      }`}
+                      onClick={() => setSelectedPasture(pasture)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center flex-wrap gap-3 mb-2">
+                            <h4 className="font-semibold text-gray-900">{pasture.name}</h4>
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              {pasture.area} га
+                            </span>
+                            {pasture.status && (
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                pasture.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {pasture.status === 'active' ? 'Активно' : pasture.status}
                               </span>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600">
-                              <span>{pasture.area} га</span>
-                              <span>{pasture.biomassEstimate || 0} кг/га</span>
-                              {pasture.grassType && <span>{pasture.grassType}</span>}
-                              {pasture.lastAnalysis && (
-                                <span>
-                                  {new Date(pasture.lastAnalysis).toLocaleDateString()}
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedPasture(pasture);
-                              }}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Просмотр"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeletePasture(pasture.id);
-                              }}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Удалить"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
+
+                          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+                            {pasture.pasture_type && (
+                              <span className="flex items-center gap-1.5">
+                                <Wheat className="w-4 h-4" />
+                                {pasture.pasture_type}
+                              </span>
+                            )}
+                            {pasture.created_at && (
+                              <span>
+                                Создано: {new Date(pasture.created_at).toLocaleDateString('ru-RU')}
+                              </span>
+                            )}
                           </div>
                         </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPasture(pasture);
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Просмотр"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditPasture(pasture);
+                            }}
+                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Редактировать"
+                          >
+                            <Edit3 className="w-5 h-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePasture(pasture.id);
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Удалить"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -347,37 +478,52 @@ export default function PasturesPage() {
                         {selectedPasture.area} га
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Биомасса</span>
-                      <span className="font-medium text-gray-900">
-                        {selectedPasture.biomassEstimate || 0} кг/га
-                      </span>
-                    </div>
-                    {selectedPasture.grassType && (
+                    {selectedPasture.pasture_type && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-600">Тип травы</span>
                         <span className="font-medium text-gray-900">
-                          {selectedPasture.grassType}
+                          {selectedPasture.pasture_type}
                         </span>
                       </div>
                     )}
-                    {selectedPasture.lastAnalysis && (
+                    {selectedPasture.description && (
+                      <div className="pt-2">
+                        <span className="text-gray-600 block mb-1">Описание</span>
+                        <p className="text-gray-900 text-sm">
+                          {selectedPasture.description}
+                        </p>
+                      </div>
+                    )}
+                    {selectedPasture.created_at && (
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Последний анализ</span>
+                        <span className="text-gray-600">Создано</span>
                         <span className="font-medium text-gray-900">
-                          {new Date(selectedPasture.lastAnalysis).toLocaleDateString()}
+                          {new Date(selectedPasture.created_at).toLocaleDateString('ru-RU')}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    className="w-full mt-6 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                    {t('pastures.analyzeBiomass')}
-                  </button>
+                  {selectedPasture.coordinates_lat && selectedPasture.coordinates_lng && (
+                    <div className="mt-6">
+                      <p className="text-sm text-gray-600 mb-2">Местоположение</p>
+                      <div className="rounded-xl overflow-hidden border border-gray-200">
+                        <LeafletMap
+                          center={[
+                            parseFloat(selectedPasture.coordinates_lat),
+                            parseFloat(selectedPasture.coordinates_lng)
+                          ]}
+                          zoom={13}
+                          markers={[{
+                            lat: parseFloat(selectedPasture.coordinates_lat),
+                            lng: parseFloat(selectedPasture.coordinates_lng),
+                            title: selectedPasture.name,
+                          }]}
+                          height="200px"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Условия роста */}
@@ -451,24 +597,24 @@ export default function PasturesPage() {
         </div>
       </div>
 
-      {/* Модальное окно добавления пастбища */}
+      {/* Модальное окно добавления/редактирования пастбища */}
       {showAddPasture && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white z-10 pb-4 border-b">
               <h3 className="text-xl font-semibold text-gray-900">
-                {t('pastures.addPasture')}
+                {editingPasture ? "Редактировать пастбище" : t('pastures.addPasture')}
               </h3>
               <button
                 type="button"
-                onClick={() => setShowAddPasture(false)}
+                onClick={() => { setShowAddPasture(false); resetForm(); }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
-            <form onSubmit={handleAddPasture} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -486,12 +632,13 @@ export default function PasturesPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
-                    {t('pastures.farm')}
+                    {t('pastures.farm')} *
                   </label>
                   <select
-                    value={pastureData.farmId}
-                    onChange={(e) => setPastureData({ ...pastureData, farmId: e.target.value })}
+                    value={pastureData.farm_id}
+                    onChange={(e) => setPastureData({ ...pastureData, farm_id: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
                   >
                     <option value="">{t('pastures.selectFarm')}</option>
                     {farms.map((farm) => (
@@ -508,6 +655,7 @@ export default function PasturesPage() {
                   </label>
                   <input
                     type="number"
+                    step="0.01"
                     value={pastureData.area}
                     onChange={(e) => setPastureData({ ...pastureData, area: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -521,8 +669,8 @@ export default function PasturesPage() {
                     {t('pastures.grassType')}
                   </label>
                   <select
-                    value={pastureData.grassType}
-                    onChange={(e) => setPastureData({ ...pastureData, grassType: e.target.value })}
+                    value={pastureData.pasture_type}
+                    onChange={(e) => setPastureData({ ...pastureData, pasture_type: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
                     <option value="">{t('pastures.selectGrassType')}</option>
@@ -533,6 +681,19 @@ export default function PasturesPage() {
                     ))}
                   </select>
                 </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Описание
+                  </label>
+                  <textarea
+                    value={pastureData.description}
+                    onChange={(e) => setPastureData({ ...pastureData, description: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Краткое описание пастбища..."
+                    rows={3}
+                  />
+                </div>
               </div>
 
               <div>
@@ -542,11 +703,11 @@ export default function PasturesPage() {
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text"
-                    value={pastureData.coordinates.lat}
+                    value={pastureData.coordinates_lat}
                     onChange={(e) =>
                       setPastureData({
                         ...pastureData,
-                        coordinates: { ...pastureData.coordinates, lat: e.target.value },
+                        coordinates_lat: e.target.value,
                       })
                     }
                     className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
@@ -554,11 +715,11 @@ export default function PasturesPage() {
                   />
                   <input
                     type="text"
-                    value={pastureData.coordinates.lng}
+                    value={pastureData.coordinates_lng}
                     onChange={(e) =>
                       setPastureData({
                         ...pastureData,
-                        coordinates: { ...pastureData.coordinates, lng: e.target.value },
+                        coordinates_lng: e.target.value,
                       })
                     }
                     className="w-1/2 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
@@ -566,31 +727,40 @@ export default function PasturesPage() {
                   />
                 </div>
 
-                <div className="relative z-10">
-
-                    <LeafletMap
-                    center={[51.1605, 71.4704]}
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <LeafletMap
+                    center={[48.0, 68.0]}
                     zoom={6}
                     selectable={true}
                     onLocationSelect={handleLocationSelect}
                     height="250px"
-                    />
+                  />
                 </div>
-                
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 border-t">
                 <button
                   type="submit"
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors"
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Check className="w-5 h-5" />
-                  {t('common.save')}
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Сохранение...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      {editingPasture ? "Сохранить изменения" : t('common.save')}
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAddPasture(false)}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors"
+                  onClick={() => { setShowAddPasture(false); resetForm(); }}
+                  disabled={submitting}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
                 >
                   {t('common.cancel')}
                 </button>

@@ -1,33 +1,33 @@
-from pydantic import BaseModel
-from typing import Optional, List
+# backend/app/api/pastures/schemas/pasture_schemas.py
+from pydantic import BaseModel, Field
+from typing import Optional
 from datetime import datetime
 
 class PastureBase(BaseModel):
-    name: str
-    area: float
-    pasture_type: Optional[str]
-    coordinates_lat: Optional[float]
-    coordinates_lng: Optional[float]
-    boundaries: Optional[List[dict]]
-    description: Optional[str]
-    status: Optional[str] = "active"
+    name: str = Field(..., min_length=1, max_length=200)
+    farm_id: int
+    area: float = Field(..., gt=0)
+    pasture_type: Optional[str] = None
+    coordinates_lat: Optional[float] = None
+    coordinates_lng: Optional[float] = None
+    description: Optional[str] = None
+    status: str = "active"
 
 class PastureCreate(PastureBase):
-    farm_id: int
+    pass
 
 class PastureUpdate(BaseModel):
-    name: Optional[str]
-    area: Optional[float]
-    pasture_type: Optional[str]
-    coordinates_lat: Optional[float]
-    coordinates_lng: Optional[float]
-    boundaries: Optional[List[dict]]
-    description: Optional[str]
-    status: Optional[str]
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    farm_id: Optional[int] = None
+    area: Optional[float] = Field(None, gt=0)
+    pasture_type: Optional[str] = None
+    coordinates_lat: Optional[float] = None
+    coordinates_lng: Optional[float] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
 
 class PastureResponse(PastureBase):
     id: int
-    farm_id: int
     created_at: datetime
     updated_at: datetime
 

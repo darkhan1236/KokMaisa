@@ -11,7 +11,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]  # Frontend URL
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", 
+                                  "http://127.0.0.1:5173",
+                                  "http://localhost:3000",]  # Frontend URL
 
     EMAIL_HOST: str
     EMAIL_PORT: int

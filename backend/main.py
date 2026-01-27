@@ -1,6 +1,7 @@
 # backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from core.config import settings
 from app.router import router
 
@@ -16,3 +17,5 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

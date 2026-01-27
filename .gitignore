@@ -16,3 +16,6 @@ env/
 # Общее
 .DS_Store
 Thumbs.db 
+# backend/.gitignore
+uploads/
+!uploads/.gitkeep
