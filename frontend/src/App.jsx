@@ -16,6 +16,7 @@ import PasturesMapPage from '@/app/components/PasturesMapPage';
 import SettingsPage from '@/app/components/SettingsPage';
 import PasturesAnalysisPage from '@/app/components/PasturesAnalysisPage';
 import { ResetPassword } from '@/app/components/ResetPassword';
+import BiomassMeasurementPage from '@/app/components/BiomassMeasurementPage';
 import BiomassDashboardPage from '@/app/components/BiomassDashboardPage';
 
 // Импорт контекста и ProtectedRoute
@@ -110,6 +111,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/biomass" element={<BiomassMeasurementPage />} />
       <Route path="/farms" element={<FarmsPage />} />
       <Route path="/biomass-dashboard" element={<BiomassDashboardPage />} />
       <Route path="/pastures-map" element={<PasturesMapPage />} />

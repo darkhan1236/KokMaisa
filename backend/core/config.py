@@ -1,4 +1,5 @@
 # backend/core/config.py
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,10 @@ class Settings(BaseSettings):
     EMAIL_FROM_NAME: str
     
     FRONTEND_URL: str = "http://localhost:5173" 
+    openai_api_key: str = Field("", alias="OPENAI_API_KEY")
+    openai_model: str = Field("meta-llama/llama-3.1-8b-instruct", alias="OPENAI_MODEL")
+    openai_base_url: str = Field("https://openrouter.ai/api/v1", alias="OPENAI_BASE_URL")
+
 
 
 settings = Settings()

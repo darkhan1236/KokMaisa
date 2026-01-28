@@ -20,25 +20,6 @@ import {
   Trash2,
 } from "lucide-react";
 
-// Эмуляция AI-ответов (можно заменить на реальный API)
-const getAIResponse = (question, userData, t) => {
-  const lower = question.toLowerCase();
-
-  if (lower.includes(t('drones.title').toLowerCase()) || lower.includes("дрон")) {
-    return t('ai.droneAdvice');
-  }
-  if (lower.includes(t('pastures.title').toLowerCase()) || lower.includes("пастбищ") || lower.includes("биомасс")) {
-    return t('ai.biomassAdvice');
-  }
-  if (lower.includes("погод") || lower.includes("дожд") || lower.includes("климат")) {
-    return t('ai.weatherAdvice');
-  }
-  if (lower.includes("ротац") || lower.includes("выпас") || lower.includes("скот")) {
-    return t('ai.rotationAdvice');
-  }
-
-  return t('ai.defaultResponse');
-};
 
 // Предложенные вопросы (переводимые)
 const getSuggestedQuestions = (t) => [
@@ -50,7 +31,7 @@ const getSuggestedQuestions = (t) => [
 
 export default function AIChatPage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, chatAI  } = useAuth();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([
     {
@@ -87,14 +68,16 @@ export default function AIChatPage() {
     );
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+
+    const text = input.trim();
 
     const userMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: text,
       timestamp: new Date(),
     };
 
@@ -102,18 +85,31 @@ export default function AIChatPage() {
     setInput("");
     setIsLoading(true);
 
-    // Эмуляция задержки ответа (0.8–2 сек)
-    setTimeout(() => {
+    try {
+      const data = await chatAI(text); // ✅ вызов через AuthContext
+      const answerText = data?.answer ?? "Пустой ответ от AI.";
+
       const aiResponse = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: getAIResponse(userMessage.content, user, t),
+        content: answerText,
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, aiResponse]);
+    } catch (err) {
+      const aiError = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: `Ошибка AI: ${err.message}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, aiError]);
+    } finally {
       setIsLoading(false);
-    }, 800 + Math.random() * 1200);
+    }
   };
+
 
   const handleSuggestionClick = (question) => {
     setInput(question);
@@ -132,7 +128,7 @@ export default function AIChatPage() {
       {
         id: "welcome",
         role: "assistant",
-        content: t('ai.welcome', { name: user?.fullName?.split(" ")[0] || "" }),
+        content: t('ai.welcome', { name: user?.full_name?.split(" ")[0] || "" }),
         timestamp: new Date(),
       },
     ]);

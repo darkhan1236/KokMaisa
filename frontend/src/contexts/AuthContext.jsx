@@ -86,6 +86,15 @@ export function AuthProvider({ children }) {
   };
 
   // ────────────────────────────────────────────────
+  // AI Chat
+  // ────────────────────────────────────────────────
+  const chatAI = (message) =>
+    apiFetch('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+
+  // ────────────────────────────────────────────────
   // Функции для работы с профилем пользователя
   // ────────────────────────────────────────────────
   const updateProfile = async (profileData) => {
@@ -367,6 +376,10 @@ export function AuthProvider({ children }) {
     updateDrone,
     deleteDrone,
     updateDroneStatus,
+
+    // AI
+    chatAI,
+
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

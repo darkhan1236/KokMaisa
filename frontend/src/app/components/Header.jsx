@@ -102,6 +102,13 @@ export default function Header() {
       color: "text-primary"
     }] : []),
 
+    { 
+      label: t('nav.biomass'), 
+      icon: Leaf, // или выберите другую иконку, например, Leaf, Sprout
+      href: "/biomass", 
+      color: "text-amber-600" // или другой цвет
+    },
+
     { type: "divider" },
 
     { label: t('nav.biomassDashboard'), icon: BarChart3, href: "/biomass-dashboard", color: "text-amber-600" },
@@ -290,6 +297,7 @@ export default function Header() {
                             <item.icon className={`w-5 h-5 ${item.color}`} />
                             <span>{item.label}</span>
                           </Link>
+                          
                         )
                       )}
 
