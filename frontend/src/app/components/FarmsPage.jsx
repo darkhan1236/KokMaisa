@@ -64,7 +64,7 @@ export default function FarmsPage() {
       const data = await getFarms();
       setFarms(data || []);
     } catch (err) {
-      setError(err.message || "Не удалось загрузить фермы");
+      setError(err.message || t('farms.errors.loadFailed'));
       console.error(err);
       if (err.message.includes("Сессия истекла")) {
         navigate("/login");
@@ -111,10 +111,10 @@ export default function FarmsPage() {
 
     try {
       // Валидация
-      if (!formData.name.trim()) throw new Error("Название обязательно");
-      if (!formData.region.trim()) throw new Error("Регион обязателен");
+      if (!formData.name.trim()) throw new Error(t('farms.errors.nameRequired'));
+      if (!formData.region.trim()) throw new Error(t('farms.errors.regionRequired'));
       if (!formData.area || isNaN(parseFloat(formData.area)) || parseFloat(formData.area) <= 0) {
-        throw new Error("Площадь должна быть положительным числом");
+        throw new Error(t('farms.errors.areaInvalid'));
       }
 
       const payload = {
@@ -146,7 +146,7 @@ export default function FarmsPage() {
       setShowAddFarm(false);
       await loadFarms();
     } catch (err) {
-      setError(err.message || "Ошибка при сохранении");
+      setError(err.message || t('farms.errors.saveFailed'));
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -177,14 +177,14 @@ export default function FarmsPage() {
   };
 
   const handleDeleteFarm = async (farmId) => {
-    if (!window.confirm(t('farms.confirmDelete') || "Вы уверены, что хотите удалить ферму?")) return;
+    if (!window.confirm(t('farms.confirmDelete'))) return;
 
     try {
       await deleteFarm(farmId);
       await loadFarms();
       if (selectedFarm?.id === farmId) setSelectedFarm(null);
     } catch (err) {
-      setError(err.message || "Ошибка удаления");
+      setError(err.message || t('farms.errors.deleteFailed'));
     }
   };
 
@@ -220,10 +220,10 @@ export default function FarmsPage() {
   ];
 
   const farmTypes = [
-    { value: "livestock", label: t('farms.types.livestock') || "Животноводство" },
-    { value: "crop", label: t('farms.types.crop') || "Растениеводство" },
-    { value: "mixed", label: t('farms.types.mixed') || "Смешанное" },
-    { value: "organic", label: t('farms.types.organic') || "Органическое" },
+    { value: "livestock", label: t('farms.types.livestock') },
+    { value: "crop", label: t('farms.types.crop') },
+    { value: "mixed", label: t('farms.types.mixed') },
+    { value: "organic", label: t('farms.types.organic') },
   ];
 
   if (loading) {
@@ -352,24 +352,24 @@ export default function FarmsPage() {
                 <section>
                   <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <LandPlot className="w-5 h-5 text-green-600" />
-                    Основная информация
+                    {t('farms.sections.basicInfo')}
                   </h4>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Название фермы *
+                        {t('farms.labels.name')} *
                       </label>
                       <Input
                         value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Например: Ферма Жасыл Дала"
+                        placeholder={t('farms.placeholders.nameExample')}
                         required
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Регион *
+                        {t('farms.labels.region')} *
                       </label>
                       <Select
                         value={formData.region}
@@ -377,7 +377,7 @@ export default function FarmsPage() {
                         required
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Выберите регион" />
+                          <SelectValue placeholder={t('farms.placeholders.selectRegion')} />
                         </SelectTrigger>
                         <SelectContent>
                           {regions.map(r => (
@@ -389,28 +389,28 @@ export default function FarmsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Площадь (га) *
+                        {t('farms.labels.area')} ({t('units.ha')}) *
                       </label>
                       <Input
                         type="number"
                         step="0.01"
                         value={formData.area}
                         onChange={e => setFormData({ ...formData, area: e.target.value })}
-                        placeholder="250.5"
+                        placeholder={t('farms.placeholders.areaExample')}
                         required
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Тип хозяйства
+                        {t('farms.labels.type')}
                       </label>
                       <Select
                         value={formData.farm_type}
                         onValueChange={value => setFormData({ ...formData, farm_type: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Выберите тип" />
+                          <SelectValue placeholder={t('farms.placeholders.selectType')} />
                         </SelectTrigger>
                         <SelectContent>
                           {farmTypes.map(type => (
@@ -424,7 +424,7 @@ export default function FarmsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Дата основания
+                        {t('farms.labels.establishedDate')}
                       </label>
                       <Input
                         type="date"
@@ -435,7 +435,7 @@ export default function FarmsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Статус
+                        {t('farms.labels.status')}
                       </label>
                       <Select
                         value={formData.status}
@@ -445,9 +445,9 @@ export default function FarmsPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="active">Активно</SelectItem>
-                          <SelectItem value="inactive">Неактивно</SelectItem>
-                          <SelectItem value="seasonal">Сезонное</SelectItem>
+                          <SelectItem value="active">{t('farms.status.active')}</SelectItem>
+                          <SelectItem value="inactive">{t('farms.status.inactive')}</SelectItem>
+                          <SelectItem value="seasonal">{t('farms.status.seasonal')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -458,12 +458,12 @@ export default function FarmsPage() {
                 <section>
                   <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <Phone className="w-5 h-5 text-blue-600" />
-                    Контакты и владелец
+                    {t('farms.sections.contacts')}
                   </h4>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Телефон
+                        {t('farms.labels.phone')}
                       </label>
                       <Input
                         type="tel"
@@ -475,23 +475,23 @@ export default function FarmsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Имя владельца
+                        {t('farms.labels.ownerName')}
                       </label>
                       <Input
                         value={formData.owner_name}
                         onChange={e => setFormData({ ...formData, owner_name: e.target.value })}
-                        placeholder="Иванов Иван Иванович"
+                        placeholder={t('farms.placeholders.ownerName')}
                       />
                     </div>
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        ИИН владельца
+                        {t('farms.labels.ownerIin')}
                       </label>
                       <Input
                         value={formData.owner_iin}
                         onChange={e => setFormData({ ...formData, owner_iin: e.target.value })}
-                        placeholder="900101300123"
+                        placeholder={t('farms.placeholders.ownerIin')}
                         maxLength={12}
                       />
                     </div>
@@ -502,28 +502,28 @@ export default function FarmsPage() {
                 <section>
                   <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-red-600" />
-                    Адрес и описание
+                    {t('farms.sections.address')}
                   </h4>
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Адрес
+                        {t('farms.labels.address')}
                       </label>
                       <Input
                         value={formData.address}
                         onChange={e => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="Қарағанды қаласы, Абай ауданы, ауыл Қарағанды"
+                        placeholder={t('farms.placeholders.addressExample')}
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Описание фермы
+                        {t('farms.labels.description')}
                       </label>
                       <Textarea
                         value={formData.description}
                         onChange={e => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="Краткое описание: виды культур, техника, особенности..."
+                        placeholder={t('farms.placeholders.description')}
                         rows={4}
                       />
                     </div>
@@ -534,12 +534,12 @@ export default function FarmsPage() {
                 <section>
                   <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-purple-600" />
-                    Местоположение на карте
+                    {t('farms.sections.location')}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Широта (latitude)
+                        {t('farms.labels.latitude')}
                       </label>
                       <Input
                         value={formData.coordinates_lat}
@@ -549,7 +549,7 @@ export default function FarmsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Долгота (longitude)
+                        {t('farms.labels.longitude')}
                       </label>
                       <Input
                         value={formData.coordinates_lng}
@@ -581,12 +581,12 @@ export default function FarmsPage() {
                     {submitting ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Сохранение...
+                        {t('common.saving')}
                       </>
                     ) : (
                       <>
                         <Check className="w-5 h-5 mr-2" />
-                        {editingFarm ? "Сохранить изменения" : "Добавить ферму"}
+                        {editingFarm ? t('farms.actions.saveChanges') : t('farms.addFarm')}
                       </>
                     )}
                   </Button>
@@ -598,7 +598,7 @@ export default function FarmsPage() {
                     onClick={() => { setShowAddFarm(false); resetForm(); }}
                     disabled={submitting}
                   >
-                    Отмена
+                    {t('common.cancel')}
                   </Button>
                 </div>
               </form>
@@ -631,22 +631,22 @@ export default function FarmsPage() {
               <div className="p-6 space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="bg-green-50 p-5 rounded-xl border border-green-100">
-                    <p className="text-sm text-green-700 font-medium mb-1">Площадь</p>
+                    <p className="text-sm text-green-700 font-medium mb-1">{t('farms.labels.area')}</p>
                     <p className="text-3xl font-bold text-green-900">
-                      {selectedFarm.area} <span className="text-xl">га</span>
+                      {selectedFarm.area} <span className="text-xl">{t('units.ha')}</span>
                     </p>
                   </div>
 
                   <div className="bg-blue-50 p-5 rounded-xl border border-blue-100">
-                    <p className="text-sm text-blue-700 font-medium mb-1">Статус</p>
+                    <p className="text-sm text-blue-700 font-medium mb-1">{t('farms.labels.status')}</p>
                     <Badge variant={selectedFarm.status === 'active' ? "default" : "secondary"} className="text-lg px-4 py-1">
-                      {selectedFarm.status === 'active' ? 'Активно' : selectedFarm.status}
+                      {selectedFarm.status === 'active' ? t('farms.status.active') : selectedFarm.status}
                     </Badge>
                   </div>
 
                   {selectedFarm.farm_type && (
                     <div className="bg-purple-50 p-5 rounded-xl border border-purple-100">
-                      <p className="text-sm text-purple-700 font-medium mb-1">Тип</p>
+                      <p className="text-sm text-purple-700 font-medium mb-1">{t('farms.labels.type')}</p>
                       <p className="text-xl font-bold text-purple-900 capitalize">
                         {selectedFarm.farm_type}
                       </p>
@@ -659,7 +659,7 @@ export default function FarmsPage() {
                     <div className="flex items-start gap-4">
                       <MapPin className="w-6 h-6 text-gray-600 mt-1" />
                       <div>
-                        <p className="text-sm text-gray-500">Адрес</p>
+                        <p className="text-sm text-gray-500">{t('farms.labels.address')}</p>
                         <p className="text-gray-900">{selectedFarm.address}</p>
                       </div>
                     </div>
@@ -669,7 +669,7 @@ export default function FarmsPage() {
                     <div className="flex items-start gap-4">
                       <Phone className="w-6 h-6 text-gray-600 mt-1" />
                       <div>
-                        <p className="text-sm text-gray-500">Телефон</p>
+                        <p className="text-sm text-gray-500">{t('farms.labels.phone')}</p>
                         <p className="text-gray-900">{selectedFarm.phone}</p>
                       </div>
                     </div>
@@ -679,11 +679,11 @@ export default function FarmsPage() {
                     <div className="flex items-start gap-4">
                       <User className="w-6 h-6 text-gray-600 mt-1" />
                       <div>
-                        <p className="text-sm text-gray-500">Владелец</p>
+                        <p className="text-sm text-gray-500">{t('farms.labels.owner')}</p>
                         <p className="text-gray-900">{selectedFarm.owner_name}</p>
                         {selectedFarm.owner_iin && (
                           <p className="text-sm text-gray-600 mt-1">
-                            ИИН: <span className="font-mono">{selectedFarm.owner_iin}</span>
+                            {t('farms.labels.ownerIinShort')}: <span className="font-mono">{selectedFarm.owner_iin}</span>
                           </p>
                         )}
                       </div>
@@ -692,7 +692,7 @@ export default function FarmsPage() {
 
                   {selectedFarm.description && (
                     <div className="pt-2">
-                      <p className="text-sm text-gray-500 mb-2">Описание</p>
+                      <p className="text-sm text-gray-500 mb-2">{t('farms.labels.description')}</p>
                       <p className="text-gray-900 whitespace-pre-line leading-relaxed">
                         {selectedFarm.description}
                       </p>
@@ -701,7 +701,7 @@ export default function FarmsPage() {
 
                   {selectedFarm.coordinates_lat && selectedFarm.coordinates_lng && (
                     <div className="pt-4">
-                      <p className="text-sm text-gray-500 mb-3">Местоположение</p>
+                      <p className="text-sm text-gray-500 mb-3">{t('farms.labels.location')}</p>
                       <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
                         <LeafletMap
                           center={[selectedFarm.coordinates_lat, selectedFarm.coordinates_lng]}
@@ -723,7 +723,7 @@ export default function FarmsPage() {
                         <div>
                           <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
                             <Wheat className="w-5 h-5 text-amber-600" />
-                            Культуры
+                            {t('farms.labels.crops')}
                           </h5>
                           <div className="flex flex-wrap gap-2">
                             {selectedFarm.crops.map((crop, i) => (
@@ -739,7 +739,7 @@ export default function FarmsPage() {
                         <div>
                           <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
                             <Tractor className="w-5 h-5 text-blue-600" />
-                            Техника
+                            {t('farms.labels.equipment')}
                           </h5>
                           <div className="flex flex-wrap gap-2">
                             {selectedFarm.equipment.map((eq, i) => (
@@ -763,7 +763,7 @@ export default function FarmsPage() {
                     className="flex-1 bg-amber-600 hover:bg-amber-700"
                   >
                     <Edit3 className="w-4 h-4 mr-2" />
-                    Редактировать
+                    {t('common.edit')}
                   </Button>
 
                   <Button
@@ -772,7 +772,7 @@ export default function FarmsPage() {
                     className="flex-1"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Удалить
+                    {t('common.delete')}
                   </Button>
                 </div>
               </div>
@@ -785,7 +785,7 @@ export default function FarmsPage() {
           <div className="lg:col-span-2 space-y-8">
             <Card className="border-none shadow-lg">
               <CardHeader>
-                <CardTitle className="text-xl">Карта ферм</CardTitle>
+                <CardTitle className="text-xl">{t('farms.mapTitle')}</CardTitle>
               </CardHeader>
               <CardContent className="p-2">
                 <div className="rounded-xl overflow-hidden border border-gray-200">
@@ -805,24 +805,24 @@ export default function FarmsPage() {
 
             <Card className="border-none shadow-lg">
               <CardHeader>
-                <CardTitle className="text-xl">Мои фермы</CardTitle>
+                <CardTitle className="text-xl">{t('farms.listTitle')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {farms.length === 0 ? (
                   <div className="text-center py-16">
                     <LandPlot className="w-20 h-20 text-gray-300 mx-auto mb-6" />
                     <p className="text-xl font-medium text-gray-600 mb-3">
-                      У вас пока нет ферм
+                      {t('farms.empty.title')}
                     </p>
                     <p className="text-gray-500 mb-6">
-                      Добавьте свою первую ферму, чтобы начать работу
+                      {t('farms.empty.description')}
                     </p>
                     <Button
                       onClick={() => { resetForm(); setShowAddFarm(true); }}
                       size="lg"
                     >
                       <Plus className="w-5 h-5 mr-2" />
-                      Добавить ферму
+                      {t('farms.addFarm')}
                     </Button>
                   </div>
                 ) : (
@@ -838,14 +838,14 @@ export default function FarmsPage() {
                             <div className="flex items-center flex-wrap gap-3 mb-3">
                               <h4 className="font-semibold text-xl">{farm.name}</h4>
                               <Badge variant="secondary" className="text-base px-3 py-1">
-                                {farm.area} га
+                                {farm.area} {t('units.ha')}
                               </Badge>
                               {farm.status && (
                                 <Badge
                                   variant={farm.status === 'active' ? "default" : "secondary"}
                                   className="text-sm"
                                 >
-                                  {farm.status === 'active' ? 'Активно' : farm.status}
+                                  {farm.status === 'active' ? t('farms.status.active') : farm.status}
                                 </Badge>
                               )}
                               {farm.farm_type && (
@@ -871,7 +871,7 @@ export default function FarmsPage() {
                               {farm.created_at && (
                                 <span className="flex items-center gap-1.5">
                                   <Calendar className="w-4 h-4" />
-                                  {new Date(farm.created_at).toLocaleDateString('ru-RU')}
+                                  {new Date(farm.created_at).toLocaleDateString(t('common.dateLocale'))}
                                 </span>
                               )}
                             </div>
@@ -881,21 +881,21 @@ export default function FarmsPage() {
                             <button
                               onClick={e => { e.stopPropagation(); setSelectedFarm(farm); }}
                               className="p-2.5 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Просмотр"
+                              title={t('common.view')}
                             >
                               <Eye className="w-5 h-5 text-blue-600" />
                             </button>
                             <button
                               onClick={e => { e.stopPropagation(); handleEditFarm(farm); }}
                               className="p-2.5 hover:bg-amber-50 rounded-lg transition-colors"
-                              title="Редактировать"
+                              title={t('common.edit')}
                             >
                               <Edit3 className="w-5 h-5 text-amber-600" />
                             </button>
                             <button
                               onClick={e => { e.stopPropagation(); handleDeleteFarm(farm.id); }}
                               className="p-2.5 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Удалить"
+                              title={t('common.delete')}
                             >
                               <Trash2 className="w-5 h-5 text-red-600" />
                             </button>
@@ -913,7 +913,7 @@ export default function FarmsPage() {
           <div className="space-y-6">
             <Card className="border-none shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg">Быстрые действия</CardTitle>
+              <CardTitle className="text-lg">{t('common.quickActions')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
@@ -921,7 +921,7 @@ export default function FarmsPage() {
                   onClick={() => { resetForm(); setShowAddFarm(true); }}
                 >
                   <Plus className="w-5 h-5 mr-3" />
-                  Добавить ферму
+                  {t('farms.addFarm')}
                 </Button>
 
                 <Button
@@ -930,7 +930,7 @@ export default function FarmsPage() {
                   onClick={() => navigate("/")}
                 >
                   <Home className="w-5 h-5 mr-3" />
-                  На главную
+                  {t('common.home')}
                 </Button>
               </CardContent>
             </Card>

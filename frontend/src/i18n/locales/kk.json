@@ -343,7 +343,50 @@
       "streams": "Видео ағындар"
     },
     "noDrones": "Сізде әзірге дрон жоқ",
-    "addFirstDrone": "Жайылымдарды бақылау үшін бірінші дроныңызды қосыңыз"
+    "addFirstDrone": "Жайылымдарды бақылау үшін бірінші дроныңызды қосыңыз",
+    "loading": "Дрондар жүктелуде...",
+    "errors": {
+      "loadFailed": "Деректерді жүктеу сәтсіз",
+      "saveFailed": "Сақтау қатесі",
+      "deleteFailed": "Жою қатесі",
+      "statusChangeFailed": "Күйін өзгерту қатесі",
+      "modelRequired": "Модель міндетті",
+      "serialRequired": "Сериялық нөмір міндетті",
+      "farmRequired": "Ферманы таңдаңыз"
+    },
+    "labels": {
+      "serial": "Сериялық",
+      "farm": "Ферма",
+      "added": "Қосылды",
+      "description": "Сипаттама",
+      "model": "Модель",
+      "serialNumber": "Сериялық нөмір",
+      "status": "Күй",
+      "region": "Аймақ",
+      "farmArea": "Ферма аумағы"
+    },
+    "details": {
+      "title": "Дрон мәліметтері: {{model}}",
+      "online": "ОНЛАЙН",
+      "offline": "ОФФЛАЙН",
+      "info": "Ақпарат",
+      "ownership": "Тиесілігі",
+      "farmNotFound": "Ферма туралы ақпарат табылмады",
+      "controls": "Басқару"
+    },
+    "actions": {
+      "startCamera": "Камераны іске қосу",
+      "startRecording": "Жазуды бастау",
+      "saveChanges": "Өзгерістерді сақтау"
+    },
+    "form": {
+      "titleEdit": "Дронды өңдеу",
+      "farm": "Ферма",
+      "selectFarm": "Ферманы таңдаңыз",
+      "descriptionOptional": "Сипаттама (қалауыңызша)",
+      "descriptionPlaceholder": "Дрон туралы қосымша ақпарат...",
+      "saving": "Сақталуда..."
+    }
   },
   "ai": {
     "title": "AI Кеңесші",
@@ -539,7 +582,8 @@
 
   "units": {
     "metric": "Метрлік (км, га, кг)",
-    "imperial": "Империялық (миля, акр, фунт)"
+    "imperial": "Империялық (миля, акр, фунт)",
+    "ha": "га"
   },
   "profile": {
     "farms": {
@@ -644,19 +688,148 @@
     "longitude": "Бұрыш",
     "confirmDelete": "Бұл ферманы жоюға сенімдісіз бе?",
     "empty": {
-      "title": "Сізде әзірге ферма жоқ"
+      "title": "Сізде әзірге ферма жоқ",
+      "description": "Жұмысты бастау үшін алғашқы фермаңызды қосыңыз"
     },
     "addFirstFarm": "Бірінші ферманы қосу",
     "stats": {
       "farms": "Фермалар",
       "hectares": "Гектар",
       "pastures": "Жайылымдар",
-      "regions": "Облыстар"
+      "regions": "Облыстар",
+      "active": "Белсенді"
+    },
+    "sections": {
+      "basicInfo": "Негізгі ақпарат",
+      "contacts": "Байланыс және иесі",
+      "address": "Мекенжай және сипаттама",
+      "location": "Картадағы орналасуы"
+    },
+    "labels": {
+      "name": "Ферма атауы",
+      "region": "Облыс",
+      "area": "Ауданы",
+      "type": "Шаруашылық түрі",
+      "establishedDate": "Құрылған күні",
+      "status": "Күй",
+      "phone": "Телефон",
+      "ownerName": "Иесінің аты-жөні",
+      "ownerIin": "Иесінің ЖСН",
+      "owner": "Иесі",
+      "ownerIinShort": "ЖСН",
+      "address": "Мекенжайы",
+      "description": "Сипаттама",
+      "location": "Орналасуы",
+      "crops": "Дақылдар",
+      "equipment": "Техника",
+      "latitude": "Ендік",
+      "longitude": "Бойлық"
+    },
+    "placeholders": {
+      "nameExample": "Мысалы: Жасыл Дала фермасы",
+      "selectRegion": "Облысты таңдаңыз",
+      "areaExample": "250.5",
+      "selectType": "Түрін таңдаңыз",
+      "ownerName": "Иванов Иван Иванович",
+      "ownerIin": "900101300123",
+      "addressExample": "Қарағанды қаласы, Абай ауданы, ауыл Қарағанды",
+      "description": "Қысқаша сипаттама: дақылдар, техника, ерекшеліктер..."
+    },
+    "status": {
+      "active": "Белсенді",
+      "inactive": "Белсенді емес",
+      "seasonal": "Маусымдық"
+    },
+    "actions": {
+      "saveChanges": "Өзгерістерді сақтау"
+    },
+    "types": {
+      "livestock": "Мал шаруашылығы",
+      "crop": "Егін шаруашылығы",
+      "mixed": "Аралас",
+      "organic": "Органикалық"
     },
     "pasturesCount": "Жайылымдар",
     "location": "Орналасуы",
     "withoutRegion": "Облыссыз",
-    "farmsCount": "ферма"
+    "farmsCount": "ферма",
+    "errors": {
+      "loadFailed": "Фермаларды жүктеу сәтсіз",
+      "nameRequired": "Атауы міндетті",
+      "regionRequired": "Облыс міндетті",
+      "areaInvalid": "Аумағы оң сан болуы керек",
+      "saveFailed": "Сақтау қатесі",
+      "deleteFailed": "Жою қатесі"
+    }
+  },
+  "biomassMeasurement": {
+    "title": "Биомассаны өлшеу",
+    "subtitle": "Жайылым жағдайын бақылау",
+    "sections": {
+      "selectPasture": "Жайылымды таңдаңыз",
+      "stats": "Статистика: {{name}}",
+      "newMeasurement": "Жаңа өлшеу",
+      "history": "Өлшеу тарихы"
+    },
+    "labels": {
+      "measurements": "Өлшеулер",
+      "measurementsCount": "{{count}} өлшеу",
+      "kgPerHa": "кг/га",
+      "trend": "Тренд",
+      "biomass": "Биомасса",
+      "coverage": "Жабынды",
+      "pasture": "Жайылым",
+      "pasturePhoto": "Жайылым суреті",
+      "descriptionOptional": "Сипаттама (қалауыңызша)",
+      "selectDrone": "Дронды таңдаңыз",
+      "drone": "Дрон"
+    },
+    "placeholders": {
+      "selectFile": "Файл таңдаңыз",
+      "addComment": "Пікір қосыңыз...",
+      "selectDrone": "Дронды таңдаңыз..."
+    },
+    "actions": {
+      "uploadPhoto": "Фото жүктеу",
+      "photoMeasurement": "Фото арқылы өлшеу",
+      "startDrone": "Дронды іске қосу",
+      "videoStream": "Видео ағын",
+      "upload": "Жүктеу",
+      "starting": "Іске қосылуда...",
+      "start": "Іске қосу"
+    },
+    "empty": {
+      "pastures": "Қолжетімді жайылымдар жоқ",
+      "selectPrompt": "Биомассаны өлшеу үшін жайылымды таңдаңыз",
+      "history": "Өлшеулер әлі жоқ",
+      "noDrones": "Қолжетімді дрон жоқ"
+    },
+    "status": {
+      "completed": "Аяқталды",
+      "processing": "Өңделуде...",
+      "failed": "Қате",
+      "pending": "Күту"
+    },
+    "trends": {
+      "increasing": "Өсу",
+      "decreasing": "Төмендеу",
+      "stable": "Тұрақты"
+    },
+    "method": {
+      "photo": "Фото",
+      "drone": "Дрон"
+    },
+    "messages": {
+      "photoUploaded": "Фото сәтті жүктелді! Өңделуде...",
+      "droneStarted": "Дрон іске қосылды! Сканерлеу жүріп жатыр...",
+      "confirmDelete": "Бұл өлшеуді жоюға сенімдісіз бе?",
+      "deleted": "Өлшеу жойылды"
+    },
+    "errors": {
+      "loadFailed": "Деректерді жүктеу сәтсіз",
+      "photoUploadFailed": "Фото жүктеу қатесі",
+      "streamStartFailed": "Ағынды іске қосу қатесі"
+    }
   },
   "pasturesAnalysis": {
     "title": "Жайылымдарды талдау",

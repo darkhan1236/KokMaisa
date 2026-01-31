@@ -84,7 +84,7 @@ export default function DronesPage() {
       setDrones(dronesData || []);
       setFarms(farmsData || []);
     } catch (err) {
-      setError(err.message || "Не удалось загрузить данные");
+      setError(err.message || t('drones.errors.loadFailed'));
       console.error(err);
       
       if (err.message.includes("Сессия истекла")) {
@@ -111,9 +111,9 @@ export default function DronesPage() {
     setError(null);
 
     try {
-      if (!droneData.model.trim()) throw new Error("Модель обязательна");
-      if (!droneData.serial_number.trim()) throw new Error("Серийный номер обязателен");
-      if (!droneData.farm_id) throw new Error("Выберите ферму");
+      if (!droneData.model.trim()) throw new Error(t('drones.errors.modelRequired'));
+      if (!droneData.serial_number.trim()) throw new Error(t('drones.errors.serialRequired'));
+      if (!droneData.farm_id) throw new Error(t('drones.errors.farmRequired'));
 
       const payload = {
         model: droneData.model.trim(),
@@ -132,7 +132,7 @@ export default function DronesPage() {
       setShowAddDrone(false);
       await loadData();
     } catch (err) {
-      setError(err.message || "Ошибка при сохранении");
+      setError(err.message || t('drones.errors.saveFailed'));
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -151,7 +151,7 @@ export default function DronesPage() {
   };
 
   const handleDeleteDrone = async (droneId) => {
-    if (!window.confirm(t('drones.confirmDelete') || "Вы уверены, что хотите удалить дрон?")) {
+    if (!window.confirm(t('drones.confirmDelete'))) {
       return;
     }
 
@@ -169,7 +169,7 @@ export default function DronesPage() {
       setError(null);
       
     } catch (err) {
-      setError(err.message || "Ошибка удаления");
+      setError(err.message || t('drones.errors.deleteFailed'));
       // Восстанавливаем данные при ошибке
       await loadData();
     } finally {
@@ -192,7 +192,7 @@ export default function DronesPage() {
       await updateDroneStatus(droneId, newStatus);
       
     } catch (err) {
-      setError(err.message || "Ошибка изменения статуса");
+      setError(err.message || t('drones.errors.statusChangeFailed'));
       await loadData();
     }
   };
@@ -211,7 +211,7 @@ export default function DronesPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка дронов...</p>
+          <p className="text-gray-600">{t('drones.loading')}</p>
         </div>
       </div>
     );
@@ -352,7 +352,7 @@ export default function DronesPage() {
                         {drone.model}
                       </h4>
                       <p className="text-sm text-gray-600">
-                        Серийный: {drone.serial_number}
+                        {t('drones.labels.serial')}: {drone.serial_number}
                       </p>
                     </div>
                   </div>
@@ -369,18 +369,18 @@ export default function DronesPage() {
 
                 {/* Принадлежность ферме */}
                 <div className="mb-4">
-                  <p className="text-sm text-gray-600">Ферма:</p>
+                  <p className="text-sm text-gray-600">{t('drones.labels.farm')}:</p>
                   <p className="font-medium text-gray-900">
-                    {farms.find(f => f.id === drone.farm_id)?.name || "Неизвестно"}
+                    {farms.find(f => f.id === drone.farm_id)?.name || t('common.notSpecified')}
                   </p>
                 </div>
 
                 {/* Дата создания */}
                 {drone.created_at && (
                   <div className="mb-4">
-                    <p className="text-sm text-gray-600">Добавлен:</p>
+                    <p className="text-sm text-gray-600">{t('drones.labels.added')}:</p>
                     <p className="text-gray-900">
-                      {new Date(drone.created_at).toLocaleDateString('ru-RU')}
+                      {new Date(drone.created_at).toLocaleDateString(t('common.dateLocale'))}
                     </p>
                   </div>
                 )}
@@ -388,7 +388,7 @@ export default function DronesPage() {
                 {/* Описание */}
                 {drone.description && (
                   <div className="mb-4">
-                    <p className="text-sm text-gray-600">Описание:</p>
+                    <p className="text-sm text-gray-600">{t('drones.labels.description')}:</p>
                     <p className="text-gray-900 text-sm">{drone.description}</p>
                   </div>
                 )}
@@ -426,7 +426,7 @@ export default function DronesPage() {
                       handleEditDrone(drone);
                     }}
                     className="p-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
-                    title="Редактировать"
+                    title={t('common.edit')}
                   >
                     <Edit3 className="w-5 h-5" />
                   </button>
@@ -438,7 +438,7 @@ export default function DronesPage() {
                     }}
                     disabled={deletingId === drone.id}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
-                    title="Удалить"
+                    title={t('common.delete')}
                   >
                     {deletingId === drone.id ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -457,68 +457,68 @@ export default function DronesPage() {
           <div className="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900">
-                Детали дрона: {selectedDrone.model}
+                {t('drones.details.title', { model: selectedDrone.model })}
               </h3>
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${
                   selectedDrone.status === "active" ? "bg-green-500 animate-pulse" : "bg-gray-400"
                 }`} />
                 <span className="text-sm text-gray-600">
-                  {selectedDrone.status === "active" ? "ОНЛАЙН" : "ОФФЛАЙН"}
+                  {selectedDrone.status === "active" ? t('drones.details.online') : t('drones.details.offline')}
                 </span>
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium text-gray-900 mb-2">Информация</h4>
+                <h4 className="font-medium text-gray-900 mb-2">{t('drones.details.info')}</h4>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-600">Модель</p>
+                    <p className="text-sm text-gray-600">{t('drones.labels.model')}</p>
                     <p className="font-medium">{selectedDrone.model}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Серийный номер</p>
+                    <p className="text-sm text-gray-600">{t('drones.labels.serialNumber')}</p>
                     <p className="font-mono font-medium">{selectedDrone.serial_number}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Статус</p>
+                    <p className="text-sm text-gray-600">{t('drones.labels.status')}</p>
                     <p className={`font-medium ${
                       selectedDrone.status === "active" ? "text-green-600" : "text-gray-600"
                     }`}>
-                      {selectedDrone.status === "active" ? "Активен" : "Неактивен"}
+                      {selectedDrone.status === "active" ? t('drones.active') : t('drones.inactive')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Дата добавления</p>
+                    <p className="text-sm text-gray-600">{t('drones.labels.added')}</p>
                     <p className="font-medium">
-                      {new Date(selectedDrone.created_at).toLocaleDateString('ru-RU')}
+                      {new Date(selectedDrone.created_at).toLocaleDateString(t('common.dateLocale'))}
                     </p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-medium text-gray-900 mb-2">Принадлежность</h4>
+                <h4 className="font-medium text-gray-900 mb-2">{t('drones.details.ownership')}</h4>
                 {(() => {
                   const farm = farms.find(f => f.id === selectedDrone.farm_id);
                   return farm ? (
                     <div className="space-y-3">
                       <div>
-                        <p className="text-sm text-gray-600">Ферма</p>
+                        <p className="text-sm text-gray-600">{t('drones.labels.farm')}</p>
                         <p className="font-medium">{farm.name}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Регион</p>
+                        <p className="text-sm text-gray-600">{t('drones.labels.region')}</p>
                         <p className="font-medium">{farm.region}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Площадь фермы</p>
-                        <p className="font-medium">{farm.area} га</p>
+                        <p className="text-sm text-gray-600">{t('drones.labels.farmArea')}</p>
+                        <p className="font-medium">{farm.area} {t('units.ha')}</p>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-gray-500">Информация о ферме не найдена</p>
+                    <p className="text-gray-500">{t('drones.details.farmNotFound')}</p>
                   );
                 })()}
               </div>
@@ -526,7 +526,7 @@ export default function DronesPage() {
 
             {selectedDrone.description && (
               <div className="mt-6 pt-6 border-t">
-                <h4 className="font-medium text-gray-900 mb-2">Описание</h4>
+                <h4 className="font-medium text-gray-900 mb-2">{t('drones.labels.description')}</h4>
                 <p className="text-gray-700">{selectedDrone.description}</p>
               </div>
             )}
@@ -534,21 +534,21 @@ export default function DronesPage() {
             {/* Кнопки управления */}
             {selectedDrone.status === "active" && (
               <div className="mt-6 pt-6 border-t">
-                <h4 className="font-medium text-gray-900 mb-4">Управление</h4>
+                <h4 className="font-medium text-gray-900 mb-4">{t('drones.details.controls')}</h4>
                 <div className="flex gap-3">
                   <button
                     type="button"
                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                   >
                     <Camera className="w-5 h-5 inline mr-2" />
-                    Запустить камеру
+                    {t('drones.actions.startCamera')}
                   </button>
                   <button
                     type="button"
                     className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
                   >
                     <Video className="w-5 h-5 inline mr-2" />
-                    Начать запись
+                    {t('drones.actions.startRecording')}
                   </button>
                 </div>
               </div>
@@ -563,7 +563,7 @@ export default function DronesPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6 sticky top-0 bg-white z-10 pb-4 border-b">
               <h3 className="text-xl font-semibold text-gray-900">
-                {editingDrone ? "Редактировать дрон" : t('drones.addDrone')}
+                {editingDrone ? t('drones.form.titleEdit') : t('drones.addDrone')}
               </h3>
               <button
                 type="button"
@@ -610,7 +610,7 @@ export default function DronesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Ферма *
+                  {t('drones.form.farm')} *
                 </label>
                 <select
                   value={droneData.farm_id}
@@ -618,7 +618,7 @@ export default function DronesPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
-                  <option value="">Выберите ферму</option>
+                  <option value="">{t('drones.form.selectFarm')}</option>
                   {farms.map((farm) => (
                     <option key={farm.id} value={farm.id}>
                       {farm.name} ({farm.region})
@@ -629,13 +629,13 @@ export default function DronesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Описание (необязательно)
+                  {t('drones.form.descriptionOptional')}
                 </label>
                 <textarea
                   value={droneData.description}
                   onChange={(e) => setDroneData({ ...droneData, description: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Дополнительная информация о дроне..."
+                  placeholder={t('drones.form.descriptionPlaceholder')}
                   rows={3}
                 />
               </div>
@@ -649,12 +649,12 @@ export default function DronesPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Сохранение...
+                      {t('drones.form.saving')}
                     </>
                   ) : (
                     <>
                       <Check className="w-5 h-5" />
-                      {editingDrone ? "Сохранить изменения" : t('common.save')}
+                      {editingDrone ? t('drones.actions.saveChanges') : t('common.save')}
                     </>
                   )}
                 </button>
