@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import Header from "@/app/components/Header";
 import {
   Camera,
@@ -64,6 +65,7 @@ const MOCK_MEASUREMENTS = [
 ];
 
 export default function BiomassMeasurementPage() {
+  const { t } = useTranslation();
   const {
     user,
     isAuthenticated,
@@ -124,7 +126,7 @@ export default function BiomassMeasurementPage() {
       setPastures(pasturesData || []);
       setDrones(dronesData || []);
     } catch (err) {
-      setError(err.message || "Не удалось загрузить данные");
+      setError(err.message || t('biomassMeasurement.errors.loadFailed'));
       console.error(err);
 
       if (err.message.includes("Сессия истекла")) {
@@ -171,7 +173,7 @@ export default function BiomassMeasurementPage() {
     const pasture = pastures.find(p => p.id === pastureId);
 
     setPastureStats({
-      pasture_name: pasture?.name || "Неизвестно",
+      pasture_name: pasture?.name || t('common.notSpecified'),
       total_measurements: filtered.length,
       avg_biomass: biomassValues.length > 0
         ? biomassValues.reduce((a, b) => a + b, 0) / biomassValues.length
@@ -235,10 +237,10 @@ export default function BiomassMeasurementPage() {
       setPreviewUrl(null);
       setUploadDescription("");
       setShowPhotoUpload(false);
-      setSuccessMessage("Фото успешно загружено! Идет обработка...");
+      setSuccessMessage(t('biomassMeasurement.messages.photoUploaded'));
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError(err.message || "Ошибка загрузки фото");
+      setError(err.message || t('biomassMeasurement.errors.photoUploadFailed'));
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -264,7 +266,7 @@ export default function BiomassMeasurementPage() {
         method: "drone_video",
         status: "processing",
         drone_id: parseInt(selectedDrone),
-        drone_name: drone?.name || "Дрон",
+        drone_name: drone?.name || t('biomassMeasurement.labels.drone'),
         description: droneDescription || null,
         created_at: new Date().toISOString(),
       };
@@ -290,10 +292,10 @@ export default function BiomassMeasurementPage() {
       setSelectedDrone("");
       setDroneDescription("");
       setShowDroneStream(false);
-      setSuccessMessage("Дрон запущен! Идет сканирование...");
+      setSuccessMessage(t('biomassMeasurement.messages.droneStarted'));
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError(err.message || "Ошибка запуска стрима");
+      setError(err.message || t('biomassMeasurement.errors.streamStartFailed'));
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -301,7 +303,7 @@ export default function BiomassMeasurementPage() {
   };
 
   const handleDeleteMeasurement = (measurementId) => {
-    if (!window.confirm("Вы уверены, что хотите удалить это измерение?")) {
+    if (!window.confirm(t('biomassMeasurement.messages.confirmDelete'))) {
       return;
     }
 
@@ -309,7 +311,7 @@ export default function BiomassMeasurementPage() {
     if (selectedPasture) {
       calculatePastureStats(selectedPasture.id);
     }
-    setSuccessMessage("Измерение удалено");
+    setSuccessMessage(t('biomassMeasurement.messages.deleted'));
     setTimeout(() => setSuccessMessage(null), 2000);
   };
 
@@ -329,18 +331,20 @@ export default function BiomassMeasurementPage() {
   const getStatusText = (status) => {
     switch (status) {
       case "completed":
-        return "Завершено";
+        return t('biomassMeasurement.status.completed');
       case "processing":
-        return "Обработка...";
+        return t('biomassMeasurement.status.processing');
       case "failed":
-        return "Ошибка";
+        return t('biomassMeasurement.status.failed');
       default:
-        return "Ожидание";
+        return t('biomassMeasurement.status.pending');
     }
   };
 
   const getMethodText = (method) => {
-    return method === "photo_upload" ? "Фото" : "Дрон";
+    return method === "photo_upload"
+      ? t('biomassMeasurement.method.photo')
+      : t('biomassMeasurement.method.drone');
   };
 
   if (authLoading || loading) {
@@ -348,7 +352,7 @@ export default function BiomassMeasurementPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка...</p>
+          <p className="text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -381,10 +385,10 @@ export default function BiomassMeasurementPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-                Измерение биомассы
+                {t('biomassMeasurement.title')}
               </h1>
               <p className="text-white/90 text-xl">
-                Мониторинг состояния пастбищ
+                {t('biomassMeasurement.subtitle')}
               </p>
             </div>
           </div>
@@ -396,14 +400,14 @@ export default function BiomassMeasurementPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 sticky top-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Выберите пастбище
+                {t('biomassMeasurement.sections.selectPasture')}
               </h3>
 
               {pastures.length === 0 ? (
                 <div className="text-center py-8">
                   <Leaf className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                   <p className="text-gray-500 text-sm">
-                    Нет доступных пастбищ
+                    {t('biomassMeasurement.empty.pastures')}
                   </p>
                 </div>
               ) : (
@@ -429,11 +433,11 @@ export default function BiomassMeasurementPage() {
                         </div>
                         <div className="flex items-center justify-between mt-1">
                           <span className="text-sm text-gray-600">
-                            {pasture.area} га
+                            {pasture.area} {t('units.ha')}
                           </span>
                           {pastureCount > 0 && (
                             <span className="text-xs text-green-600 font-medium">
-                              {pastureCount} измерений
+                              {t('biomassMeasurement.labels.measurementsCount', { count: pastureCount })}
                             </span>
                           )}
                         </div>
@@ -450,7 +454,7 @@ export default function BiomassMeasurementPage() {
               <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-200 text-center">
                 <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-600 text-lg">
-                  Выберите пастбище для измерения биомассы
+                  {t('biomassMeasurement.empty.selectPrompt')}
                 </p>
               </div>
             ) : (
@@ -458,7 +462,7 @@ export default function BiomassMeasurementPage() {
                 {pastureStats && (
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Статистика: {pastureStats.pasture_name}
+                      {t('biomassMeasurement.sections.stats', { name: pastureStats.pasture_name })}
                     </h3>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -467,7 +471,7 @@ export default function BiomassMeasurementPage() {
                         <p className="text-2xl font-bold text-gray-900">
                           {pastureStats.total_measurements}
                         </p>
-                        <p className="text-xs text-gray-600">Измерений</p>
+                        <p className="text-xs text-gray-600">{t('biomassMeasurement.labels.measurements')}</p>
                       </div>
 
                       <div className="text-center p-4 bg-gray-50 rounded-xl">
@@ -477,7 +481,7 @@ export default function BiomassMeasurementPage() {
                             ? pastureStats.latest_biomass.toFixed(0)
                             : "—"}
                         </p>
-                        <p className="text-xs text-gray-600">кг/га</p>
+                        <p className="text-xs text-gray-600">{t('biomassMeasurement.labels.kgPerHa')}</p>
                       </div>
 
                       <div className="text-center p-4 bg-gray-50 rounded-xl">
@@ -500,12 +504,12 @@ export default function BiomassMeasurementPage() {
                         )}
                         <p className="text-sm font-medium text-gray-900">
                           {pastureStats.trend === "increasing"
-                            ? "Рост"
+                            ? t('biomassMeasurement.trends.increasing')
                             : pastureStats.trend === "decreasing"
-                            ? "Снижение"
-                            : "Стабильно"}
+                            ? t('biomassMeasurement.trends.decreasing')
+                            : t('biomassMeasurement.trends.stable')}
                         </p>
-                        <p className="text-xs text-gray-600">Тренд</p>
+                        <p className="text-xs text-gray-600">{t('biomassMeasurement.labels.trend')}</p>
                       </div>
                     </div>
                   </div>
@@ -513,7 +517,7 @@ export default function BiomassMeasurementPage() {
 
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Новое измерение
+                    {t('biomassMeasurement.sections.newMeasurement')}
                   </h3>
 
                   <div className="grid md:grid-cols-2 gap-4">
@@ -525,10 +529,10 @@ export default function BiomassMeasurementPage() {
                       <Camera className="w-8 h-8 text-gray-400 group-hover:text-green-600 transition-colors" />
                       <div className="text-left">
                         <p className="font-medium text-gray-900 group-hover:text-green-600 transition-colors">
-                          Загрузить фото
+                          {t('biomassMeasurement.actions.uploadPhoto')}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Измерение по фото
+                          {t('biomassMeasurement.actions.photoMeasurement')}
                         </p>
                       </div>
                     </button>
@@ -541,10 +545,10 @@ export default function BiomassMeasurementPage() {
                       <Video className="w-8 h-8 text-gray-400 group-hover:text-blue-600 transition-colors" />
                       <div className="text-left">
                         <p className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                          Запустить дрон
+                          {t('biomassMeasurement.actions.startDrone')}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Видеопоток
+                          {t('biomassMeasurement.actions.videoStream')}
                         </p>
                       </div>
                     </button>
@@ -553,14 +557,14 @@ export default function BiomassMeasurementPage() {
 
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    История измерений
+                    {t('biomassMeasurement.sections.history')}
                   </h3>
 
                   {measurements.length === 0 ? (
                     <div className="text-center py-12">
                       <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                       <p className="text-gray-500">
-                        Измерения пока отсутствуют
+                        {t('biomassMeasurement.empty.history')}
                       </p>
                     </div>
                   ) : (
@@ -581,7 +585,7 @@ export default function BiomassMeasurementPage() {
                                 <p className="text-sm text-gray-500">
                                   {new Date(
                                     measurement.created_at
-                                  ).toLocaleString("ru-RU")}
+                                  ).toLocaleString(t('common.dateLocale'))}
                                 </p>
                               </div>
                             </div>
@@ -616,10 +620,10 @@ export default function BiomassMeasurementPage() {
                           {measurement.status === "completed" && (
                             <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t border-gray-100">
                               <div>
-                                <p className="text-xs text-gray-500">Биомасса</p>
+                                <p className="text-xs text-gray-500">{t('biomassMeasurement.labels.biomass')}</p>
                                 <p className="font-medium text-gray-900">
                                   {measurement.biomass_value
-                                    ? `${measurement.biomass_value.toFixed(0)} кг/га`
+                                    ? `${measurement.biomass_value.toFixed(0)} ${t('biomassMeasurement.labels.kgPerHa')}`
                                     : "—"}
                                 </p>
                               </div>
@@ -633,7 +637,7 @@ export default function BiomassMeasurementPage() {
                               </div>
                               <div>
                                 <p className="text-xs text-gray-500">
-                                  Покрытие
+                                  {t('biomassMeasurement.labels.coverage')}
                                 </p>
                                 <p className="font-medium text-gray-900">
                                   {measurement.coverage_percent
@@ -665,7 +669,7 @@ export default function BiomassMeasurementPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-gray-900">
-                Загрузить фото
+                {t('biomassMeasurement.actions.uploadPhoto')}
               </h3>
               <button
                 type="button"
@@ -684,21 +688,21 @@ export default function BiomassMeasurementPage() {
             <form onSubmit={handlePhotoUpload} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Пастбище
+                  {t('biomassMeasurement.labels.pasture')}
                 </label>
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <p className="font-medium text-gray-900">
                     {selectedPasture.name}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {selectedPasture.area} га
+                    {selectedPasture.area} {t('units.ha')}
                   </p>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Фото пастбища *
+                  {t('biomassMeasurement.labels.pasturePhoto')} *
                 </label>
                 <div className="relative">
                   <input
@@ -715,7 +719,7 @@ export default function BiomassMeasurementPage() {
                   >
                     <Upload className="w-6 h-6 text-gray-400" />
                     <span className="text-gray-600">
-                      {selectedFile ? selectedFile.name : "Выберите файл"}
+                      {selectedFile ? selectedFile.name : t('biomassMeasurement.placeholders.selectFile')}
                     </span>
                   </label>
                 </div>
@@ -733,14 +737,14 @@ export default function BiomassMeasurementPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Описание (опционально)
+                  {t('biomassMeasurement.labels.descriptionOptional')}
                 </label>
                 <textarea
                   value={uploadDescription}
                   onChange={(e) => setUploadDescription(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                   rows={3}
-                  placeholder="Добавьте комментарий..."
+                  placeholder={t('biomassMeasurement.placeholders.addComment')}
                 />
               </div>
 
@@ -753,12 +757,12 @@ export default function BiomassMeasurementPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Загрузка...
+                      {t('common.loading')}
                     </>
                   ) : (
                     <>
                       <Check className="w-5 h-5" />
-                      Загрузить
+                      {t('biomassMeasurement.actions.upload')}
                     </>
                   )}
                 </button>
@@ -773,7 +777,7 @@ export default function BiomassMeasurementPage() {
                   disabled={submitting}
                   className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
                 >
-                  Отмена
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -786,7 +790,7 @@ export default function BiomassMeasurementPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-gray-900">
-                Запустить дрон
+                {t('biomassMeasurement.actions.startDrone')}
               </h3>
               <button
                 type="button"
@@ -804,21 +808,21 @@ export default function BiomassMeasurementPage() {
             <form onSubmit={handleDroneStreamStart} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Пастбище
+                  {t('biomassMeasurement.labels.pasture')}
                 </label>
                 <div className="p-3 bg-gray-50 rounded-xl">
                   <p className="font-medium text-gray-900">
                     {selectedPasture.name}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {selectedPasture.area} га
+                    {selectedPasture.area} {t('units.ha')}
                   </p>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Выберите дрон *
+                  {t('biomassMeasurement.labels.selectDrone')} *
                 </label>
                 <select
                   value={selectedDrone}
@@ -826,7 +830,7 @@ export default function BiomassMeasurementPage() {
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Выберите дрон...</option>
+                  <option value="">{t('biomassMeasurement.placeholders.selectDrone')}</option>
                   {drones
                     .filter((d) => d.status === "available")
                     .map((drone) => (
@@ -838,21 +842,21 @@ export default function BiomassMeasurementPage() {
 
                 {drones.filter((d) => d.status === "available").length === 0 && (
                   <p className="text-sm text-amber-600 mt-2">
-                    Нет доступных дронов
+                    {t('biomassMeasurement.empty.noDrones')}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Описание (опционально)
+                  {t('biomassMeasurement.labels.descriptionOptional')}
                 </label>
                 <textarea
                   value={droneDescription}
                   onChange={(e) => setDroneDescription(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
-                  placeholder="Добавьте комментарий..."
+                  placeholder={t('biomassMeasurement.placeholders.addComment')}
                 />
               </div>
 
@@ -865,12 +869,12 @@ export default function BiomassMeasurementPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Запуск...
+                      {t('biomassMeasurement.actions.starting')}
                     </>
                   ) : (
                     <>
                       <Video className="w-5 h-5" />
-                      Запустить
+                      {t('biomassMeasurement.actions.start')}
                     </>
                   )}
                 </button>
@@ -884,7 +888,7 @@ export default function BiomassMeasurementPage() {
                   disabled={submitting}
                   className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
                 >
-                  Отмена
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>

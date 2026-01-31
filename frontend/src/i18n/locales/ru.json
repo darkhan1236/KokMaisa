@@ -344,7 +344,50 @@
       "streams": "Видеопотоков"
     },
     "noDrones": "У вас пока нет дронов",
-    "addFirstDrone": "Добавьте свой первый дрон для мониторинга пастбищ"
+    "addFirstDrone": "Добавьте свой первый дрон для мониторинга пастбищ",
+    "loading": "Загрузка дронов...",
+    "errors": {
+      "loadFailed": "Не удалось загрузить данные",
+      "saveFailed": "Ошибка при сохранении",
+      "deleteFailed": "Ошибка удаления",
+      "statusChangeFailed": "Ошибка изменения статуса",
+      "modelRequired": "Модель обязательна",
+      "serialRequired": "Серийный номер обязателен",
+      "farmRequired": "Выберите ферму"
+    },
+    "labels": {
+      "serial": "Серийный",
+      "farm": "Ферма",
+      "added": "Добавлен",
+      "description": "Описание",
+      "model": "Модель",
+      "serialNumber": "Серийный номер",
+      "status": "Статус",
+      "region": "Регион",
+      "farmArea": "Площадь фермы"
+    },
+    "details": {
+      "title": "Детали дрона: {{model}}",
+      "online": "ОНЛАЙН",
+      "offline": "ОФФЛАЙН",
+      "info": "Информация",
+      "ownership": "Принадлежность",
+      "farmNotFound": "Информация о ферме не найдена",
+      "controls": "Управление"
+    },
+    "actions": {
+      "startCamera": "Запустить камеру",
+      "startRecording": "Начать запись",
+      "saveChanges": "Сохранить изменения"
+    },
+    "form": {
+      "titleEdit": "Редактировать дрон",
+      "farm": "Ферма",
+      "selectFarm": "Выберите ферму",
+      "descriptionOptional": "Описание (необязательно)",
+      "descriptionPlaceholder": "Дополнительная информация о дроне...",
+      "saving": "Сохранение..."
+    }
   },
   "ai": {
     "title": "AI Консультант",
@@ -538,7 +581,8 @@
   },
   "units": {
     "metric": "Метрическая (км, га, кг)",
-    "imperial": "Имперская (мили, акры, фунты)"
+    "imperial": "Имперская (мили, акры, фунты)",
+    "ha": "га"
   },
   "profile": {
     "farms": {
@@ -643,18 +687,147 @@
     "confirmDelete": "Вы уверены, что хотите удалить эту ферму?",
     "empty": {
       "title": "У вас пока нет ферм",
-      "addFirstFarm": "Добавить первую ферму"
+      "addFirstFarm": "Добавить первую ферму",
+      "description": "Добавьте свою первую ферму, чтобы начать работу"
     },
     "stats": {
       "farms": "Ферм",
       "hectares": "Гектаров",
       "pastures": "Пастбищ",
-      "regions": "Регионов"
+      "regions": "Регионов",
+      "active": "Активные"
+    },
+    "sections": {
+      "basicInfo": "Основная информация",
+      "contacts": "Контакты и владелец",
+      "address": "Адрес и описание",
+      "location": "Местоположение на карте"
+    },
+    "labels": {
+      "name": "Название фермы",
+      "region": "Регион",
+      "area": "Площадь",
+      "type": "Тип хозяйства",
+      "establishedDate": "Дата основания",
+      "status": "Статус",
+      "phone": "Телефон",
+      "ownerName": "Имя владельца",
+      "ownerIin": "ИИН владельца",
+      "owner": "Владелец",
+      "ownerIinShort": "ИИН",
+      "address": "Адрес",
+      "description": "Описание",
+      "location": "Местоположение",
+      "crops": "Культуры",
+      "equipment": "Техника",
+      "latitude": "Широта (latitude)",
+      "longitude": "Долгота (longitude)"
+    },
+    "placeholders": {
+      "nameExample": "Например: Ферма Жасыл Дала",
+      "selectRegion": "Выберите регион",
+      "areaExample": "250.5",
+      "selectType": "Выберите тип",
+      "ownerName": "Иванов Иван Иванович",
+      "ownerIin": "900101300123",
+      "addressExample": "Қарағанды қаласы, Абай ауданы, ауыл Қарағанды",
+      "description": "Краткое описание: виды культур, техника, особенности..."
+    },
+    "status": {
+      "active": "Активно",
+      "inactive": "Неактивно",
+      "seasonal": "Сезонное"
+    },
+    "actions": {
+      "saveChanges": "Сохранить изменения"
+    },
+    "types": {
+      "livestock": "Животноводство",
+      "crop": "Растениеводство",
+      "mixed": "Смешанное",
+      "organic": "Органическое"
     },
     "pasturesCount": "Пастбищ",
     "location": "Расположение",
     "withoutRegion": "Без региона",
-    "farmsCount": "ферм"
+    "farmsCount": "ферм",
+    "errors": {
+      "loadFailed": "Не удалось загрузить фермы",
+      "nameRequired": "Название обязательно",
+      "regionRequired": "Регион обязателен",
+      "areaInvalid": "Площадь должна быть положительным числом",
+      "saveFailed": "Ошибка при сохранении",
+      "deleteFailed": "Ошибка удаления"
+    }
+  },
+  "biomassMeasurement": {
+    "title": "Измерение биомассы",
+    "subtitle": "Мониторинг состояния пастбищ",
+    "sections": {
+      "selectPasture": "Выберите пастбище",
+      "stats": "Статистика: {{name}}",
+      "newMeasurement": "Новое измерение",
+      "history": "История измерений"
+    },
+    "labels": {
+      "measurements": "Измерений",
+      "measurementsCount": "{{count}} измерений",
+      "kgPerHa": "кг/га",
+      "trend": "Тренд",
+      "biomass": "Биомасса",
+      "coverage": "Покрытие",
+      "pasture": "Пастбище",
+      "pasturePhoto": "Фото пастбища",
+      "descriptionOptional": "Описание (опционально)",
+      "selectDrone": "Выберите дрон",
+      "drone": "Дрон"
+    },
+    "placeholders": {
+      "selectFile": "Выберите файл",
+      "addComment": "Добавьте комментарий...",
+      "selectDrone": "Выберите дрон..."
+    },
+    "actions": {
+      "uploadPhoto": "Загрузить фото",
+      "photoMeasurement": "Измерение по фото",
+      "startDrone": "Запустить дрон",
+      "videoStream": "Видеопоток",
+      "upload": "Загрузить",
+      "starting": "Запуск...",
+      "start": "Запустить"
+    },
+    "empty": {
+      "pastures": "Нет доступных пастбищ",
+      "selectPrompt": "Выберите пастбище для измерения биомассы",
+      "history": "Измерения пока отсутствуют",
+      "noDrones": "Нет доступных дронов"
+    },
+    "status": {
+      "completed": "Завершено",
+      "processing": "Обработка...",
+      "failed": "Ошибка",
+      "pending": "Ожидание"
+    },
+    "trends": {
+      "increasing": "Рост",
+      "decreasing": "Снижение",
+      "stable": "Стабильно"
+    },
+    "method": {
+      "photo": "Фото",
+      "drone": "Дрон"
+    },
+    "messages": {
+      "photoUploaded": "Фото успешно загружено! Идет обработка...",
+      "droneStarted": "Дрон запущен! Идет сканирование...",
+      "confirmDelete": "Вы уверены, что хотите удалить это измерение?",
+      "deleted": "Измерение удалено"
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить данные",
+      "photoUploadFailed": "Ошибка загрузки фото",
+      "streamStartFailed": "Ошибка запуска стрима"
+    }
   },
   "pasturesAnalysis": {
     "title": "Анализ пастбищ",
