@@ -103,3 +103,25 @@ class Drone(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     farm = relationship("Farm", back_populates="drones")
+
+
+class Measurement(Base):  # type: ignore[name-defined]  # Base is already defined in your models.py
+    """Stores each biomass measurement result."""
+
+    __tablename__ = "measurements"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    pasture_id       = Column(Integer, ForeignKey("pastures.id"), nullable=False, index=True)
+    drone_id         = Column(Integer, ForeignKey("drones.id"), nullable=True)
+
+    method           = Column(String(50), nullable=False)   # "photo_upload" | "drone_video"
+    status           = Column(String(20), default="processing", nullable=False)
+
+    # Prediction results
+    biomass_value    = Column(Float, nullable=True)          # ц/га
+    ndvi_value       = Column(Float, nullable=True)
+    coverage_percent = Column(Float, nullable=True)
+    quality_score    = Column(Float, nullable=True)
+
+    description      = Column(Text, nullable=True)
+    created_at       = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
