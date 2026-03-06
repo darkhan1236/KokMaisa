@@ -86,7 +86,7 @@ export default function AIChatPage() {
     setIsLoading(true);
 
     try {
-      const data = await chatAI(text); // ✅ вызов через AuthContext
+      const data = await chatAI(text, messages.slice(1)); // ✅ вызов через AuthContext
       const answerText = data?.answer ?? "Пустой ответ от AI.";
 
       const aiResponse = {
@@ -140,7 +140,7 @@ export default function AIChatPage() {
 
       <div className="flex-1 pt-20 flex flex-col max-w-4xl mx-auto w-full px-4 sm:px-6">
         {/* Chat Header */}
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-emerald-50/80 backdrop-blur-sm sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
@@ -266,7 +266,7 @@ export default function AIChatPage() {
         )}
 
         {/* Input */}
-        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-white/80 backdrop-blur-sm sticky bottom-0 z-10">
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-emerald-50/80 backdrop-blur-sm sticky bottom-0 z-10">
           <form onSubmit={handleSubmit} className="flex gap-3">
             <div className="flex-1 relative">
               <input

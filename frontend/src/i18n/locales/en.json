@@ -17,7 +17,8 @@
     "login": "Login",
     "register": "Register",
     "assignedFarms": "Assigned Farms",
-    "assignedPastures": "Assigned Pastures"
+    "assignedPastures": "Assigned Pastures",
+    "about": "About"
   },
   "roles": {
     "farmer": "Farmer",
@@ -83,7 +84,7 @@
     "title": "Our Metrics",
     "subtitle": "Built on extensive research and real data",
     "values": {
-      "images": "10,000+",
+      "images": "1000+",
       "accuracy": "RMSE",
       "coverage": "Multi-season"
     },
@@ -93,7 +94,7 @@
       "coverage": "Data Support"
     },
     "descriptions": {
-      "imagesDesc": "Trained on over 10,000 pasture images",
+      "imagesDesc": "Trained on over 1000 pasture images",
       "accuracyDesc": "Minimized error for accurate biomass prediction",
       "coverageDesc": "Works with data from different seasons and conditions"
     }
@@ -103,7 +104,8 @@
     "quickLinks": "Quick Links",
     "contact": "Contact",
     "followUs": "Social Media",
-    "allRightsReserved": "All rights reserved"
+    "allRightsReserved": "All rights reserved",
+    "academicNote": "Academic project for sustainable pasture management in Kazakhstan"
   },
   "register": {
     "title": "Sign Up",
@@ -230,7 +232,6 @@
     "uzbekistan": "Uzbekistan"
   },
   "regions": {
-    "kz": {
       "akmola": "Akmola Region",
       "aktobe": "Aktobe Region",
       "almaty": "Almaty Region",
@@ -248,7 +249,6 @@
       "almaty_city": "Almaty city",
       "shymkent": "Shymkent city",
       "astana": "Astana city"
-    }
   },
   "pastures": {
     "title": "Pastures",

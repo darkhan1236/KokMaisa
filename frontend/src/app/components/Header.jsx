@@ -23,6 +23,7 @@ export default function Header() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const userMenuRef = useRef(null);
+  const isAIChatPage = location.pathname === "/ai-chat";
 
   const isHomePage = location.pathname === "/";
   const navLinks = isHomePage ? [
@@ -201,7 +202,9 @@ export default function Header() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+        isAIChatPage
+          ? "bg-green-400 backdrop-blur-md shadow-lg text-gray-900"
+          : isScrolled
           ? "bg-white/95 backdrop-blur-md shadow-lg text-gray-900"
           : "bg-transparent text-white"
       }`}
