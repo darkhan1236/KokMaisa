@@ -1,788 +1,401 @@
 // src/app/components/ProfileFarmer.jsx
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+// KokMaisa 2025 — Minimal premium SaaS profile, dark/light, i18n, responsive
+
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTranslation } from 'react-i18next';
 import Header from "@/app/components/Header";
-import LeafletMap from "@/app/features/map/LeafletMap";
 import {
-  User,
-  MapPin,
-  Phone,
-  Mail,
-  Map as MapIcon,
-  Wheat,
-  Plane,
-  BarChart3,
-  Calendar,
-  ChevronRight,
-  X,
-  Loader2,
-  Plus,
+  MapPin, Mail, Phone, Settings, LogOut,
+  Wheat, LayoutGrid, ChevronRight, Loader2,
+  Camera, Edit3,
 } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
-import { Badge } from "@/app/components/ui/badge";
 
+/* ─── Styles ──────────────────────────────────────────────────────────────── */
+const S = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  .pfm { font-family:'DM Sans',sans-serif; min-height:100vh; transition:background .4s; }
+  .pfm-d { background:#061309; }
+  .pfm-l { background:#f5fcf2; }
+
+  /* ── Center column ── */
+  .pfm-col {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 96px 20px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Card ── */
+  .pfm-card { border-radius: 22px; padding: 28px; transition: box-shadow .2s; }
+  .pfm-card-d {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .pfm-card-l {
+    background: #fff;
+    border: 1px solid rgba(34,197,94,.14);
+    box-shadow: 0 2px 20px rgba(34,197,94,.06);
+  }
+
+  /* ── Avatar ── */
+  .pfm-av {
+    width: 80px; height: 80px; border-radius: 22px; flex-shrink: 0;
+    background: linear-gradient(135deg,#22c55e,#0d9488);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne',sans-serif; font-size: 1.8rem; font-weight: 800; color: #fff;
+    overflow: hidden; position: relative;
+  }
+  .pfm-av img { width:100%;height:100%;object-fit:cover; }
+  .pfm-av-btn {
+    position: absolute; inset: 0; background: rgba(0,0,0,.38);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .2s; cursor: pointer; border: none;
+  }
+  .pfm-av:hover .pfm-av-btn { opacity: 1; }
+
+  /* ── Role chip ── */
+  .pfm-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: .05em;
+    background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.25); color: #22c55e;
+  }
+
+  /* ── Divider ── */
+  .pfm-div-d { height:1px; background:rgba(255,255,255,.06); margin:4px 0; }
+  .pfm-div-l { height:1px; background:rgba(34,197,94,.09);  margin:4px 0; }
+
+  /* ── Info row ── */
+  .pfm-row {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 0;
+    border-bottom: 1px solid;
+  }
+  .pfm-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .pfm-row-d { border-bottom-color: rgba(255,255,255,.06); }
+  .pfm-row-l { border-bottom-color: rgba(34,197,94,.08); }
+
+  /* ── Stat ── */
+  .pfm-stat {
+    flex: 1; padding: 16px 18px; border-radius: 16px;
+    display: flex; flex-direction: column; gap: 4px;
+    transition: transform .2s;
+  }
+  .pfm-stat:hover { transform: translateY(-2px); }
+  .pfm-stat-d { background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07); }
+  .pfm-stat-l { background:rgba(34,197,94,.05); border:1px solid rgba(34,197,94,.12); }
+
+  /* ── Action button ── */
+  .pfm-action {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px; border-radius: 14px; cursor: pointer;
+    transition: background .15s, transform .15s;
+    border: none; width: 100%; text-align: left; text-decoration: none;
+    font-family: 'DM Sans',sans-serif; font-size: 14px; font-weight: 500;
+  }
+  .pfm-action:hover { transform: translateX(3px); }
+  .pfm-action-d { background:transparent; color:rgba(255,255,255,.7); }
+  .pfm-action-d:hover { background:rgba(255,255,255,.05); color:#fff; }
+  .pfm-action-l { background:transparent; color:rgba(20,55,20,.7); }
+  .pfm-action-l:hover { background:rgba(34,197,94,.07); color:#166534; }
+
+  /* ── Primary btn ── */
+  .pfm-btn-primary {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 24px; border-radius: 999px; border: none; cursor: pointer;
+    background: linear-gradient(135deg,#22c55e,#0d9488);
+    color: #fff; font-size: 14px; font-weight: 600;
+    font-family: 'DM Sans',sans-serif;
+    transition: transform .2s, box-shadow .2s;
+    text-decoration: none;
+    width: 100%;
+  }
+  .pfm-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(34,197,94,.35);
+  }
+
+  /* ── Section label ── */
+  .pfm-section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+
+  /* ── Animations ── */
+  @keyframes pfmFade { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  .pfm-a1 { animation:pfmFade .5s cubic-bezier(.22,1,.36,1) .05s both; }
+  .pfm-a2 { animation:pfmFade .5s cubic-bezier(.22,1,.36,1) .12s both; }
+  .pfm-a3 { animation:pfmFade .5s cubic-bezier(.22,1,.36,1) .20s both; }
+  .pfm-a4 { animation:pfmFade .5s cubic-bezier(.22,1,.36,1) .28s both; }
+
+  /* ── Logout red ── */
+  .pfm-logout-d { color:rgba(248,113,113,.8) !important; }
+  .pfm-logout-d:hover { background:rgba(239,68,68,.1) !important; color:#f87171 !important; }
+  .pfm-logout-l { color:rgba(185,28,28,.75) !important; }
+  .pfm-logout-l:hover { background:rgba(239,68,68,.07) !important; }
+
+  /* ── Spin ── */
+  @keyframes pfmSpin { to{transform:rotate(360deg)} }
+  .pfm-spin { animation:pfmSpin 1s linear infinite; }
+
+  @media(max-width:480px) {
+    .pfm-col { padding-top:80px; padding-left:14px; padding-right:14px; }
+    .pfm-card { padding:20px; }
+  }
+`;
+
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+function InfoRow({ icon: Icon, label, value, accent, isDark }) {
+  if (!value) return null;
+  return (
+    <div className={`pfm-row ${isDark ? "pfm-row-d" : "pfm-row-l"}`}>
+      <div style={{
+        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+        background: `${accent}14`, border: `1px solid ${accent}25`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <Icon style={{ width: 14, height: 14, color: accent }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 11, color: isDark ? "rgba(255,255,255,.35)" : "rgba(20,55,20,.4)",
+          marginBottom: 1,
+        }}>{label}</div>
+        <div style={{
+          fontSize: 13, fontWeight: 500,
+          color: isDark ? "rgba(255,255,255,.82)" : "#1a3d20",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function StatBox({ value, label, accent, isDark }) {
+  return (
+    <div className={`pfm-stat ${isDark ? "pfm-stat-d" : "pfm-stat-l"}`}>
+      <div style={{
+        fontFamily: "'Syne',sans-serif", fontSize: "1.5rem", fontWeight: 800,
+        color: accent, lineHeight: 1,
+      }}>{value}</div>
+      <div style={{
+        fontSize: 11, fontWeight: 500,
+        color: isDark ? "rgba(255,255,255,.4)" : "rgba(20,55,20,.5)",
+      }}>{label}</div>
+    </div>
+  );
+}
+
+/* ─── Main Component ──────────────────────────────────────────────────────── */
 export default function ProfileFarmer() {
-  const { t } = useTranslation();
-  const { 
-    user, 
-    isAuthenticated, 
-    loading: authLoading,
-    getFarms,
-    getPastures,
-    getDrones
-  } = useAuth();
-  const navigate = useNavigate();
-  const [selectedFarm, setSelectedFarm] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [farms, setFarms] = useState([]);
-  const [pastures, setPastures] = useState([]);
-  const [drones, setDrones] = useState([]);
+  const { t }                = useTranslation();
+  const { theme }            = useTheme();
+  const { user, logout, loading: authLoading, getFarms, isAuthenticated } = useAuth();
+  const navigate             = useNavigate();
+  const isDark               = theme === "dark";
 
-  // Загрузка данных при монтировании
+  const [farms, setFarms]     = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     if (authLoading) return;
-    
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-
-    loadData();
+    if (!isAuthenticated) { navigate("/login"); return; }
+    getFarms?.()
+      .then(d => setFarms(Array.isArray(d) ? d : []))
+      .catch(() => setFarms([]))
+      .finally(() => setLoading(false));
   }, [authLoading, isAuthenticated]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [farmsData, pasturesData, dronesData] = await Promise.all([
-        getFarms(),
-        getPastures(),
-        getDrones()
-      ]);
-      
-      setFarms(farmsData || []);
-      setPastures(pasturesData || []);
-      setDrones(dronesData || []);
-    } catch (error) {
-      console.error("Ошибка загрузки данных профиля:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleLogout = async () => {
+    await logout?.();
+    navigate("/");
   };
 
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка профиля...</p>
-        </div>
+  /* Loading */
+  if (authLoading || loading) return (
+    <>
+      <style>{S}</style>
+      <div className={`pfm ${isDark ? "pfm-d" : "pfm-l"}`}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="pfm-spin" style={{ width: 28, height: 28, color: "#22c55e" }} />
       </div>
-    );
-  }
+    </>
+  );
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md mx-4">
-          <p className="text-gray-600 mb-6 text-lg">{t('profile.pleaseLogin')}</p>
-          <Button onClick={() => navigate("/login")}>{t('nav.login')}</Button>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
-  const farmMarkers = farms
-    .filter((f) => f.coordinates_lat && f.coordinates_lng)
-    .map((f) => ({
-      lat: parseFloat(f.coordinates_lat),
-      lng: parseFloat(f.coordinates_lng),
-      title: f.name,
-      description: `${f.area || '?'} га | ${f.region || 'Неизвестно'}`,
-      type: "farm",
-    }));
+  /* Derived values */
+  const initials    = user.full_name?.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "U";
+  const photoSrc    = user.profile_photo
+    ? (user.profile_photo.startsWith("http") ? user.profile_photo : `http://127.0.0.1:8000${user.profile_photo}`)
+    : null;
+  const totalArea   = farms.reduce((s, f) => s + parseFloat(f.area || 0), 0);
+  const location    = [user.city, user.country].filter(Boolean).join(", ");
 
-  const totalArea = farms.reduce((acc, f) => acc + parseFloat(f.area || 0), 0);
-  const totalPasturesArea = pastures.reduce((acc, p) => acc + parseFloat(p.area || 0), 0);
-  const activeDrones = drones.filter(d => d.status === "active").length;
+  /* Colors */
+  const tc = isDark ? "rgba(255,255,255,.88)" : "#0f2d14";
+  const sc = isDark ? "rgba(255,255,255,.38)" : "rgba(20,55,20,.45)";
+  const card = `pfm-card ${isDark ? "pfm-card-d" : "pfm-card-l"}`;
+  const act  = `pfm-action ${isDark ? "pfm-action-d" : "pfm-action-l"}`;
 
-  // Функция для отображения фото или инициалов
-  const renderProfileImage = (containerClass = "w-24 h-24", textClass = "text-3xl") => {
-    const initials = user.full_name?.charAt(0)?.toUpperCase() || "U";
-    
-    if (user.profile_photo) {
-      return (
-        <div className={`${containerClass} overflow-hidden rounded-2xl border-2 border-white/30 shadow-lg shrink-0`}>
-          <img 
-            src={`http://127.0.0.1:8000${user.profile_photo}`}
-            alt={user.full_name || t('roles.farmer')}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              const parent = e.target.parentElement;
-              if (parent) {
-                parent.style.background = 'linear-gradient(135deg, #10B981, #059669)';
-                parent.style.display = 'flex';
-                parent.style.alignItems = 'center';
-                parent.style.justifyContent = 'center';
-                const span = document.createElement('span');
-                span.className = `${textClass} font-bold text-white`;
-                span.textContent = initials;
-                parent.appendChild(span);
-              }
-            }}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className={`${containerClass} bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0`}>
-        <span className={`${textClass} font-bold text-white`}>{initials}</span>
-      </div>
-    );
-  };
-
-  // Функция для маленького фото в контактной информации
-  const renderSmallProfileImage = () => {
-    const initials = user.full_name?.charAt(0)?.toUpperCase() || "U";
-    
-    if (user.profile_photo) {
-      return (
-        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <img 
-            src={`http://127.0.0.1:8000${user.profile_photo}`}
-            alt={user.full_name || t('roles.farmer')}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              const parent = e.target.parentElement;
-              if (parent) {
-                parent.style.background = 'linear-gradient(135deg, #10B981, #059669)';
-                parent.style.display = 'flex';
-                parent.style.alignItems = 'center';
-                parent.style.justifyContent = 'center';
-                const span = document.createElement('span');
-                span.className = 'text-sm font-bold text-white';
-                span.textContent = initials;
-                parent.appendChild(span);
-              }
-            }}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
-        <span className="text-sm font-bold text-white">{initials}</span>
-      </div>
-    );
-  };
+  const ACTIONS = [
+    { to: "/settings", icon: Edit3,      label: t("profile.quickActions.managePastures", "Edit Profile"),    accent: "#22c55e" },
+    { to: "/settings", icon: Settings,   label: t("nav.settings"),                                           accent: "#22d3ee" },
+    { to: "/farms",    icon: LayoutGrid, label: t("nav.myFarms"),                                             accent: "#a78bfa" },
+    { to: "/pastures", icon: Wheat,      label: t("nav.myPastures"),                                         accent: "#fbbf24" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <>
+      <style>{S}</style>
+      <div className={`pfm ${isDark ? "pfm-d" : "pfm-l"}`}>
+        <Header />
 
-      {/* Hero */}
-      <div className="relative pt-20 pb-32 bg-gradient-to-br from-green-600 via-emerald-600 to-green-700">
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.344 0L13.858 8.485 15.272 9.9l9.9-9.9h-2.828zM32 0l-3.486 3.485 1.415 1.415L34.343 0H32z'/></g></g></svg>")`,
-            opacity: 0.3,
-          }}
-        />
-        <div className="relative max-w-7xl mx-auto px-6 pt-12">
-          <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-            {/* Фото профиля */}
-            {renderProfileImage()}
-            
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-                {user.full_name || t('roles.farmer')}
-              </h1>
-              <p className="text-white/90 text-xl">{user.email}</p>
-              <div className="flex flex-wrap items-center gap-3 mt-4">
-                <span className="inline-block px-5 py-2 bg-white/25 text-white rounded-full text-lg font-medium backdrop-blur-sm">
-                  {t('roles.farmer')}
-                </span>
-                <span className="text-white/80">
-                  {user.city || t('common.notSpecified')}, {user.country || 'Казахстан'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        <div className="pfm-col">
 
-      {/* Stats */}
-      <div className="max-w-7xl mx-auto px-6 -mt-24 md:-mt-20 relative z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
-                <MapIcon className="w-7 h-7 text-green-600" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{farms.length}</p>
-                <p className="text-sm text-gray-600">Фермы</p>
-              </div>
-            </div>
-          </div>
+          {/* ── Identity card ── */}
+          <div className={`${card} pfm-a1`}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 18 }}>
 
-          <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center">
-                <Wheat className="w-7 h-7 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{pastures.length}</p>
-                <p className="text-sm text-gray-600">Пастбища</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Plane className="w-7 h-7 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-gray-900">{drones.length}</p>
-                <p className="text-sm text-gray-600">Дроны</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-7 h-7 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-gray-900">
-                  {totalArea.toLocaleString('ru-RU')}
-                </p>
-                <p className="text-sm text-gray-600">Гектаров</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* ЛЕВАЯ КОЛОНКА - Контактная информация и Быстрые действия */}
-          <div className="space-y-6">
-            {/* Контактная информация */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Контактная информация</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="flex items-center gap-4">
-                  {renderSmallProfileImage()}
-                  <div>
-                    <p className="text-sm text-gray-500">ФИО</p>
-                    <p className="text-gray-900 font-medium">{user.full_name || 'Не указано'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="text-gray-900 font-medium">{user.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Телефон</p>
-                    <p className="text-gray-900 font-medium">
-                      {user.phone || t('common.notSpecified')}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Местоположение</p>
-                    <p className="text-gray-900 font-medium">
-                      {user.city || t('common.notSpecified')}, {user.country || 'Казахстан'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Дата регистрации</p>
-                    <p className="text-gray-900 font-medium">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString('ru-RU') : 'Неизвестно'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Быстрые действия */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Быстрые действия</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Link
-                  to="/farms"
-                  className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <MapIcon className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <span className="text-gray-900 font-medium block">Управлять фермами</span>
-                      <span className="text-sm text-gray-500">{farms.length} ферм • {totalArea.toLocaleString('ru-RU')} га</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors" />
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
-                  </div>
+              {/* Avatar */}
+              <div className="pfm-av" role="img" aria-label={user.full_name || "Avatar"}>
+                {photoSrc
+                  ? <img src={photoSrc} alt={user.full_name || ""} onError={e => { e.target.style.display = "none"; }} />
+                  : initials
+                }
+                <Link to="/settings" className="pfm-av-btn" aria-label={t("common.edit")}>
+                  <Camera style={{ width: 18, height: 18, color: "#fff" }} />
                 </Link>
-
-                <Link
-                  to="/pastures"
-                  className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Wheat className="w-6 h-6 text-amber-600" />
-                    </div>
-                    <div>
-                      <span className="text-gray-900 font-medium block">Пастбища</span>
-                      <span className="text-sm text-gray-500">{pastures.length} пастбищ • {totalPasturesArea.toLocaleString('ru-RU')} га</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-gray-400 group-hover:text-amber-600 transition-colors" />
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
-                  </div>
-                </Link>
-
-                <Link
-                  to="/drones"
-                  className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Plane className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <span className="text-gray-900 font-medium block">Дроны</span>
-                      <span className="text-sm text-gray-500">{drones.length} дронов • {activeDrones} активных</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
-                  </div>
-                </Link>
-
-                <Link
-                  to="/biomass-dashboard"
-                  className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <span className="text-gray-900 font-medium block">Анализ биомассы</span>
-                      <span className="text-sm text-gray-500">Мониторинг и аналитика</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
-                  </div>
-                </Link>
-
-                <Link
-                  to="/pastures-map"
-                  className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <MapIcon className="w-6 h-6 text-cyan-600" />
-                    </div>
-                    <div>
-                      <span className="text-gray-900 font-medium block">Карта пастбищ</span>
-                      <span className="text-sm text-gray-500">Просмотр на карте</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-900 transition-colors" />
-                  </div>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* ПРАВАЯ КОЛОНКА - Мои фермы и Карта ферм */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Мои фермы */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Мои фермы</CardTitle>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-500">
-                      {pastures.length} пастбищ • {drones.length} дронов
-                    </span>
-                    <Link
-                      to="/farms"
-                      className="text-sm text-green-600 hover:text-green-700 font-medium"
-                    >
-                      Управлять →
-                    </Link>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {farms.length === 0 ? (
-                  <div className="text-center py-16">
-                    <MapIcon className="w-20 h-20 text-gray-400 mx-auto mb-4" />
-                    <p className="text-lg text-gray-600 mb-2">
-                      У вас еще нет ферм
-                    </p>
-                    <p className="text-gray-500 mb-4">
-                      Создайте свою первую ферму, чтобы начать
-                    </p>
-                    <Link
-                      to="/farms"
-                      className="inline-block px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      Добавить ферму
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {farms.map((farm) => {
-                      // Находим пастбища этой фермы
-                      const farmPastures = pastures.filter(p => p.farm_id === farm.id);
-                      // Находим дроны этой фермы
-                      const farmDrones = drones.filter(d => d.farm_id === farm.id);
-                      
-                      return (
-                        <div
-                          key={farm.id}
-                          className="p-6 bg-gray-50 rounded-2xl border border-gray-200 hover:border-green-300 transition-colors cursor-pointer"
-                          onClick={() => setSelectedFarm({
-                            ...farm,
-                            pastures: farmPastures,
-                            drones: farmDrones
-                          })}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                                {farm.name}
-                              </h4>
-                              <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-4 h-4" />
-                                  {farm.region || 'Неизвестно'}
-                                </span>
-                                <span className="font-medium">
-                                  {farm.area} га
-                                </span>
-                                <Badge variant="secondary" className="bg-green-100 text-green-700">
-                                  {farmPastures.length} пастбищ
-                                </Badge>
-                                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                                  {farmDrones.length} дронов
-                                </Badge>
-                              </div>
-                              {farm.description && (
-                                <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                                  {farm.description}
-                                </p>
-                              )}
-                              {farm.farm_type && (
-                                <div className="mb-3">
-                                  <Badge>{farm.farm_type}</Badge>
-                                </div>
-                              )}
-                              {farm.crops && Array.isArray(farm.crops) && farm.crops.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                  {farm.crops.slice(0, 3).map((crop, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs">
-                                      {crop}
-                                    </Badge>
-                                  ))}
-                                  {farm.crops.length > 3 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{farm.crops.length - 3}
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Карта ферм */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Карта ферм</CardTitle>
-                  {farmMarkers.length > 0 && (
-                    <span className="text-sm text-gray-500">
-                      {farmMarkers.length} ферм на карте
-                    </span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {farmMarkers.length > 0 ? (
-                  <>
-                    <LeafletMap
-                      center={[
-                        parseFloat(farmMarkers[0]?.lat || 51.1605),
-                        parseFloat(farmMarkers[0]?.lng || 71.4704),
-                      ]}
-                      zoom={8}
-                      markers={farmMarkers}
-                      height="350px"
-                    />
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="bg-green-50 rounded-lg p-3">
-                        <p className="text-xs text-green-700">Всего ферм</p>
-                        <p className="text-lg font-bold text-green-900">{farms.length}</p>
-                      </div>
-                      <div className="bg-blue-50 rounded-lg p-3">
-                        <p className="text-xs text-blue-700">С координатами</p>
-                        <p className="text-lg font-bold text-blue-900">{farmMarkers.length}</p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-12">
-                    <MapIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">Нет ферм с координатами</p>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Добавьте координаты ферм для отображения на карте
-                    </p>
-                    <Link
-                      to="/farms"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Добавить координаты
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Farm Detail Modal */}
-      {selectedFarm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="relative h-48 bg-gradient-to-br from-green-500 to-emerald-600 rounded-t-2xl">
-              <button
-                onClick={() => setSelectedFarm(null)}
-                className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
-              <div className="absolute bottom-4 left-6">
-                <h2 className="text-2xl font-bold text-white">{selectedFarm.name}</h2>
-                <p className="text-white/80">{selectedFarm.region || 'Неизвестно'}</p>
               </div>
-            </div>
 
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-50 rounded-xl p-4">
-                  <p className="text-sm text-green-700">Площадь</p>
-                  <p className="text-xl font-bold text-green-900">
-                    {selectedFarm.area} га
-                  </p>
+              {/* Name & role */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="pfm-chip" style={{ marginBottom: 8 }}>
+                  {t("roles.farmer")}
                 </div>
-                {selectedFarm.farm_type && (
-                  <div className="bg-blue-50 rounded-xl p-4">
-                    <p className="text-sm text-blue-700">Тип фермы</p>
-                    <p className="text-xl font-bold text-blue-900">
-                      {selectedFarm.farm_type}
-                    </p>
+                <h1 style={{
+                  fontFamily: "'Syne',sans-serif", fontWeight: 800,
+                  fontSize: "clamp(1.25rem,5vw,1.65rem)",
+                  color: tc, margin: 0, lineHeight: 1.15,
+                  overflow: "hidden", textOverflow: "ellipsis",
+                }}>
+                  {user.full_name || t("common.user")}
+                </h1>
+                {location && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    fontSize: 12, color: sc, marginTop: 5,
+                  }}>
+                    <MapPin style={{ width: 11, height: 11 }} />
+                    {location}
                   </div>
                 )}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-amber-50 rounded-xl p-4">
-                  <p className="text-sm text-amber-700">Пастбища</p>
-                  <p className="text-xl font-bold text-amber-900">
-                    {selectedFarm.pastures?.length || 0}
-                  </p>
-                </div>
-                <div className="bg-indigo-50 rounded-xl p-4">
-                  <p className="text-sm text-indigo-700">Дроны</p>
-                  <p className="text-xl font-bold text-indigo-900">
-                    {selectedFarm.drones?.length || 0}
-                  </p>
-                </div>
-              </div>
-
-              {selectedFarm.address && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-gray-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-gray-500">Адрес</p>
-                    <p className="text-gray-900">{selectedFarm.address}</p>
-                  </div>
-                </div>
-              )}
-
-              {selectedFarm.owner_name && (
-                <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-gray-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-gray-500">Владелец</p>
-                    <p className="text-gray-900">{selectedFarm.owner_name}</p>
-                  </div>
-                </div>
-              )}
-
-              {selectedFarm.phone && (
-                <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-gray-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-gray-500">Телефон</p>
-                    <p className="text-gray-900">{selectedFarm.phone}</p>
-                  </div>
-                </div>
-              )}
-
-              {selectedFarm.description && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Описание</p>
-                  <p className="text-gray-900">{selectedFarm.description}</p>
-                </div>
-              )}
-
-              {selectedFarm.crops && Array.isArray(selectedFarm.crops) && selectedFarm.crops.length > 0 && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Культуры</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedFarm.crops.map((crop, index) => (
-                      <Badge key={index}>{crop}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedFarm.equipment && Array.isArray(selectedFarm.equipment) && selectedFarm.equipment.length > 0 && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Оборудование</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedFarm.equipment.map((equip, index) => (
-                      <Badge key={index} variant="secondary">
-                        {equip}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedFarm.coordinates_lat && selectedFarm.coordinates_lng && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Местоположение</p>
-                  <LeafletMap
-                    center={[
-                      parseFloat(selectedFarm.coordinates_lat),
-                      parseFloat(selectedFarm.coordinates_lng),
-                    ]}
-                    zoom={12}
-                    markers={[
-                      {
-                        lat: parseFloat(selectedFarm.coordinates_lat),
-                        lng: parseFloat(selectedFarm.coordinates_lng),
-                        title: selectedFarm.name,
-                      },
-                    ]}
-                    height="200px"
-                  />
-                </div>
-              )}
-
-              {/* Пастбища фермы */}
-              {selectedFarm.pastures && selectedFarm.pastures.length > 0 && (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Пастбища этой фермы</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {selectedFarm.pastures.slice(0, 4).map(pasture => (
-                      <div key={pasture.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-900 text-sm">{pasture.name}</span>
-                          <span className="text-xs text-gray-500">{pasture.area} га</span>
-                        </div>
-                        {pasture.pasture_type && (
-                          <p className="text-xs text-gray-600 mt-1">{pasture.pasture_type}</p>
-                        )}
-                      </div>
-                    ))}
-                    {selectedFarm.pastures.length > 4 && (
-                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 flex items-center justify-center">
-                        <span className="text-sm text-gray-500">
-                          +{selectedFarm.pastures.length - 4} пастбищ
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
-                <Link
-                  to="/farms"
-                  onClick={() => setSelectedFarm(null)}
-                  className="flex-1 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium text-center"
-                >
-                  Редактировать
-                </Link>
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedFarm(null)}
-                  className="px-6"
-                >
-                  Закрыть
-                </Button>
-              </div>
+            {/* Stats row */}
+            <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+              <StatBox
+                value={farms.length}
+                label={t("profile.stats.farms")}
+                accent="#22c55e"
+                isDark={isDark}
+              />
+              <StatBox
+                value={`${totalArea.toFixed(0)} ${t("common.hectares")}`}
+                label={t("profile.stats.hectares")}
+                accent="#22d3ee"
+                isDark={isDark}
+              />
             </div>
           </div>
+
+          {/* ── Contact info ── */}
+          <div className={`${card} pfm-a2`}>
+            <div className="pfm-section-label" style={{ color: sc }}>
+              {t("profile.contactInfo.title")}
+            </div>
+
+            <InfoRow
+              icon={Mail}
+              label="Email"
+              value={user.email}
+              accent="#22c55e"
+              isDark={isDark}
+            />
+            <InfoRow
+              icon={Phone}
+              label={t("register.phone")}
+              value={user.phone}
+              accent="#22d3ee"
+              isDark={isDark}
+            />
+            <InfoRow
+              icon={MapPin}
+              label={t("register.city")}
+              value={location}
+              accent="#a78bfa"
+              isDark={isDark}
+            />
+          </div>
+
+          {/* ── Quick actions ── */}
+          <div className={`${card} pfm-a3`} style={{ padding: "12px 16px" }}>
+            <div className="pfm-section-label" style={{ color: sc, padding: "8px 4px 6px" }}>
+              {t("profile.quickActions.title")}
+            </div>
+
+            {ACTIONS.map(({ to, icon: Icon, label, accent }) => (
+              <Link key={to + label} to={to} className={act}>
+                <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                    background: `${accent}12`, border: `1px solid ${accent}22`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <Icon style={{ width: 13, height: 13, color: accent }} />
+                  </div>
+                  {label}
+                </div>
+                <ChevronRight style={{ width: 14, height: 14, color: sc, flexShrink: 0 }} />
+              </Link>
+            ))}
+
+            <div className={isDark ? "pfm-div-d" : "pfm-div-l"} style={{ margin: "6px 0" }} />
+
+            <button
+              onClick={handleLogout}
+              className={`${act} ${isDark ? "pfm-logout-d" : "pfm-logout-l"}`}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                <div style={{
+                  width: 30, height: 30, borderRadius: 9,
+                  background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <LogOut style={{ width: 13, height: 13, color: "#f87171" }} />
+                </div>
+                {t("nav.logout")}
+              </div>
+            </button>
+          </div>
+
+          {/* ── Go to biomass CTA ── */}
+          <div className="pfm-a4">
+            <Link to="/biomass" className="pfm-btn-primary">
+              <Wheat style={{ width: 16, height: 16 }} />
+              {t("nav.biomass")}
+            </Link>
+          </div>
+
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

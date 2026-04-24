@@ -1,56 +1,83 @@
 # backend/app/api/farms/schemas/farm_schemas.py
-from pydantic import BaseModel
+# KokMaisa 2025 — добавлены polygon coordinates + color
+
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import date, datetime
 
 
-class FarmBase(BaseModel):
-    name: str
-    address: Optional[str] = None
-    region: str
-    area: float
-    description: Optional[str] = None
-    coordinates_lat: Optional[float] = None
-    coordinates_lng: Optional[float] = None
-    phone: Optional[str] = None
-    owner_name: Optional[str] = None
-    owner_iin: Optional[str] = None
-    farm_type: Optional[str] = None
-    established_date: Optional[date] = None
-    crops: Optional[List[str]] = None
-    equipment: Optional[List[str]] = None
-    status: Optional[str] = "active"
-    photos: Optional[List[str]] = None
+class CoordPoint(BaseModel):
+    lat: float
+    lng: float
 
 
-class FarmCreate(FarmBase):
-    pass
+class FarmCreate(BaseModel):
+    name           : str = Field(..., max_length=255)
+    region         : str = Field(..., max_length=200)
+    area           : float = Field(..., gt=0)                 # га — считается на фронте из полигона
+    address        : Optional[str]        = None
+    description    : Optional[str]        = None
+    coordinates_lat: Optional[float]      = None              # центроид
+    coordinates_lng: Optional[float]      = None
+    coordinates    : Optional[List[CoordPoint]] = None        # ← полигон [{lat,lng},...]
+    color          : Optional[str]        = "#22c55e"         # ← цвет полигона
+    phone          : Optional[str]        = None
+    owner_name     : Optional[str]        = None
+    owner_iin      : Optional[str]        = None
+    farm_type      : Optional[str]        = None
+    established_date: Optional[date]      = None
+    crops          : Optional[List[str]]  = None
+    equipment      : Optional[List[str]]  = None
+    status         : Optional[str]        = "active"
+    photos         : Optional[List[str]]  = None
 
 
 class FarmUpdate(BaseModel):
-    name: Optional[str] = None
-    address: Optional[str] = None
-    region: Optional[str] = None
-    area: Optional[float] = None
-    description: Optional[str] = None
-    coordinates_lat: Optional[float] = None
-    coordinates_lng: Optional[float] = None
-    phone: Optional[str] = None
-    owner_name: Optional[str] = None
-    owner_iin: Optional[str] = None
-    farm_type: Optional[str] = None
-    established_date: Optional[date] = None
-    crops: Optional[List[str]] = None
-    equipment: Optional[List[str]] = None
-    status: Optional[str] = None
-    photos: Optional[List[str]] = None
+    name           : Optional[str]        = None
+    region         : Optional[str]        = None
+    area           : Optional[float]      = None
+    address        : Optional[str]        = None
+    description    : Optional[str]        = None
+    coordinates_lat: Optional[float]      = None
+    coordinates_lng: Optional[float]      = None
+    coordinates    : Optional[List[CoordPoint]] = None
+    color          : Optional[str]        = None
+    phone          : Optional[str]        = None
+    owner_name     : Optional[str]        = None
+    owner_iin      : Optional[str]        = None
+    farm_type      : Optional[str]        = None
+    established_date: Optional[date]      = None
+    crops          : Optional[List[str]]  = None
+    equipment      : Optional[List[str]]  = None
+    status         : Optional[str]        = None
+    photos         : Optional[List[str]]  = None
 
 
-class FarmResponse(FarmBase):
-    id: int
-    owner_id: int
-    created_at: datetime
-    updated_at: datetime
+class FarmResponse(BaseModel):
+    id             : int
+    name           : str
+    region         : str
+    area           : float
+    address        : Optional[str]
+    description    : Optional[str]
+    coordinates_lat: Optional[float]
+    coordinates_lng: Optional[float]
+    coordinates    : Optional[List[CoordPoint]]   # ← полигон
+    color          : Optional[str]
+    phone          : Optional[str]
+    owner_name     : Optional[str]
+    owner_iin      : Optional[str]
+    farm_type      : Optional[str]
+    established_date: Optional[date]
+    crops          : Optional[List[str]]
+    equipment      : Optional[List[str]]
+    status         : Optional[str]
+    photos         : Optional[List[str]]
+    created_at     : Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ─── Migration SQL (добавьте к таблице farms) ──────────────────────────────
+# ALTER TABLE farms ADD COLUMN IF NOT EXISTS coordinates  JSON;
+# ALTER TABLE farms ADD COLUMN IF NOT EXISTS color        VARCHAR(20) DEFAULT '#22c55e';

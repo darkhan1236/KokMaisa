@@ -1,927 +1,601 @@
 // src/app/components/SettingsPage.jsx
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+// KokMaisa 2025 — Premium dark/light, full i18n (EN/RU/KK), XSS-safe, responsive
+
+import { useState, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/app/components/Header";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
-import { Badge } from "@/app/components/ui/badge";
-import {
-  Settings as SettingsIcon,
-  User,
-  Bell,
-  Shield,
-  Palette,
-  Database,
-  Key,
-  Mail,
-  Phone,
-  MapPin,
-  Camera,
-  Save,
-  ChevronRight,
-  Moon,
-  Sun,
-  Monitor,
-  HelpCircle,
-  ExternalLink,
-  Trash2,
-  Download,
-  Upload,
-  Lock,
-  Globe,
-  Eye,
-  EyeOff,
-  AlertCircle,
+  User, Bell, Monitor, Shield, Database,
+  Eye, EyeOff, CheckCircle, AlertCircle,
+  Sun, Moon, Globe, Camera, Trash2, Download, Upload,
+  ChevronRight, Lock,
 } from "lucide-react";
 
-const API_BASE = '/api';
+/* ─── Styles ──────────────────────────────────────────────────────────────── */
+const S = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+
+  .sp-root { font-family:'DM Sans',sans-serif; min-height:100vh; transition:background .4s; }
+  .sp-dark  { background:#061309; color:#fff; }
+  .sp-light { background:#f5fcf2; color:#1a3d20; }
+
+  /* Card */
+  .sp-card-dark  { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:24px; }
+  .sp-card-light { background:rgba(255,255,255,.92); border:1px solid rgba(34,197,94,.18); border-radius:24px; box-shadow:0 4px 24px rgba(34,197,94,.07); }
+
+  /* Input */
+  .sp-input-dark  { background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.1); color:#fff; border-radius:14px; padding:10px 14px; font-size:14px; width:100%; transition:border-color .2s,box-shadow .2s; }
+  .sp-input-dark:focus  { border-color:rgba(74,222,128,.5); box-shadow:0 0 0 3px rgba(74,222,128,.1); outline:none; }
+  .sp-input-dark::placeholder  { color:rgba(255,255,255,.3); }
+  .sp-input-light { background:#fff; border:1.5px solid rgba(34,197,94,.22); color:#1a3d20; border-radius:14px; padding:10px 14px; font-size:14px; width:100%; transition:border-color .2s,box-shadow .2s; }
+  .sp-input-light:focus { border-color:#16a34a; box-shadow:0 0 0 3px rgba(22,163,74,.1); outline:none; }
+  .sp-input-light::placeholder { color:rgba(20,55,20,.3); }
+
+  /* Tab */
+  .sp-tab-dark  { color:rgba(255,255,255,.5); background:transparent; border:none; cursor:pointer; transition:color .2s,background .2s; border-radius:14px; }
+  .sp-tab-dark:hover  { color:rgba(255,255,255,.85); background:rgba(255,255,255,.06); }
+  .sp-tab-dark.active  { color:#fff; background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.2); }
+  .sp-tab-light { color:rgba(20,55,20,.5); background:transparent; border:none; cursor:pointer; transition:color .2s,background .2s; border-radius:14px; }
+  .sp-tab-light:hover  { color:rgba(20,55,20,.85); background:rgba(34,197,94,.07); }
+  .sp-tab-light.active { color:#166534; background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.25); }
+
+  /* Toggle */
+  .sp-toggle { position:relative; width:46px; height:26px; flex-shrink:0; }
+  .sp-toggle input { opacity:0; width:0; height:0; }
+  .sp-toggle-slider { position:absolute; cursor:pointer; top:0;left:0;right:0;bottom:0; border-radius:999px; transition:.3s; background:rgba(255,255,255,.15); }
+  .sp-toggle-slider:before { position:absolute;content:'';height:20px;width:20px;left:3px;bottom:3px;border-radius:50%;background:#fff;transition:.3s; }
+  .sp-toggle input:checked + .sp-toggle-slider { background:linear-gradient(135deg,#22c55e,#0d9488); }
+  .sp-toggle input:checked + .sp-toggle-slider:before { transform:translateX(20px); }
+
+  /* Save btn */
+  .sp-save { background:linear-gradient(135deg,#22c55e,#0d9488); color:#fff; border:none; border-radius:14px; padding:10px 24px; font-size:14px; font-weight:600; cursor:pointer; transition:transform .2s,box-shadow .2s; }
+  .sp-save:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 24px rgba(34,197,94,.35); }
+  .sp-save:disabled { opacity:.5; cursor:not-allowed; }
+
+  /* Toast */
+  @keyframes spSlide { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+  .sp-toast { animation:spSlide .35s cubic-bezier(.22,1,.36,1) both; }
+
+  /* Danger btn */
+  .sp-danger { background:transparent; border:1.5px solid rgba(239,68,68,.35); color:#f87171; border-radius:14px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; transition:background .2s,border-color .2s; }
+  .sp-danger:hover { background:rgba(239,68,68,.12); border-color:rgba(239,68,68,.55); }
+
+  /* section badge */
+  .sp-section-badge { font-size:10px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
+
+  /* Avatar */
+  .sp-avatar { width:80px;height:80px;border-radius:50%;overflow:hidden;flex-shrink:0;position:relative; background:linear-gradient(135deg,#22c55e,#0d9488); display:flex;align-items:center;justify-content:center; font-size:28px;font-weight:700;color:#fff;font-family:'Syne',sans-serif; }
+  .sp-avatar img { width:100%;height:100%;object-fit:cover; }
+  .sp-avatar-edit { position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#0d9488);display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #061309; }
+
+  /* select */
+  .sp-select-dark  { background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);color:#fff;border-radius:14px;padding:10px 14px;font-size:14px;width:100%;outline:none;cursor:pointer; }
+  .sp-select-light { background:#fff;border:1.5px solid rgba(34,197,94,.22);color:#1a3d20;border-radius:14px;padding:10px 14px;font-size:14px;width:100%;outline:none;cursor:pointer; }
+
+  /* theme option */
+  .sp-theme-opt-dark  { border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 16px;cursor:pointer;transition:border-color .2s,background .2s;text-align:center; }
+  .sp-theme-opt-dark:hover { border-color:rgba(74,222,128,.3);background:rgba(255,255,255,.04); }
+  .sp-theme-opt-dark.sel { border-color:#4ade80;background:rgba(74,222,128,.1); }
+  .sp-theme-opt-light { border:1.5px solid rgba(34,197,94,.15);border-radius:14px;padding:12px 16px;cursor:pointer;transition:border-color .2s,background .2s;text-align:center; }
+  .sp-theme-opt-light:hover { border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.05); }
+  .sp-theme-opt-light.sel { border-color:#16a34a;background:rgba(34,197,94,.1); }
+
+  @media (max-width:640px) {
+    .sp-layout { flex-direction:column !important; }
+    .sp-sidebar { width:100% !important; min-width:unset !important; max-width:unset !important; }
+    .sp-tabs-scroll { overflow-x:auto; display:flex; }
+    .sp-tab { white-space:nowrap; }
+  }
+`;
+
+const LANGS = [
+  { code:"en", label:"English" },
+  { code:"ru", label:"Русский" },
+  { code:"kk", label:"Қазақша" },
+];
+
+const TABS = [
+  { id:"profile",       icon:User,     key:"settings.tabs.profile" },
+  { id:"notifications", icon:Bell,     key:"settings.tabs.notifications" },
+  { id:"display",       icon:Monitor,  key:"settings.tabs.display" },
+  { id:"security",      icon:Shield,   key:"settings.tabs.security" },
+  { id:"data",          icon:Database, key:"settings.tabs.data" },
+];
 
 export default function SettingsPage() {
-  const { t } = useTranslation();
+  const { t, i18n }    = useTranslation();
+  const { theme, toggleTheme } = useTheme();
   const { user, updateProfile, changePassword, loadUser, uploadProfilePhoto, deleteProfilePhoto } = useAuth();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("profile");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
-  
-  const fileInputRef = useRef(null);
-  
-  // Состояния для смены пароля
-  const [passwordData, setPasswordData] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    old: false,
-    new: false,
-    confirm: false
+  const navigate        = useNavigate();
+  const isDark          = theme === "dark";
+  const fileInputRef    = useRef(null);
+
+  const [activeTab, setActiveTab]   = useState("profile");
+  const [isSaving, setIsSaving]     = useState(false);
+  const [toast, setToast]           = useState(null); // {type:'success'|'error', msg}
+
+  // Profile form
+  const [profileForm, setProfileForm] = useState({
+    full_name: user?.full_name || "",
+    email:     user?.email    || "",
+    phone:     user?.phone    || "",
+    city:      user?.city     || "",
+    country:   user?.country  || "",
   });
 
-  // Состояния форм профиля
-  const [profileData, setProfileData] = useState({
-    full_name: "",
-    email: "",
-    phone: "",
-    country: "",
-    city: "",
-    education: "",
-    specializations: []
+  // Notifications
+  const [notifs, setNotifs] = useState({
+    emailNotifs: true, pushNotifs: false,
+    droneNotifs: true, biomassNotifs: true, weatherNotifs: true, weeklyReport: false,
   });
 
-  // Показать сообщение
-  const showMessage = (type, text) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+  // Password form
+  const [pwdForm, setPwdForm]   = useState({ oldPassword:"", newPassword:"", confirmPassword:"" });
+  const [showPwd, setShowPwd]   = useState({ old:false, new:false, confirm:false });
+  const [pwdErr, setPwdErr]     = useState({});
+
+  const showToast = (type, msg) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3500);
   };
 
-  // Загружаем данные пользователя при монтировании
-  useEffect(() => {
-    if (user) {
-      setProfileData({
-        full_name: user.full_name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        country: user.country || "",
-        city: user.city || "",
-        education: user.education || "",
-        specializations: user.specializations || []
-      });
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm(prev => ({ ...prev, [name]: value.replace(/\0/g, "") }));
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await updateProfile(profileForm);
+      await loadUser?.();
+      showToast("success", t("common.saveChanges") + " ✓");
+    } catch (err) {
+      showToast("error", err.message);
+    } finally {
+      setIsSaving(false);
     }
-  }, [user]);
+  };
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailAlerts: true,
-    pushNotifications: true,
-    smsAlerts: false,
-    weeklyReport: true,
-    droneAlerts: true,
-    biomassAlerts: true,
-    weatherAlerts: true,
-  });
-
-  const [displaySettings, setDisplaySettings] = useState({
-    theme: "light",
-    language: "ru",
-    mapStyle: "satellite",
-    units: "metric",
-  });
-
-  const [securitySettings, setSecuritySettings] = useState({
-    twoFactorAuth: false,
-    sessionTimeout: "30",
-    loginNotifications: true,
-  });
-
-  // Функция для обработки выбора файла
-  const handleFileSelect = async (event) => {
-    const file = event.target.files[0];
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-    
-    // Проверяем тип файла
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      showMessage("error", "Неподдерживаемый тип файла. Используйте JPEG, PNG, GIF или WebP");
-      return;
-    }
-    
-    // Проверяем размер файла (максимум 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      showMessage("error", "Файл слишком большой. Максимальный размер: 5MB");
-      return;
-    }
-    
-    setIsUploadingPhoto(true);
+    if (!file.type.startsWith("image/")) { showToast("error", "Only image files allowed"); return; }
+    if (file.size > 5 * 1024 * 1024) { showToast("error", "Max 5 MB"); return; }
     try {
       await uploadProfilePhoto(file);
-      showMessage("success", "Фото профиля успешно обновлено");
-    } catch (error) {
-      showMessage("error", error.message || "Ошибка при загрузке фото");
-    } finally {
-      setIsUploadingPhoto(false);
-      // Очищаем input
-      event.target.value = '';
+      await loadUser?.();
+      showToast("success", "Photo updated!");
+    } catch (err) {
+      showToast("error", err.message);
     }
   };
 
-  // Функция для удаления фото
   const handleDeletePhoto = async () => {
-    if (!user.profile_photo) return;
-    
-    if (!window.confirm("Удалить фото профиля?")) return;
-    
-    setIsUploadingPhoto(true);
     try {
-      await deleteProfilePhoto();
-      showMessage("success", "Фото профиля удалено");
-    } catch (error) {
-      showMessage("error", error.message || "Ошибка при удалении фото");
+      await deleteProfilePhoto?.();
+      await loadUser?.();
+      showToast("success", "Photo removed");
+    } catch (err) {
+      showToast("error", err.message);
+    }
+  };
+
+  const handleSavePassword = async (e) => {
+    e.preventDefault();
+    const errs = {};
+    if (!pwdForm.oldPassword) errs.oldPassword = t("common.required","Required");
+    if (pwdForm.newPassword.length < 6) errs.newPassword = t("reset.passwordTooShort");
+    if (pwdForm.newPassword !== pwdForm.confirmPassword) errs.confirmPassword = t("reset.passwordMismatch");
+    setPwdErr(errs);
+    if (Object.keys(errs).length) return;
+    setIsSaving(true);
+    try {
+      await changePassword({ old_password: pwdForm.oldPassword, new_password: pwdForm.newPassword });
+      setPwdForm({ oldPassword:"", newPassword:"", confirmPassword:"" });
+      showToast("success", t("common.saveChanges") + " ✓");
+    } catch (err) {
+      showToast("error", err.message);
     } finally {
-      setIsUploadingPhoto(false);
+      setIsSaving(false);
     }
   };
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className={`sp-root ${isDark?"sp-dark":"sp-light"} flex items-center justify-center`}>
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">
-            {t('settings.pleaseLogin') || "Пожалуйста, войдите в систему"}
+          <p className="mb-4" style={{ color:isDark?"rgba(255,255,255,.6)":"rgba(20,55,20,.6)" }}>
+            {t("settings.pleaseLogin")}
           </p>
-          <Button onClick={() => navigate("/login")}>
-            {t('nav.login') || "Войти"}
-          </Button>
+          <Link to="/login" className="sp-save" style={{ textDecoration:"none", display:"inline-block", padding:"10px 24px" }}>
+            {t("nav.login")}
+          </Link>
         </div>
       </div>
     );
   }
 
-  const tabs = [
-    { id: "profile",       label: t('settings.tabs.profile') || "Профиль",       icon: User },
-    { id: "notifications", label: t('settings.tabs.notifications') || "Уведомления", icon: Bell },
-    { id: "display",       label: t('settings.tabs.display') || "Отображение",       icon: Palette },
-    { id: "security",      label: t('settings.tabs.security') || "Безопасность",      icon: Shield },
-    { id: "data",          label: t('settings.tabs.data') || "Данные",          icon: Database },
-  ];
+  const initials = user.full_name?.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase() || "U";
+  const tabCls   = (id) => `sp-tab sp-tab-${isDark?"dark":"light"} ${activeTab===id?"active":""} sp-tab flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium w-full`;
 
-  const handleSaveProfile = async () => {
-    setIsSaving(true);
-    try {
-      // Фильтруем только измененные поля
-      const updateData = {};
-      Object.keys(profileData).forEach(key => {
-        if (JSON.stringify(profileData[key]) !== JSON.stringify(user[key])) {
-          updateData[key] = profileData[key];
-        }
-      });
+  const lbl = (
+    <span className="sp-section-badge"
+      style={{ background:isDark?"rgba(74,222,128,.12)":"rgba(22,163,74,.1)", color:isDark?"#4ade80":"#15803d", border:`1px solid ${isDark?"rgba(74,222,128,.2)":"rgba(22,163,74,.2)"}` }}>
+    </span>
+  );
 
-      if (Object.keys(updateData).length === 0) {
-        showMessage("info", t('common.noChanges') || "Нет изменений для сохранения");
-        return;
-      }
+  const Section = ({ titleKey, descKey, children }) => (
+    <div className={`sp-card-${isDark?"dark":"light"} p-6 sm:p-7`}>
+      <div className="mb-6">
+        <h2 className="font-bold text-lg" style={{ fontFamily:"Syne,sans-serif", color:isDark?"#fff":"#1a3d20" }}>
+          {t(titleKey)}
+        </h2>
+        {descKey && <p className="text-sm mt-1" style={{ color:isDark?"rgba(255,255,255,.45)":"rgba(20,55,20,.55)" }}>{t(descKey)}</p>}
+      </div>
+      {children}
+    </div>
+  );
 
-      await updateProfile(updateData);
-      showMessage("success", t('settings.profile.saved') || "Профиль успешно обновлен");
-      
-      // Обновляем данные пользователя
-      await loadUser();
-    } catch (error) {
-      showMessage("error", error.message || t('common.saveError') || "Ошибка при сохранении");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const InputField = ({ label, name, value, onChange, type="text", placeholder="" }) => (
+    <div>
+      <label className="block text-sm font-medium mb-2" style={{ color:isDark?"rgba(255,255,255,.65)":"rgba(20,55,20,.7)" }}>
+        {label}
+      </label>
+      <input
+        type={type} name={name} value={value} onChange={onChange}
+        placeholder={placeholder} maxLength={255}
+        className={`sp-input-${isDark?"dark":"light"}`}
+      />
+    </div>
+  );
 
-  const handleChangePassword = async () => {
-    if (!passwordData.oldPassword || !passwordData.newPassword) {
-      showMessage("error", t('settings.security.fillAllFields') || "Заполните все поля");
-      return;
-    }
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showMessage("error", t('settings.security.passwordsNotMatch') || "Пароли не совпадают");
-      return;
-    }
-    
-    if (passwordData.newPassword.length < 6) {
-      showMessage("error", t('settings.security.passwordMinLength') || "Пароль должен быть не менее 6 символов");
-      return;
-    }
-
-    try {
-      await changePassword(passwordData.oldPassword, passwordData.newPassword);
-      showMessage("success", t('settings.security.passwordChanged') || "Пароль успешно изменен");
-      
-      // Очищаем поля
-      setPasswordData({
-        oldPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      });
-    } catch (error) {
-      showMessage("error", error.message || t('settings.security.passwordChangeError') || "Ошибка при изменении пароля");
-    }
-  };
-
-  const handleSaveNotifications = async () => {
-    setIsSaving(true);
-    try {
-      // Здесь можно добавить вызов API для сохранения настроек уведомлений
-      await new Promise((r) => setTimeout(r, 1000)); // временная симуляция
-      showMessage("success", t('settings.notifications.saved') || "Настройки уведомлений сохранены");
-    } catch (error) {
-      showMessage("error", error.message || t('common.saveError') || "Ошибка при сохранении");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveDisplay = async () => {
-    setIsSaving(true);
-    try {
-      // Здесь можно добавить вызов API для сохранения настроек отображения
-      await new Promise((r) => setTimeout(r, 1000)); // временная симуляция
-      showMessage("success", t('settings.display.saved') || "Настройки отображения сохранены");
-      // Если сменили язык → можно вызвать i18n.changeLanguage(displaySettings.language)
-    } catch (error) {
-      showMessage("error", error.message || t('common.saveError') || "Ошибка при сохранении");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveSecurity = async () => {
-    setIsSaving(true);
-    try {
-      // Здесь можно добавить вызов API для сохранения настроек безопасности
-      await new Promise((r) => setTimeout(r, 1000)); // временная симуляция
-      showMessage("success", t('settings.security.settingsSaved') || "Настройки безопасности сохранены");
-    } catch (error) {
-      showMessage("error", error.message || t('common.saveError') || "Ошибка при сохранении");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Функция для отображения специализаций
-  const renderSpecializations = () => {
-    if (!profileData.specializations || profileData.specializations.length === 0) {
-      return <span className="text-muted-foreground">{t('settings.profile.noSpecializations') || "Специализации не указаны"}</span>;
-    }
-    return profileData.specializations.map((spec, index) => (
-      <Badge key={index} variant="secondary" className="mr-2 mb-2">
-        {spec}
-      </Badge>
-    ));
-  };
+  const Toggle = ({ id, checked, onChange, label, desc }) => (
+    <div className="flex items-start justify-between gap-4 py-3.5"
+      style={{ borderBottom:`1px solid ${isDark?"rgba(255,255,255,.06)":"rgba(34,197,94,.1)"}` }}>
+      <div>
+        <div className="text-sm font-medium" style={{ color:isDark?"rgba(255,255,255,.82)":"#1a3d20" }}>{label}</div>
+        {desc && <div className="text-xs mt-0.5" style={{ color:isDark?"rgba(255,255,255,.38)":"rgba(20,55,20,.5)" }}>{desc}</div>}
+      </div>
+      <label className="sp-toggle flex-shrink-0 mt-0.5" htmlFor={id}>
+        <input id={id} type="checkbox" checked={checked} onChange={onChange} />
+        <span className="sp-toggle-slider" />
+      </label>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <>
+      <style>{S}</style>
+      <div className={`sp-root ${isDark?"sp-dark":"sp-light"}`}>
+        <Header />
 
-      {/* Hero */}
-      <div className="relative pt-20 pb-16 bg-gradient-to-br from-slate-600 via-slate-700 to-slate-800">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg ...')] opacity-30" />
-        <div className="relative max-w-7xl mx-auto px-6 pt-12">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            {t('settings.title') || "Настройки"}
-          </h1>
-          <p className="text-white/80">
-            {t('settings.subtitle') || "Управление профилем и настройками аккаунта"}
-          </p>
-        </div>
-      </div>
-
-      {/* Сообщения */}
-      {message.text && (
-        <div className={`fixed top-20 right-6 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 ${
-          message.type === "success" 
-            ? "bg-green-100 border border-green-300 text-green-800" 
-            : message.type === "error"
-            ? "bg-red-100 border border-red-300 text-red-800"
-            : "bg-blue-100 border border-blue-300 text-blue-800"
-        }`}>
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{message.text}</span>
+        {/* Toast */}
+        {toast && (
+          <div className="sp-toast fixed top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl flex items-center gap-3 text-sm font-medium"
+            style={{
+              background: toast.type === "success"
+                ? (isDark?"rgba(34,197,94,.18)":"rgba(34,197,94,.12)")
+                : (isDark?"rgba(239,68,68,.18)":"rgba(239,68,68,.1)"),
+              border: `1px solid ${toast.type==="success"?"rgba(34,197,94,.35)":"rgba(239,68,68,.35)"}`,
+              color: toast.type === "success" ? (isDark?"#86efac":"#15803d") : (isDark?"#fca5a5":"#dc2626"),
+              boxShadow:"0 8px 32px rgba(0,0,0,.12)",
+            }}>
+            {toast.type === "success" ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+            {toast.msg}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardContent className="p-4">
-                <nav className="space-y-1">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                        activeTab === tab.id
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <tab.icon className="w-5 h-5" />
-                        {tab.label}
-                      </div>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  ))}
-                </nav>
-              </CardContent>
-            </Card>
+        <div className="pt-20 pb-12 px-4 sm:px-6">
+          <div className="max-w-5xl mx-auto">
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">{t('settings.quickActions') || "Быстрые действия"}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
-                  <HelpCircle className="w-4 h-4 mr-2" />
-                  {t('common.help') || "Помощь"}
-                </Button>
-                <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  {t('common.documentation') || "Документация"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+            {/* Page header */}
+            <div className="mb-8">
+              <p className="text-xs font-semibold tracking-[.18em] uppercase mb-2"
+                style={{ color:isDark?"#4ade80":"#16a34a", fontFamily:"DM Sans,sans-serif" }}>
+                {t("nav.settings")}
+              </p>
+              <h1 className="text-3xl sm:text-4xl font-extrabold" style={{ fontFamily:"Syne,sans-serif", color:isDark?"#fff":"#1a3d20" }}>
+                {t("settings.title")}
+              </h1>
+              <p className="mt-2 text-sm sm:text-base" style={{ color:isDark?"rgba(255,255,255,.5)":"rgba(20,55,20,.6)" }}>
+                {t("settings.subtitle")}
+              </p>
+            </div>
 
-          {/* Content Area */}
-          <div className="lg:col-span-3">
-            {/* Профиль */}
-            {activeTab === "profile" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('settings.profile.title') || "Настройки профиля"}</CardTitle>
-                  <CardDescription>
-                    {t('settings.profile.description') || "Управление личной информацией"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Аватар */}
-                  <div className="flex items-center gap-6">
-                    <div className="relative group">
-                      <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-white text-3xl font-bold overflow-hidden bg-gradient-to-br from-green-400 to-emerald-600">
-                        {user.profile_photo ? (
-                          <img 
-                            src={`http://127.0.0.1:8000${user.profile_photo}`} 
-                            alt={profileData.full_name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              const parent = e.target.parentElement;
-                              if (parent) {
-                                parent.style.background = 'linear-gradient(135deg, #34D399, #059669)';
-                                const span = document.createElement('span');
-                                span.textContent = profileData.full_name?.charAt(0)?.toUpperCase() || "U";
-                                parent.appendChild(span);
-                              }
-                            }}
-                          />
-                        ) : (
-                          <span>{profileData.full_name?.charAt(0)?.toUpperCase() || "U"}</span>
-                        )}
-                      </div>
-                      
-                      {/* Кнопки для управления фото */}
-                      <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploadingPhoto}
-                            className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
-                            title="Изменить фото"
-                          >
-                            <Camera className="w-4 h-4 text-gray-700" />
-                          </button>
-                          
-                          {user.profile_photo && (
-                            <button
-                              type="button"
-                              onClick={handleDeletePhoto}
-                              disabled={isUploadingPhoto}
-                              className="p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
-                              title="Удалить фото"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {isUploadingPhoto && (
-                        <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                        </div>
-                      )}
+            {/* Layout */}
+            <div className="sp-layout flex gap-6 items-start">
+
+              {/* Sidebar */}
+              <div className="sp-sidebar flex-shrink-0" style={{ minWidth:200, maxWidth:220 }}>
+                <div className={`sp-card-${isDark?"dark":"light"} p-3`}>
+                  {/* User info */}
+                  <div className="flex items-center gap-3 px-2 py-3 mb-2"
+                    style={{ borderBottom:`1px solid ${isDark?"rgba(255,255,255,.07)":"rgba(34,197,94,.12)"}` }}>
+                    <div className="sp-avatar" style={{ width:40, height:40, fontSize:15 }}>
+                      {user.profile_photo
+                        ? <img src={user.profile_photo.startsWith("http") ? user.profile_photo : `http://127.0.0.1:8000${user.profile_photo}`} alt="" />
+                        : initials}
                     </div>
-                    
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      className="hidden"
-                    />
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold">
-                        {profileData.full_name || t('common.user') || "Пользователь"}
-                      </h3>
-                      <p className="text-muted-foreground">{profileData.email}</p>
-                      <Badge className="mt-2">
-                        {user.account_type === "farmer"
-                          ? t('roles.farmer') || "Фермер"
-                          : t('roles.agronomist') || "Агроном"}
-                      </Badge>
-                      
-                      {/* Кнопка загрузки фото (альтернативная) */}
-                      <div className="mt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isUploadingPhoto}
-                        >
-                          {isUploadingPhoto ? (
-                            <>
-                              <span className="animate-spin mr-2">⟳</span>
-                              Загрузка...
-                            </>
-                          ) : (
-                            <>
-                              <Camera className="w-4 h-4 mr-2" />
-                              {user.profile_photo ? "Изменить фото" : "Загрузить фото"}
-                            </>
-                          )}
-                        </Button>
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold truncate" style={{ color:isDark?"#fff":"#1a3d20", fontFamily:"Syne,sans-serif" }}>
+                        {user.full_name?.split(" ")[0] || t("common.user")}
+                      </div>
+                      <div className="text-xs truncate" style={{ color:isDark?"rgba(255,255,255,.38)":"rgba(20,55,20,.45)" }}>
+                        {t(`roles.${user.account_type}`, user.account_type)}
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {t('settings.profile.fullName') || "Полное имя"}
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={profileData.full_name}
-                          onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                          className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder={t('settings.profile.fullNamePlaceholder') || "Введите ваше полное имя"}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {t('settings.profile.email') || "Email"}
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <input
-                          type="email"
-                          value={profileData.email}
-                          onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                          className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="email@example.com"
-                          disabled
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                          {t('settings.profile.emailReadOnly') || "Только для чтения"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {t('settings.profile.phone') || "Телефон"}
-                      </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <input
-                          type="tel"
-                          value={profileData.phone}
-                          onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                          className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="+7 (777) 123-45-67"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {t('settings.profile.country') || "Страна"}
-                      </label>
-                      <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={profileData.country}
-                          onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
-                          className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder={t('settings.profile.countryPlaceholder') || "Введите страну"}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {t('settings.profile.city') || "Город"}
-                      </label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={profileData.city}
-                          onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
-                          className="w-full pl-11 pr-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder={t('settings.profile.cityPlaceholder') || "Введите город"}
-                        />
-                      </div>
-                    </div>
-
-                    {user.account_type === "agronomist" && (
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          {t('settings.profile.education') || "Образование"}
-                        </label>
-                        <input
-                          type="text"
-                          value={profileData.education}
-                          onChange={(e) => setProfileData({ ...profileData, education: e.target.value })}
-                          className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder={t('settings.profile.educationPlaceholder') || "Введите образование"}
-                        />
-                      </div>
-                    )}
+                  <div className="sp-tabs-scroll flex flex-col gap-0.5">
+                    {TABS.map(({ id, icon: Icon, key }) => (
+                      <button key={id} onClick={() => setActiveTab(id)} className={tabCls(id)}>
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        {t(key)}
+                      </button>
+                    ))}
                   </div>
-
-                  {user.account_type === "agronomist" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        {t('settings.profile.specializations') || "Специализации"}
-                      </label>
-                      <div className="flex flex-wrap items-center gap-2 p-4 bg-secondary/30 rounded-xl">
-                        {renderSpecializations()}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {t('settings.profile.specializationsNote') || "Для изменения специализаций обратитесь к администратору"}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end">
-                    <Button onClick={handleSaveProfile} disabled={isSaving}>
-                      {isSaving ? (
-                        <>
-                          <span className="animate-spin mr-2">⟳</span>
-                          {t('common.saving') || "Сохранение..."}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          {t('common.saveChanges') || "Сохранить изменения"}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Остальные вкладки (уведомления, отображение, безопасность, данные) остаются без изменений */}
-            {/* Уведомления */}
-            {activeTab === "notifications" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('settings.notifications.title') || "Уведомления"}</CardTitle>
-                  <CardDescription>
-                    {t('settings.notifications.description') || "Управление уведомлениями"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* ... остальной код вкладки уведомлений ... */}
-                  <div className="flex justify-end">
-                    <Button onClick={handleSaveNotifications} disabled={isSaving}>
-                      {isSaving ? (
-                        <>
-                          <span className="animate-spin mr-2">⟳</span>
-                          {t('common.saving') || "Сохранение..."}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          {t('common.saveSettings') || "Сохранить настройки"}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Отображение */}
-            {activeTab === "display" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('settings.display.title') || "Отображение"}</CardTitle>
-                  <CardDescription>
-                    {t('settings.display.description') || "Настройки интерфейса"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* ... остальной код вкладки отображения ... */}
-                  <div className="flex justify-end">
-                    <Button onClick={handleSaveDisplay} disabled={isSaving}>
-                      {isSaving ? (
-                        <>
-                          <span className="animate-spin mr-2">⟳</span>
-                          {t('common.saving') || "Сохранение..."}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          {t('common.saveSettings') || "Сохранить настройки"}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Безопасность */}
-            {activeTab === "security" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('settings.security.title') || "Безопасность"}</CardTitle>
-                  <CardDescription>
-                    {t('settings.security.description') || "Настройки безопасности аккаунта"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="p-4 rounded-xl bg-secondary/50">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Key className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{t('settings.security.changePassword') || "Сменить пароль"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('settings.security.lastChanged') || "Обновите пароль для безопасности"}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Форма смены пароля */}
-                      <div className="space-y-4 pt-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2">
-                            {t('settings.security.oldPassword') || "Старый пароль"}
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showPasswords.old ? "text" : "password"}
-                              value={passwordData.oldPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-                              className="w-full pl-4 pr-10 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                              placeholder={t('settings.security.enterOldPassword') || "Введите старый пароль"}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPasswords({ ...showPasswords, old: !showPasswords.old })}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                              {showPasswords.old ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium mb-2">
-                            {t('settings.security.newPassword') || "Новый пароль"}
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showPasswords.new ? "text" : "password"}
-                              value={passwordData.newPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                              className="w-full pl-4 pr-10 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                              placeholder={t('settings.security.enterNewPassword') || "Введите новый пароль"}
-                              minLength={6}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                              {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {t('settings.security.passwordRequirements') || "Минимум 6 символов"}
-                          </p>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium mb-2">
-                            {t('settings.security.confirmPassword') || "Подтверждение пароля"}
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showPasswords.confirm ? "text" : "password"}
-                              value={passwordData.confirmPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                              className="w-full pl-4 pr-10 py-3 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                              placeholder={t('settings.security.confirmNewPassword') || "Подтвердите новый пароль"}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                              {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <Button onClick={handleChangePassword} className="w-full">
-                          {t('settings.security.changePassword') || "Сменить пароль"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 2FA */}
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-border">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Lock className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{t('settings.security.twoFactorAuth') || "Двухфакторная аутентификация"}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {t('settings.security.twoFactorAuthDesc') || "Дополнительная защита аккаунта"}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSecuritySettings({ ...securitySettings, twoFactorAuth: !securitySettings.twoFactorAuth })}
-                      className={`relative w-12 h-7 rounded-full transition-colors ${
-                        securitySettings.twoFactorAuth ? "bg-primary" : "bg-muted"
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                          securitySettings.twoFactorAuth ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button onClick={handleSaveSecurity} disabled={isSaving}>
-                      {isSaving ? (
-                        <>
-                          <span className="animate-spin mr-2">⟳</span>
-                          {t('common.saving') || "Сохранение..."}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          {t('common.saveSettings') || "Сохранить настройки"}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Данные - оставляем как в оригинале */}
-            {activeTab === "data" && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('settings.data.title') || "Данные"}</CardTitle>
-                    <CardDescription>
-                      {t('settings.data.description') || "Управление данными аккаунта"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <Download className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{t('settings.data.export') || "Экспорт данных"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('settings.data.exportDesc') || "Скачайте все ваши данные"}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="outline">{t('settings.data.exportBtn') || "Экспорт"}</Button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                          <Upload className="w-5 h-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{t('settings.data.import') || "Импорт данных"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('settings.data.importDesc') || "Загрузите данные в систему"}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="outline">{t('settings.data.importBtn') || "Импорт"}</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-destructive/50">
-                  <CardHeader>
-                    <CardTitle className="text-destructive">
-                      {t('settings.dangerZone.title') || "Опасная зона"}
-                    </CardTitle>
-                    <CardDescription>
-                      {t('settings.dangerZone.description') || "Необратимые действия"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-destructive/10">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center">
-                          <Trash2 className="w-5 h-5 text-destructive" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-destructive">
-                            {t('settings.dangerZone.deleteAccount') || "Удаление аккаунта"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {t('settings.dangerZone.deleteWarning') || "Это действие нельзя отменить"}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="destructive">
-                        {t('settings.dangerZone.deleteBtn') || "Удалить аккаунт"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                </div>
               </div>
-            )}
+
+              {/* Content */}
+              <div className="flex-1 min-w-0 flex flex-col gap-5">
+
+                {/* ── PROFILE ── */}
+                {activeTab === "profile" && (
+                  <>
+                    <Section titleKey="settings.profile.title" descKey="settings.profile.description">
+                      {/* Avatar */}
+                      <div className="flex items-center gap-5 mb-7 pb-6"
+                        style={{ borderBottom:`1px solid ${isDark?"rgba(255,255,255,.07)":"rgba(34,197,94,.1)"}` }}>
+                        <div className="sp-avatar relative">
+                          {user.profile_photo
+                            ? <img src={user.profile_photo.startsWith("http") ? user.profile_photo : `http://127.0.0.1:8000${user.profile_photo}`} alt="" />
+                            : initials}
+                          <div className="sp-avatar-edit" onClick={() => fileInputRef.current?.click()}
+                            style={{ borderColor:isDark?"#061309":"#f5fcf2" }}>
+                            <Camera className="w-3 h-3 text-white" />
+                          </div>
+                          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                        </div>
+                        <div>
+                          <div className="font-bold" style={{ color:isDark?"#fff":"#1a3d20" }}>{user.full_name}</div>
+                          <div className="text-sm mt-1" style={{ color:isDark?"rgba(255,255,255,.45)":"rgba(20,55,20,.5)" }}>{user.email}</div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button onClick={() => fileInputRef.current?.click()}
+                              className="text-xs font-medium px-3 py-1.5 rounded-full transition-all"
+                              style={{ background:isDark?"rgba(74,222,128,.12)":"rgba(22,163,74,.1)", color:isDark?"#4ade80":"#16a34a", border:`1px solid ${isDark?"rgba(74,222,128,.2)":"rgba(22,163,74,.2)"}` }}>
+                              {t("common.edit")}
+                            </button>
+                            {user.profile_photo && (
+                              <button onClick={handleDeletePhoto}
+                                className="text-xs font-medium px-3 py-1.5 rounded-full transition-all"
+                                style={{ background:"rgba(239,68,68,.1)", color:"#f87171", border:"1px solid rgba(239,68,68,.2)" }}>
+                                {t("common.delete")}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <form onSubmit={handleSaveProfile}>
+                        <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                          <InputField label={t("settings.profile.fullName")} name="full_name" value={profileForm.full_name}
+                            onChange={handleProfileChange} placeholder={t("settings.profile.fullNamePlaceholder")} />
+                          <InputField label={t("settings.profile.email")} name="email" value={profileForm.email}
+                            onChange={handleProfileChange} type="email" placeholder="email@example.com" />
+                          <InputField label={t("settings.profile.phone")} name="phone" value={profileForm.phone}
+                            onChange={handleProfileChange} placeholder="+7 (___) ___-__-__" />
+                          <InputField label={t("settings.profile.address")} name="city" value={profileForm.city}
+                            onChange={handleProfileChange} placeholder={t("settings.profile.addressPlaceholder")} />
+                        </div>
+                        <div className="flex justify-end">
+                          <button type="submit" disabled={isSaving} className="sp-save">
+                            {isSaving ? t("common.saving") : t("common.saveChanges")}
+                          </button>
+                        </div>
+                      </form>
+                    </Section>
+                  </>
+                )}
+
+                {/* ── NOTIFICATIONS ── */}
+                {activeTab === "notifications" && (
+                  <Section titleKey="settings.notifications.title" descKey="settings.notifications.description">
+                    <div className="mb-5">
+                      <h3 className="text-sm font-semibold mb-3" style={{ color:isDark?"rgba(255,255,255,.55)":"rgba(20,55,20,.55)", fontFamily:"Syne,sans-serif", letterSpacing:".1em", textTransform:"uppercase", fontSize:11 }}>
+                        {t("settings.notifications.channels")}
+                      </h3>
+                      <Toggle id="emailNotifs" checked={notifs.emailNotifs} onChange={e => setNotifs(p => ({...p, emailNotifs:e.target.checked}))}
+                        label={t("settings.notifications.email")} desc={t("settings.notifications.emailDesc")} />
+                      <Toggle id="pushNotifs" checked={notifs.pushNotifs} onChange={e => setNotifs(p => ({...p, pushNotifs:e.target.checked}))}
+                        label={t("settings.notifications.push")} desc={t("settings.notifications.pushDesc")} />
+                    </div>
+                    <h3 className="text-sm font-semibold mb-3" style={{ color:isDark?"rgba(255,255,255,.55)":"rgba(20,55,20,.55)", fontFamily:"Syne,sans-serif", letterSpacing:".1em", textTransform:"uppercase", fontSize:11 }}>
+                      {t("settings.notifications.types")}
+                    </h3>
+                    <Toggle id="droneNotifs" checked={notifs.droneNotifs} onChange={e => setNotifs(p => ({...p, droneNotifs:e.target.checked}))}
+                      label={t("settings.notifications.drone")} desc={t("settings.notifications.droneDesc")} />
+                    <Toggle id="biomassNotifs" checked={notifs.biomassNotifs} onChange={e => setNotifs(p => ({...p, biomassNotifs:e.target.checked}))}
+                      label={t("settings.notifications.biomass")} desc={t("settings.notifications.biomassDesc")} />
+                    <Toggle id="weatherNotifs" checked={notifs.weatherNotifs} onChange={e => setNotifs(p => ({...p, weatherNotifs:e.target.checked}))}
+                      label={t("settings.notifications.weather")} desc={t("settings.notifications.weatherDesc")} />
+                    <Toggle id="weeklyReport" checked={notifs.weeklyReport} onChange={e => setNotifs(p => ({...p, weeklyReport:e.target.checked}))}
+                      label={t("settings.notifications.weeklyReport")} desc={t("settings.notifications.weeklyReportDesc")} />
+                    <div className="flex justify-end mt-6">
+                      <button className="sp-save" onClick={() => showToast("success", t("common.saveChanges") + " ✓")}>
+                        {t("common.saveSettings")}
+                      </button>
+                    </div>
+                  </Section>
+                )}
+
+                {/* ── DISPLAY ── */}
+                {activeTab === "display" && (
+                  <Section titleKey="settings.display.title" descKey="settings.display.description">
+                    {/* Theme */}
+                    <div className="mb-7">
+                      <label className="block text-sm font-medium mb-3" style={{ color:isDark?"rgba(255,255,255,.65)":"rgba(20,55,20,.7)" }}>
+                        {t("settings.display.theme")}
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {[
+                          { id:"dark",  icon:Moon, label:t("settings.display.dark") },
+                          { id:"light", icon:Sun,  label:t("settings.display.light") },
+                        ].map(({ id, icon:Icon, label }) => (
+                          <button key={id} onClick={() => id !== theme && toggleTheme()}
+                            className={`sp-theme-opt-${isDark?"dark":"light"} ${theme===id?"sel":""}`}>
+                            <Icon className="w-5 h-5 mx-auto mb-1.5" style={{ color:isDark?"rgba(255,255,255,.7)":"rgba(20,55,20,.7)" }} />
+                            <div className="text-sm font-medium" style={{ color:isDark?"rgba(255,255,255,.8)":"rgba(20,55,20,.8)" }}>{label}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Language */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium mb-3" style={{ color:isDark?"rgba(255,255,255,.65)":"rgba(20,55,20,.7)" }}>
+                        {t("settings.display.language")}
+                      </label>
+                      <div className="flex gap-2 flex-wrap">
+                        {LANGS.map(({ code, label }) => (
+                          <button key={code} onClick={() => i18n.changeLanguage(code)}
+                            className="px-4 py-2 rounded-full text-sm font-semibold transition-all"
+                            style={{
+                              background: i18n.language===code
+                                ? (isDark?"rgba(74,222,128,.18)":"rgba(22,163,74,.12)")
+                                : (isDark?"rgba(255,255,255,.06)":"rgba(255,255,255,.7)"),
+                              border: i18n.language===code
+                                ? `1.5px solid ${isDark?"rgba(74,222,128,.35)":"rgba(22,163,74,.3)"}`
+                                : `1.5px solid ${isDark?"rgba(255,255,255,.1)":"rgba(34,197,94,.2)"}`,
+                              color: i18n.language===code
+                                ? (isDark?"#4ade80":"#15803d")
+                                : (isDark?"rgba(255,255,255,.55)":"rgba(20,55,20,.55)"),
+                            }}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button className="sp-save" onClick={() => showToast("success", t("common.saveChanges") + " ✓")}>
+                        {t("common.saveSettings")}
+                      </button>
+                    </div>
+                  </Section>
+                )}
+
+                {/* ── SECURITY ── */}
+                {activeTab === "security" && (
+                  <Section titleKey="settings.security.title" descKey="settings.security.description">
+                    <div className="p-5 rounded-2xl mb-6"
+                      style={{ background:isDark?"rgba(255,255,255,.03)":"rgba(34,197,94,.04)", border:`1px solid ${isDark?"rgba(255,255,255,.07)":"rgba(34,197,94,.12)"}` }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ background:"linear-gradient(135deg,#22c55e,#0d9488)" }}>
+                          <Lock className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-sm" style={{ color:isDark?"#fff":"#1a3d20" }}>{t("settings.security.changePassword")}</div>
+                          <div className="text-xs" style={{ color:isDark?"rgba(255,255,255,.4)":"rgba(20,55,20,.45)" }}>
+                            {t("settings.security.lastChanged", { time: t("common.today") })}
+                          </div>
+                        </div>
+                      </div>
+
+                      <form onSubmit={handleSavePassword}>
+                        {[
+                          { name:"oldPassword", label:"Current Password", show:showPwd.old, toggleKey:"old" },
+                          { name:"newPassword", label:t("reset.newPassword"), show:showPwd.new, toggleKey:"new" },
+                          { name:"confirmPassword", label:t("reset.confirmPassword"), show:showPwd.confirm, toggleKey:"confirm" },
+                        ].map(({ name, label, show, toggleKey }) => (
+                          <div key={name} className="mb-4">
+                            <label className="block text-sm font-medium mb-2" style={{ color:isDark?"rgba(255,255,255,.6)":"rgba(20,55,20,.65)" }}>{label}</label>
+                            <div className="relative">
+                              <input
+                                type={show?"text":"password"} name={name}
+                                value={pwdForm[name]}
+                                onChange={e => { setPwdForm(p => ({...p, [name]: e.target.value.replace(/\0/g,"")})); setPwdErr(p => ({...p,[name]:""})); }}
+                                className={`sp-input-${isDark?"dark":"light"}`}
+                                style={{ paddingRight:44 }}
+                                maxLength={128}
+                                placeholder="••••••••"
+                              />
+                              <button type="button" onClick={() => setShowPwd(p => ({...p,[toggleKey]:!p[toggleKey]}))}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                style={{ background:"none", border:"none", cursor:"pointer", color:isDark?"rgba(255,255,255,.35)":"rgba(20,55,20,.4)" }}>
+                                {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                            {pwdErr[name] && <p className="text-red-400 text-xs mt-1">{pwdErr[name]}</p>}
+                          </div>
+                        ))}
+                        <button type="submit" disabled={isSaving} className="sp-save">
+                          {isSaving ? t("common.saving") : t("settings.security.change")}
+                        </button>
+                      </form>
+                    </div>
+                  </Section>
+                )}
+
+                {/* ── DATA ── */}
+                {activeTab === "data" && (
+                  <>
+                    <Section titleKey="settings.data.title" descKey="settings.data.description">
+                      {[
+                        { icon:Download, titleKey:"settings.data.export", descKey:"settings.data.exportDesc", btnKey:"settings.data.exportBtn", accent:"#4ade80" },
+                        { icon:Upload,   titleKey:"settings.data.import", descKey:"settings.data.importDesc", btnKey:"settings.data.importBtn", accent:"#22d3ee" },
+                      ].map(({ icon:Icon, titleKey, descKey, btnKey, accent }) => (
+                        <div key={titleKey} className="flex items-center justify-between gap-4 py-4"
+                          style={{ borderBottom:`1px solid ${isDark?"rgba(255,255,255,.06)":"rgba(34,197,94,.1)"}` }}>
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{ background:`${accent}18`, border:`1px solid ${accent}30` }}>
+                              <Icon className="w-5 h-5" style={{ color:accent }} />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold" style={{ color:isDark?"rgba(255,255,255,.82)":"#1a3d20" }}>{t(titleKey)}</div>
+                              <div className="text-xs" style={{ color:isDark?"rgba(255,255,255,.38)":"rgba(20,55,20,.5)" }}>{t(descKey)}</div>
+                            </div>
+                          </div>
+                          <button className="sp-save text-xs px-4 py-2 rounded-xl" onClick={() => showToast("success", "Done!")}>
+                            {t(btnKey)}
+                          </button>
+                        </div>
+                      ))}
+                    </Section>
+
+                    {/* Danger zone */}
+                    <div className="rounded-2xl p-6" style={{ border:"1.5px solid rgba(239,68,68,.25)", background:"rgba(239,68,68,.04)" }}>
+                      <h2 className="font-bold text-base mb-1" style={{ fontFamily:"Syne,sans-serif", color:"#f87171" }}>
+                        {t("settings.dangerZone.title")}
+                      </h2>
+                      <p className="text-sm mb-4" style={{ color:isDark?"rgba(255,255,255,.45)":"rgba(20,55,20,.5)" }}>
+                        {t("settings.dangerZone.description")}
+                      </p>
+                      <div className="flex items-center justify-between flex-wrap gap-3 py-3"
+                        style={{ borderTop:"1px solid rgba(239,68,68,.15)" }}>
+                        <div>
+                          <div className="text-sm font-medium text-red-400">{t("settings.dangerZone.deleteAccount")}</div>
+                          <div className="text-xs mt-0.5" style={{ color:isDark?"rgba(255,255,255,.38)":"rgba(20,55,20,.45)" }}>{t("settings.dangerZone.deleteWarning")}</div>
+                        </div>
+                        <button className="sp-danger" onClick={() => showToast("error", t("settings.dangerZone.deleteWarning"))}>
+                          <Trash2 className="w-3.5 h-3.5 inline mr-1.5" />{t("settings.dangerZone.deleteBtn")}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

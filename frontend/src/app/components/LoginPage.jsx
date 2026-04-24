@@ -1,307 +1,380 @@
+// src/app/components/LoginPage.jsx
+// KokMaisa 2025 — controls inside card, no fixed header
+
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useTranslation } from 'react-i18next';
+import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Eye, EyeOff, Leaf, ArrowRight, Mail, Lock, Sun, Moon, Globe } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Leaf, Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react";
-import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
+
+const STYLE = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+
+  .lg-root {
+    font-family:'DM Sans',sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    transition:background .4s;
+  }
+
+  .lg-card { width:100%; max-width:420px; border-radius:28px; padding:36px 40px 44px; }
+  .lg-card-d { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); backdrop-filter:blur(20px); }
+  .lg-card-l { background:#fff; border:1px solid rgba(34,197,94,.18); box-shadow:0 8px 40px rgba(34,197,94,.1); }
+
+  /* card top row: logo left, controls right */
+  .card-toprow { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+  .card-controls { display:flex; align-items:center; gap:8px; }
+
+  /* language pill */
+  .lang-pill-d { display:flex; align-items:center; gap:1px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:2px 4px; }
+  .lang-pill-l { display:flex; align-items:center; gap:1px; background:rgba(20,55,20,.05); border:1px solid rgba(34,197,94,.2);  border-radius:8px; padding:2px 4px; }
+
+  .lb { padding:4px 9px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.04em; cursor:pointer; border:none; outline:none; transition:background .15s,color .15s; font-family:'DM Sans',sans-serif; }
+  .lb-act-d { background:rgba(74,222,128,.18); color:#4ade80; }
+  .lb-off-d { background:transparent; color:rgba(255,255,255,.35); }
+  .lb-off-d:hover { color:rgba(255,255,255,.75); }
+  .lb-act-l { background:rgba(22,163,74,.14); color:#16a34a; }
+  .lb-off-l { background:transparent; color:rgba(20,55,20,.4); }
+  .lb-off-l:hover { color:rgba(20,55,20,.8); }
+
+  /* theme button */
+  .tb { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:none; cursor:pointer; transition:background .2s,transform .2s; }
+  .tb:hover { transform:rotate(18deg) scale(1.1); }
+  .tb-d { background:rgba(255,255,255,.08); color:#fbbf24; }
+  .tb-l { background:rgba(20,55,20,.07); color:#475569; }
+
+  /* inputs */
+  .fw { position:relative; }
+  .fi { position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none; }
+
+  .id { width:100%; padding:13px 14px 13px 42px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:#fff; font-size:14px; outline:none; transition:border-color .2s; font-family:'DM Sans',sans-serif; }
+  .id::placeholder { color:rgba(255,255,255,.3); }
+  .id:focus { border-color:rgba(74,222,128,.5); box-shadow:0 0 0 3px rgba(74,222,128,.08); }
+
+  .il { width:100%; padding:13px 14px 13px 42px; border-radius:12px; background:#f8fdf8; border:1px solid rgba(34,197,94,.25); color:#1a3d20; font-size:14px; outline:none; transition:border-color .2s; font-family:'DM Sans',sans-serif; }
+  .il::placeholder { color:rgba(20,55,20,.35); }
+  .il:focus { border-color:#22c55e; background:#fff; box-shadow:0 0 0 3px rgba(34,197,94,.1); }
+
+  .lbd { font-size:12px; font-weight:600; color:rgba(255,255,255,.55); margin-bottom:6px; display:block; letter-spacing:.04em; }
+  .lbl { font-size:12px; font-weight:600; color:rgba(20,55,20,.6);    margin-bottom:6px; display:block; letter-spacing:.04em; }
+
+  /* submit */
+  .bs { width:100%; padding:14px; border-radius:999px; border:none; cursor:pointer; background:linear-gradient(135deg,#22c55e 0%,#0d9488 100%); color:#fff; font-size:15px; font-weight:600; font-family:'DM Sans',sans-serif; transition:transform .2s,box-shadow .2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .bs:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 10px 30px rgba(34,197,94,.4); }
+  .bs:disabled { opacity:.65; cursor:not-allowed; }
+
+  /* reset modal */
+  .mo { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); z-index:100; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .md { background:#061309; border:1px solid rgba(255,255,255,.12); border-radius:22px; padding:32px; width:100%; max-width:380px; }
+  .ml { background:#fff; border:1px solid rgba(34,197,94,.2); border-radius:22px; padding:32px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.15); }
+
+  @keyframes lf { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+  .lf { animation:lf .45s cubic-bezier(.22,1,.36,1) both; }
+
+  @keyframes errSlide { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+  .err-banner {
+    animation:errSlide .3s cubic-bezier(.22,1,.36,1) both;
+    padding:11px 15px; border-radius:12px; margin-bottom:16px;
+    font-size:13px; display:flex; align-items:center; gap:8px;
+  }
+  .err-d { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); color:#fca5a5; }
+  .err-l { background:rgba(239,68,68,.07); border:1px solid rgba(239,68,68,.25); color:#dc2626; }
+
+  .ok-banner {
+    animation:errSlide .3s cubic-bezier(.22,1,.36,1) both;
+    padding:11px 15px; border-radius:12px; margin-bottom:12px;
+    font-size:13px; display:flex; align-items:center; gap:8px;
+  }
+  .ok-d { background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.25); color:#86efac; }
+  .ok-l { background:rgba(22,163,74,.08); border:1px solid rgba(22,163,74,.25); color:#15803d; }
+
+  @media(max-width:440px){
+  .lg-card{ padding:24px 18px 32px; }
+  }
+  @media(max-width:380px){
+    .lg-card{ padding:20px 14px 28px; }
+    .card-toprow{ flex-wrap:wrap; row-gap:8px; }
+    .card-controls{ margin-left:auto; }
+    .lb{ padding:3px 6px; font-size:10px; }
+    .tb{ width:28px; height:28px; }
+  }
+`;
+
+const LANGS = [
+  { code:"ru",  label:"RU"  },
+  { code:"en",  label:"EN"  },
+  { code:"kk",  label:"ҚАЗ" },
+];
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { setUser } = useAuth();
+  const { t, i18n }   = useTranslation();
+  const { theme, toggleTheme } = useTheme();
+  const { login }     = useAuth();
+  const navigate      = useNavigate();
+  const isDark        = theme === "dark";
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [apiError, setApiError] = useState("");
 
-  // Модалка "Забыли пароль"
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetMessage, setResetMessage] = useState("");
+  const [forgot,       setForgot]       = useState(false);
+  const [resetEmail,   setResetEmail]   = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetMsg,     setResetMsg]     = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
+  const cls = isDark ? "id" : "il";
+  const ic  = isDark ? "rgba(255,255,255,.3)" : "rgba(20,55,20,.35)";
+
+  const submit = async () => {
+    if (!email || !password) return;
     setLoading(true);
-
+    setApiError("");
     try {
-      const res = await fetch('http://localhost:8000/api/users/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email.trim(),
-          password: formData.password
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || t('login.invalidCredentials') || "Неверный email или пароль");
-      }
-
-      localStorage.setItem('token', data.access_token);
-
-      const meRes = await fetch('http://localhost:8000/api/users/me', {
-        headers: { 'Authorization': `Bearer ${data.access_token}` }
-      });
-
-      if (!meRes.ok) throw new Error("Не удалось загрузить профиль");
-
-      const userData = await meRes.json();
-      if (setUser) setUser(userData);
-
-      navigate("/"); // ← на главную
-
+      const user = await login?.({ email, password });
+      if (user?.account_type === "admin") navigate("/admin");
+      else navigate("/profile/farmer");
     } catch (err) {
-      setError(err.message);
+      const detail =
+        err?.response?.data?.detail ||
+        err?.detail ||
+        err?.message ||
+        null;
+      setApiError(detail ? String(detail) : t("login.invalidCredentials"));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetPassword = async () => {
-    if (!resetEmail.trim()) {
-      setResetMessage(t('login.enterEmail') || "Введите email");
-      return;
-    }
-
+  const sendReset = async () => {
+    if (!resetEmail) return;
     setResetLoading(true);
-    setResetMessage("");
-
+    setResetMsg("");
     try {
-      const res = await fetch('http://localhost:8000/api/users/password-reset-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: resetEmail.trim() })
+      const res = await fetch("/api/users/password-reset-request", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: resetEmail }),
       });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        setResetMessage(t('login.resetEmailSent') || "Письмо со ссылкой отправлено на почту");
-      } else {
-        setResetMessage(result.detail || t('login.resetError') || "Ошибка отправки письма");
-      }
-    } catch (err) {
-      setResetMessage(t('common.connectionError') || "Ошибка соединения");
+      setResetMsg(res.ok ? t("login.resetEmailSent") : t("login.resetError"));
+    } catch {
+      setResetMsg(t("login.resetError"));
     } finally {
       setResetLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const bg = isDark
+    ? "radial-gradient(ellipse 80% 70% at 60% 40%,#0f2d1a 0%,#061309 55%,#030b05 100%)"
+    : "radial-gradient(ellipse 80% 70% at 60% 40%,#c8edcc 0%,#e0f5e4 55%,#f5fcf2 100%)";
 
   return (
-    <div className="min-h-screen flex">
-      {/* Левая часть */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-green-500 to-emerald-600">
-        <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1659564455690-fee35bff87f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkcm9uZSUyMGZhcm1pbmclMjBhZXJpYWx8ZW58MXx8fHwxNzY4ODQ5MTMzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-            alt="Agriculture background"
-            className="w-full h-full object-cover opacity-20"
-          />
-        </div>
-        <div className="relative z-10 flex flex-col justify-center items-center p-12 text-white">
-          <Link to="/" className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 hover:bg-white/30 transition-all duration-300 hover:scale-110">
-            <Leaf className="w-12 h-12 text-white" />
-          </Link>
-          <Link to="/" className="hover:scale-105 transition-transform duration-300">
-            <h1 className="text-5xl mb-4">KokMaisa</h1>
-          </Link>
-          <p className="text-xl text-center text-white/90 max-w-md">
-            {t('login.welcome')}
+    <>
+      <style>{STYLE}</style>
+
+      <div className="lg-root" style={{ background: bg }}>
+        <div className={`lg-card lf ${isDark ? "lg-card-d" : "lg-card-l"}`}>
+
+          {/* ── Card top row: logo + controls ── */}
+          <div className="card-toprow">
+            <Link to="/" className="flex items-center gap-2" style={{ textDecoration:"none" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background:"linear-gradient(135deg,#22c55e,#0d9488)" }}>
+                <Leaf className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-extrabold text-base"
+                style={{ fontFamily:"Syne,sans-serif", color: isDark?"#4ade80":"#16a34a" }}>
+                KokMaisa
+              </span>
+            </Link>
+
+            <div className="card-controls">
+              <Globe className="w-3.5 h-3.5" style={{ color: isDark?"rgba(255,255,255,.3)":"rgba(20,55,20,.35)" }} />
+              <div className={isDark ? "lang-pill-d" : "lang-pill-l"}>
+                {LANGS.map(({ code, label }) => (
+                  <button
+                    key={code}
+                    onClick={() => i18n.changeLanguage(code)}
+                    className={`lb ${i18n.language === code
+                      ? (isDark ? "lb-act-d" : "lb-act-l")
+                      : (isDark ? "lb-off-d" : "lb-off-l")
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={toggleTheme}
+                className={`tb ${isDark ? "tb-d" : "tb-l"}`}
+                aria-label="Toggle theme"
+              >
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* ── Heading ── */}
+          <h1 className="text-2xl font-extrabold mb-1"
+            style={{ fontFamily:"Syne,sans-serif", color: isDark?"#fff":"#1a3d20" }}>
+            {t("login.title")}
+          </h1>
+          <p className="text-sm mb-8"
+            style={{ color: isDark?"rgba(255,255,255,.45)":"rgba(20,55,20,.55)" }}>
+            {t("login.welcome")}
+          </p>
+
+          {/* Error banner */}
+          {apiError && (
+            <div className={`err-banner ${isDark ? "err-d" : "err-l"}`}>
+              <span>⚠</span>
+              <span>{apiError}</span>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {/* Email */}
+            <div>
+              <label className={isDark ? "lbd" : "lbl"}>{t("login.email")}</label>
+              <div className="fw">
+                <Mail className="fi w-4 h-4" style={{ color:ic }} />
+                <input
+                  className={cls}
+                  value={email}
+                  type="email"
+                  onChange={e => { setEmail(e.target.value); setApiError(""); }}
+                  onKeyDown={e => e.key === "Enter" && submit()}
+                  placeholder={t("login.emailPlaceholder")}
+                  maxLength={255}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className={isDark ? "lbd" : "lbl"} style={{ margin:0 }}>
+                  {t("login.password")}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setForgot(true)}
+                  style={{ fontSize:12, color: isDark?"rgba(74,222,128,.8)":"#16a34a", background:"none", border:"none", cursor:"pointer" }}
+                >
+                  {t("login.forgotPassword")}
+                </button>
+              </div>
+              <div className="fw">
+                <Lock className="fi w-4 h-4" style={{ color:ic }} />
+                <input
+                  className={cls}
+                  value={password}
+                  type={showPw ? "text" : "password"}
+                  onChange={e => { setPassword(e.target.value); setApiError(""); }}
+                  onKeyDown={e => e.key === "Enter" && submit()}
+                  placeholder={t("login.passwordPlaceholder")}
+                  style={{ paddingRight:40 }}
+                  maxLength={128}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(v => !v)}
+                  style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", color:ic, background:"none", border:"none", cursor:"pointer" }}
+                  aria-label="Toggle password visibility"
+                >
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button className="bs mt-8" onClick={submit} disabled={loading}>
+            {loading
+              ? t("common.loading")
+              : <>{t("login.submitButton")} <ArrowRight className="w-4 h-4" /></>
+            }
+          </button>
+
+          <p className="text-center text-sm mt-5"
+            style={{ color: isDark?"rgba(255,255,255,.4)":"rgba(20,55,20,.5)" }}>
+            {t("login.noAccount")}{" "}
+            <Link to="/register"
+              style={{ color: isDark?"#4ade80":"#16a34a", fontWeight:600, textDecoration:"none" }}>
+              {t("login.registerLink")}
+            </Link>
           </p>
         </div>
       </div>
 
-      {/* Правая часть */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
-          <div className="flex justify-between items-center mb-6">
-            <Link to="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors duration-300">
-              <ArrowLeft className="w-5 h-5" />
-              <span>{t('nav.backToHome')}</span>
-            </Link>
-            <LanguageSwitcher />
-          </div>
-
-          <Link to="/" className="lg:hidden flex items-center gap-3 mb-8 justify-center hover:opacity-80 transition-opacity">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
-              <Leaf className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-3xl text-gray-900">KokMaisa</span>
-          </Link>
-
-          <div className="mb-8">
-            <h2 className="text-3xl mb-2 text-gray-900">{t('login.title')}</h2>
-            <p className="text-gray-600">{t('login.subtitle')}</p>
-          </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block mb-2 text-gray-700">
-                {t('login.email')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                  placeholder={t('login.emailPlaceholder')}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="password" className="text-gray-700">
-                  {t('login.password')}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowResetModal(true)}
-                  className="text-sm text-green-600 hover:text-green-700 transition-colors"
-                >
-                  {t('login.forgotPassword')}
-                </button>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="w-5 h-5 text-gray-400" />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                  placeholder={t('login.passwordPlaceholder')}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${
-                loading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
-            >
-              {loading ? (
-                <>
-                  <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                  <span>{t('common.loading')}</span>
-                </>
-              ) : (
-                t('login.submitButton')
-              )}
-            </button>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">
-                  {t('login.noAccount')}
-                </span>
-              </div>
-            </div>
-
-            <Link
-              to="/register"
-              className="block w-full text-center py-3 border-2 border-green-500 text-green-600 rounded-xl hover:bg-green-50 transition-all duration-300 font-medium"
-            >
-              {t('login.registerLink')}
-            </Link>
-          </form>
-        </div>
-      </div>
-
-      {/* Модальное окно сброса пароля */}
-      {showResetModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
-            <h3 className="text-2xl font-bold mb-4 text-center">
-              {t('login.resetPassword')}
+      {/* ── Forgot password modal ── */}
+      {forgot && (
+        <div className="mo" onClick={e => e.target === e.currentTarget && setForgot(false)}>
+          <div className={`${isDark ? "md" : "ml"} lf`}>
+            <h3 className="text-lg font-bold mb-2"
+              style={{ fontFamily:"Syne,sans-serif", color: isDark?"#fff":"#1a3d20" }}>
+              {t("login.resetPassword")}
             </h3>
-            <p className="text-gray-600 mb-6 text-center">
-              {t('login.resetInstructions')}
+            <p className="text-sm mb-5"
+              style={{ color: isDark?"rgba(255,255,255,.45)":"rgba(20,55,20,.55)" }}>
+              {t("login.resetInstructions")}
             </p>
 
-            <input
-              type="email"
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              placeholder={t('login.emailPlaceholder')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
-              required
-            />
+            <div className="fw mb-4">
+              <Mail className="fi w-4 h-4" style={{ color:ic }} />
+              <input
+                className={cls}
+                value={resetEmail}
+                type="email"
+                onChange={e => setResetEmail(e.target.value)}
+                placeholder={t("login.emailPlaceholder")}
+                maxLength={255}
+              />
+            </div>
 
-            {resetMessage && (
-              <p className={`mb-4 text-center ${resetMessage.includes('отправлена') ? 'text-green-600' : 'text-red-600'}`}>
-                {resetMessage}
-              </p>
+            {resetMsg && (
+              <div className={`ok-banner ${isDark ? "ok-d" : "ok-l"}`}>
+                <span>✓</span>
+                <span>{resetMsg}</span>
+              </div>
             )}
 
-            <button
-              onClick={handleResetPassword}
-              disabled={resetLoading}
-              className={`w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2 ${
-                resetLoading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
-            >
-              {resetLoading ? (
-                <>
-                  <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                  <span>{t('common.sending')}</span>
-                </>
-              ) : (
-                t('login.sendResetLink')
-              )}
-            </button>
-
-            <button
-              onClick={() => {
-                setShowResetModal(false);
-                setResetMessage("");
-                setResetEmail("");
-              }}
-              className="mt-4 w-full text-gray-600 hover:text-gray-800 text-center"
-            >
-              {t('common.close')}
-            </button>
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => { setForgot(false); setResetMsg(""); setResetEmail(""); }}
+                style={{
+                  flex:1, padding:"10px", borderRadius:"12px",
+                  border: isDark?"1px solid rgba(255,255,255,.15)":"1px solid rgba(34,197,94,.25)",
+                  background:"transparent",
+                  color: isDark?"rgba(255,255,255,.6)":"rgba(20,55,20,.6)",
+                  cursor:"pointer", fontSize:14, fontFamily:"'DM Sans',sans-serif",
+                }}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                onClick={sendReset}
+                disabled={resetLoading}
+                style={{
+                  flex:1, padding:"10px", borderRadius:"12px", border:"none",
+                  background:"linear-gradient(135deg,#22c55e,#0d9488)",
+                  color:"#fff", cursor:"pointer", fontSize:14,
+                  fontWeight:600, fontFamily:"'DM Sans',sans-serif",
+                  opacity: resetLoading ? .65 : 1,
+                }}
+              >
+                {resetLoading ? "..." : t("login.sendResetLink")}
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -4,6 +4,12 @@ from typing import List, Optional
 from model.models import Pasture, Farm
 from app.api.pastures.schemas.pasture_schemas import PastureCreate, PastureUpdate
 
+
+def _serialize_coords(coords):
+    if not coords:
+        return None
+    return [{"lat": c.lat, "lng": c.lng} for c in coords]
+
 def get_pasture(db: Session, pasture_id: int, user_id: int) -> Optional[Pasture]:
     """Получить пастбище по ID (с проверкой владельца)"""
     return db.query(Pasture).join(Farm).filter(
@@ -32,7 +38,9 @@ def create_pasture(db: Session, pasture_data: PastureCreate, user_id: int) -> Pa
     if not farm:
         raise ValueError("Ферма не найдена или не принадлежит пользователю")
     
-    db_pasture = Pasture(**pasture_data.dict())
+    payload = pasture_data.model_dump()
+    payload["coordinates"] = _serialize_coords(pasture_data.coordinates)
+    db_pasture = Pasture(**payload)
     db.add(db_pasture)
     db.commit()
     db.refresh(db_pasture)
@@ -44,7 +52,10 @@ def update_pasture(db: Session, pasture_id: int, pasture_data: PastureUpdate, us
     if not db_pasture:
         return None
     
-    update_data = pasture_data.dict(exclude_unset=True)
+    update_data = pasture_data.model_dump(exclude_unset=True)
+
+    if "coordinates" in update_data:
+        update_data["coordinates"] = _serialize_coords(pasture_data.coordinates)
     
     # Если меняется farm_id, проверяем что новая ферма тоже принадлежит пользователю
     if 'farm_id' in update_data:

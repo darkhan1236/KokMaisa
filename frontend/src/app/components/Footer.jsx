@@ -1,139 +1,224 @@
 // src/app/components/Footer.jsx
-import { Leaf, Mail, Github, BookOpen, Facebook, Twitter, Instagram } from "lucide-react";
-import { useTranslation } from 'react-i18next';
+// KokMaisa 2025 — Light/dark text fixed, responsive, XSS-safe
+
+import { Leaf, Mail, Github, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useTheme } from "@/contexts/ThemeContext";
+
+const FOOTER_STYLES = `
+  /* ─── Dark footer ─── */
+  .footer-root-dark {
+    background: #040d06;
+    border-top: 1px solid rgba(34,197,94,.1);
+  }
+
+  /* ─── Light footer — proper contrast ─── */
+  .footer-root-light {
+    background: #e8f5ea;
+    border-top: 1px solid rgba(34,197,94,.2);
+  }
+
+  /* Links — dark */
+  .footer-link-dark {
+    color: rgba(255,255,255,.5);
+    transition: color .2s;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .footer-link-dark:hover { color: #4ade80; }
+
+  /* Links — light: dark green text */
+  .footer-link-light {
+    color: rgba(20,55,20,.65) !important;
+    transition: color .2s;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .footer-link-light:hover { color: #16a34a !important; }
+
+  /* Divider */
+  .footer-divider-dark  { height:1px;background:rgba(255,255,255,.06); margin:32px 0 28px; }
+  .footer-divider-light { height:1px;background:rgba(34,197,94,.15);   margin:32px 0 28px; }
+
+  /* Brand name */
+  .footer-brand-dark  { color: #ffffff; }
+  .footer-brand-light { color: #1a3d20; }
+
+  /* Description text */
+  .footer-desc-dark  { color: rgba(255,255,255,.4); }
+  .footer-desc-light { color: rgba(20,55,20,.6) !important; }
+
+  /* Academic note */
+  .footer-note-dark  { color: rgba(255,255,255,.22); }
+  .footer-note-light { color: rgba(20,55,20,.45) !important; }
+
+  /* Section heading */
+  .footer-heading-dark  { color: #ffffff; }
+  .footer-heading-light { color: #1a3d20 !important; }
+
+  /* Bottom bar text */
+  .footer-copy-dark  { color: rgba(255,255,255,.25); }
+  .footer-copy-light { color: rgba(20,55,20,.5) !important; }
+
+  /* Status dot text */
+  .footer-status-dark  { color: rgba(255,255,255,.25); }
+  .footer-status-light { color: rgba(20,55,20,.45) !important; }
+
+  @keyframes heroPulse {
+    0%, 100% { opacity:.55; transform:scale(1); }
+    50%       { opacity:.9;  transform:scale(1.07); }
+  }
+
+  /* Responsive footer grid */
+  @media (max-width: 640px) {
+    .footer-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+    .footer-brand-col { max-width: 100% !important; }
+  }
+`;
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
   const { t } = useTranslation();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const currentYear = new Date().getFullYear();
+
+  const rootCls  = isDark ? "footer-root-dark"    : "footer-root-light";
+  const linkCls  = isDark ? "footer-link-dark"    : "footer-link-light";
+  const divCls   = isDark ? "footer-divider-dark"  : "footer-divider-light";
+  const brandCls = isDark ? "footer-brand-dark"   : "footer-brand-light";
+  const descCls  = isDark ? "footer-desc-dark"    : "footer-desc-light";
+  const noteCls  = isDark ? "footer-note-dark"    : "footer-note-light";
+  const headCls  = isDark ? "footer-heading-dark" : "footer-heading-light";
+  const copyCls  = isDark ? "footer-copy-dark"    : "footer-copy-light";
+  const statusCls= isDark ? "footer-status-dark"  : "footer-status-light";
 
   return (
-    <footer className="bg-gray-900 text-white py-16 px-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Основной контент */}
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
-          {/* Бренд и описание */}
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-md">
-                <Leaf className="w-7 h-7 text-white" />
+    <>
+      <style>{FOOTER_STYLES}</style>
+      <footer className={`${rootCls} py-14 sm:py-16 px-4 sm:px-6`} role="contentinfo">
+        <div className="max-w-6xl mx-auto">
+
+          {/* Top grid */}
+          <div
+            className="footer-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "40px 32px",
+              marginBottom: "0",
+            }}
+          >
+            {/* Brand — spans wider */}
+            <div className="footer-brand-col" style={{ gridColumn: "span 2", maxWidth: 400 }}>
+              <div className="flex items-center gap-3 mb-5">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "linear-gradient(135deg, #22c55e, #0d9488)" }}
+                  aria-hidden="true"
+                >
+                  <Leaf className="w-5 h-5 text-white" aria-hidden="true" />
+                </div>
+                <span
+                  className={`text-2xl font-extrabold ${brandCls}`}
+                  style={{ fontFamily: "Syne, sans-serif" }}
+                >
+                  KokMaisa
+                </span>
               </div>
-              <span className="text-3xl font-bold tracking-tight">KokMaisa</span>
+              <p className={`text-sm leading-relaxed mb-4 max-w-xs ${descCls}`}>
+                {t("footer.description")}
+              </p>
+              <p className={`text-xs italic ${noteCls}`}>
+                {t("footer.academicNote") || "Academic project for sustainable pasture management in Kazakhstan"}
+              </p>
             </div>
-            <p className="text-gray-300 text-lg leading-relaxed mb-6">
-              {t('footer.description')}
-            </p>
-            <p className="text-gray-500 text-sm italic">
-              {t('footer.academicNote') || 'Академический проект для устойчивого управления пастбищами в Казахстане'}
-            </p>
+
+            {/* Quick links */}
+            <div>
+              <h3
+                className={`font-semibold text-sm tracking-wide uppercase mb-5 ${headCls}`}
+                style={{ fontFamily: "Syne, sans-serif", letterSpacing: ".1em" }}
+              >
+                {t("footer.quickLinks")}
+              </h3>
+              <ul className="space-y-3" role="list">
+                {[
+                  { to: "/#about",       label: t("nav.about") },
+                  { to: "/#how-it-works",label: t("nav.howItWorks") },
+                  { to: "/#features",    label: t("nav.features") },
+                  { to: "/#use-cases",   label: t("nav.useCases") },
+                ].map(({ to, label }) => (
+                  <li key={label}>
+                    <Link to={to} className={linkCls}>
+                      <span style={{ color: isDark ? "rgba(74,222,128,.6)" : "rgba(22,163,74,.7)" }} aria-hidden="true">›</span>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h3
+                className={`font-semibold text-sm tracking-wide uppercase mb-5 ${headCls}`}
+                style={{ fontFamily: "Syne, sans-serif", letterSpacing: ".1em" }}
+              >
+                {t("footer.contact")}
+              </h3>
+              <ul className="space-y-3" role="list">
+                <li>
+                  <a href="mailto:info@kokmaisa.kz" className={linkCls}>
+                    <Mail className="w-4 h-4" aria-hidden="true" />
+                    info@kokmaisa.kz
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={linkCls}
+                  >
+                    <Github className="w-4 h-4" aria-hidden="true" />
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <Link to="/register" className={linkCls}>
+                    <BookOpen className="w-4 h-4" aria-hidden="true" />
+                    {t("nav.register")}
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {/* Быстрые ссылки */}
-          <div>
-            <h3 className="text-xl font-semibold mb-6">{t('footer.quickLinks')}</h3>
-            <ul className="space-y-4">
-              <li>
-                <Link 
-                  to="/#about" 
-                  className="text-gray-300 hover:text-green-400 transition-colors flex items-center gap-3 text-lg"
-                >
-                  <BookOpen className="w-5 h-5" />
-                  {t('nav.about')}
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/#how-it-works" 
-                  className="text-gray-300 hover:text-green-400 transition-colors flex items-center gap-3 text-lg"
-                >
-                  <BookOpen className="w-5 h-5" />
-                  {t('nav.howItWorks')}
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/#features" 
-                  className="text-gray-300 hover:text-green-400 transition-colors flex items-center gap-3 text-lg"
-                >
-                  <BookOpen className="w-5 h-5" />
-                  {t('nav.features')}
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/#use-cases" 
-                  className="text-gray-300 hover:text-green-400 transition-colors flex items-center gap-3 text-lg"
-                >
-                  <BookOpen className="w-5 h-5" />
-                  {t('nav.useCases')}
-                </Link>
-              </li>
-            </ul>
-          </div>
+          <div className={divCls} />
 
-          {/* Контакты + Соцсети */}
-          <div>
-            <h3 className="text-xl font-semibold mb-6">{t('footer.contact')}</h3>
-            <ul className="space-y-4 mb-8">
-              <li>
-                <a 
-                  href="mailto:info@kokmaysa.kz" 
-                  className="text-gray-300 hover:text-green-400 transition-colors flex items-center gap-3 text-lg"
-                >
-                  <Mail className="w-5 h-5" />
-                  info@kokmaysa.kz
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://github.com/yourusername/kokmaysa" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-green-400 transition-colors flex items-center gap-3 text-lg"
-                >
-                  <Github className="w-5 h-5" />
-                  GitHub
-                </a>
-              </li>
-            </ul>
-
-            <h4 className="text-lg font-medium mb-4">{t('footer.followUs')}</h4>
-            <div className="flex gap-4">
-              <a 
-                href="#" 
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-green-600 flex items-center justify-center transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a 
-                href="#" 
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-green-600 flex items-center justify-center transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a 
-                href="#" 
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-green-600 flex items-center justify-center transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
+          {/* Bottom bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className={`text-sm ${copyCls}`}>
+              © {currentYear} KokMaisa. {t("footer.rights") || "All rights reserved."}
+            </p>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                style={{ animation: "heroPulse 2s ease-in-out infinite" }}
+                aria-hidden="true"
+              />
+              <span className={`text-xs ${statusCls}`}>AI systems operational</span>
             </div>
           </div>
         </div>
-
-        {/* Нижняя полоса */}
-        <div className="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm">
-          <p>
-            © {currentYear} KokMaisa. {t('footer.allRightsReserved')}.
-          </p>
-          <p className="mt-2">
-            Создано в Караганде для устойчивого будущего сельского хозяйства Казахстана
-          </p>
-        </div>
-      </div>
-    </footer>
+      </footer>
+    </>
   );
 }

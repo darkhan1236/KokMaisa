@@ -1,6 +1,48 @@
 // src/app/components/Features.jsx
+// Dark premium redesign — KokMaisa 2025
+
 import { Satellite, BarChart, Brain, Smartphone, Cloud, Zap } from "lucide-react";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
+
+const FEAT_STYLES = `
+  .feat-root {
+    background: linear-gradient(180deg, #071a0c 0%, #061309 100%);
+  }
+  .feat-card {
+    position: relative;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 22px;
+    padding: 32px;
+    overflow: hidden;
+    transition: background .3s, border-color .3s, transform .35s;
+    cursor: default;
+  }
+  .feat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 22px;
+    opacity: 0;
+    transition: opacity .35s;
+    background: radial-gradient(circle at 30% 30%, rgba(74,222,128,.08), transparent 65%);
+  }
+  .feat-card:hover {
+    background: rgba(255,255,255,.065);
+    border-color: rgba(34,197,94,.22);
+    transform: translateY(-6px);
+  }
+  .feat-card:hover::before { opacity: 1; }
+  .feat-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
+`;
 
 export default function Features() {
   const { t } = useTranslation();
@@ -8,88 +50,111 @@ export default function Features() {
   const features = [
     {
       icon: Satellite,
-      title: t('features.feature1'),
-      description: t('features.feature1Desc'),
-      gradient: "from-green-400 to-emerald-600"
+      title: t("features.feature1"),
+      description: t("features.feature1Desc"),
+      accent: "#4ade80",
     },
     {
       icon: BarChart,
-      title: t('features.feature2'),
-      description: t('features.feature2Desc'),
-      gradient: "from-emerald-500 to-teal-600"
+      title: t("features.feature2"),
+      description: t("features.feature2Desc"),
+      accent: "#22d3ee",
     },
     {
       icon: Brain,
-      title: t('features.feature3'),
-      description: t('features.feature3Desc'),
-      gradient: "from-teal-500 to-cyan-600"
+      title: t("features.feature3"),
+      description: t("features.feature3Desc"),
+      accent: "#a78bfa",
     },
     {
       icon: Smartphone,
-      title: t('features.feature4'),
-      description: t('features.feature4Desc'),
-      gradient: "from-cyan-500 to-blue-600"
+      title: t("features.feature4"),
+      description: t("features.feature4Desc"),
+      accent: "#f472b6",
     },
     {
       icon: Cloud,
-      title: t('features.feature5'),
-      description: t('features.feature5Desc'),
-      gradient: "from-blue-500 to-indigo-600"
+      title: t("features.feature5"),
+      description: t("features.feature5Desc"),
+      accent: "#fb923c",
     },
     {
       icon: Zap,
-      title: t('features.feature6'),
-      description: t('features.feature6Desc'),
-      gradient: "from-indigo-500 to-purple-600"
-    }
+      title: t("features.feature6"),
+      description: t("features.feature6Desc"),
+      accent: "#fbbf24",
+    },
   ];
 
   return (
-    <section className="py-24 px-6 bg-white" id="features">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl mb-6 text-gray-900 font-bold">
-            {t('features.title')}
-          </h2>
-          <div className="w-16 h-1 bg-green-500 mx-auto rounded-full mb-6"></div>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            {t('features.subtitle')}
-          </p>
-        </div>
+    <>
+      <style>{FEAT_STYLES}</style>
+      <section className="feat-root py-24 px-6" id="features">
+        <div className="max-w-6xl mx-auto">
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
+          {/* Header */}
+          <div className="text-center mb-16">
+            <span
+              className="inline-block text-xs font-semibold tracking-[.2em] uppercase mb-4 px-4 py-1.5 rounded-full"
+              style={{
+                background: "rgba(34,197,94,.1)",
+                border: "1px solid rgba(34,197,94,.25)",
+                color: "#4ade80",
+                fontFamily: "DM Sans, sans-serif",
+              }}
+            >
+              Capabilities
+            </span>
+            <h2
+              className="text-4xl md:text-5xl font-extrabold text-white mb-5"
+              style={{ fontFamily: "Syne, sans-serif" }}
+            >
+              {t("features.title")}
+            </h2>
+            <div className="w-16 h-0.5 mx-auto mb-6" style={{ background: "linear-gradient(90deg, #4ade80, #22d3ee)" }} />
+            <p className="text-white/50 text-lg max-w-xl mx-auto">
+              {t("features.subtitle")}
+            </p>
+          </div>
 
-            return (
-              <div
-                key={index}
-                className="group relative bg-gradient-to-br from-gray-50 to-green-50/30 rounded-2xl p-8 md:p-10 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100"
-              >
-                {/* Декоративный градиентный блик */}
+          {/* Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map(({ icon: Icon, title, description, accent }) => (
+              <div key={title} className="feat-card">
+                {/* Glow blur */}
                 <div
-                  className={`absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br ${feature.gradient} opacity-10 rounded-full blur-3xl group-hover:scale-125 group-hover:opacity-20 transition-all duration-500`}
-                ></div>
-
-                {/* Иконка */}
+                  className="absolute -top-8 -right-8 w-36 h-36 rounded-full pointer-events-none"
+                  style={{
+                    background: `radial-gradient(circle, ${accent}22 0%, transparent 70%)`,
+                    filter: "blur(20px)",
+                  }}
+                />
                 <div
-                  className={`w-16 h-16 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-md transform group-hover:scale-110 transition-transform duration-300`}
+                  className="feat-icon-wrap"
+                  style={{ background: accent + "18", border: `1px solid ${accent}30` }}
                 >
-                  <Icon className="w-8 h-8 text-white" />
+                  <Icon className="w-6 h-6" style={{ color: accent }} />
                 </div>
-
-                {/* Текст */}
-                <h3 className="text-2xl font-semibold mb-4 text-gray-900">
-                  {feature.title}
+                <h3
+                  className="text-white font-bold text-lg mb-3"
+                  style={{ fontFamily: "Syne, sans-serif" }}
+                >
+                  {title}
                 </h3>
-                <p className="text-gray-700 text-lg leading-relaxed">
-                  {feature.description}
-                </p>
+                <p className="text-white/45 text-sm leading-relaxed">{description}</p>
+
+                {/* Corner accent */}
+                <div
+                  className="absolute bottom-4 right-5 text-xs font-mono"
+                  style={{ color: accent + "60" }}
+                >
+                  ↗
+                </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
