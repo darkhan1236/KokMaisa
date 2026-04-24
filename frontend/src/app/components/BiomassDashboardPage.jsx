@@ -532,6 +532,10 @@ function average(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function formatValue(value, digits = 1, language = "ru") {
   return new Intl.NumberFormat(getLocale(language), {
     maximumFractionDigits: digits,
@@ -609,6 +613,37 @@ function normalizeGrassTypeCode(pasture) {
   return String(pasture?.grass_type ?? pasture?.pasture_type ?? "")
     .trim()
     .toLowerCase();
+}
+
+function getGrazingMinimum(grassTypeCode) {
+  const code = String(grassTypeCode || "").toLowerCase();
+  if (["lyucerna", "donnik", "klever", "alfalfa", "clover"].includes(code)) return 12;
+  if (["timofeevka", "pyrey", "kostrec", "myatlik", "lisohvost", "timothy", "fescue"].includes(code)) return 10;
+  if (["kovyl_peristy", "kovyl_lessing", "tipchak", "tonkonog", "zhityak"].includes(code)) return 8;
+  if (["polyyn_belaya", "polyyn_chernaya", "boyalych", "biyurgun", "kokpek"].includes(code)) return 6;
+  if (["chiy", "trostnik", "kamysh"].includes(code)) return 5;
+  if (["smeshanny", "mixed"].includes(code)) return 9;
+  return 8;
+}
+
+function getHealthScoreForPasture(latestBiomass, latestMetrics) {
+  if (!latestMetrics || latestBiomass == null) return 0;
+
+  const biomassScore = clamp((latestBiomass / 15) * 100, 0, 100);
+  const ndviScore = latestMetrics.ndviGrade?.pct ?? 0;
+  const coverScore = clamp(latestMetrics.coverage ?? 0, 0, 100);
+  const grazingScore = latestMetrics.grazingRec?.status === "optimal"
+    ? 100
+    : latestMetrics.grazingRec?.status === "caution"
+      ? 65
+      : 35;
+
+  return Math.round(
+    biomassScore * 0.35 +
+    ndviScore * 0.3 +
+    coverScore * 0.2 +
+    grazingScore * 0.15
+  );
 }
 
 function chartTooltipStyle(isDark) {
@@ -814,6 +849,7 @@ export default function BiomassDashboardPage() {
           pastureName: pasture.name,
           pastureId: pasture.id,
           areaHa: pasture.areaHa,
+          grassTypeCode: pasture.grassTypeCode,
         }))
       )
       .sort((a, b) => {
@@ -844,18 +880,22 @@ export default function BiomassDashboardPage() {
   }, [measuredPastures, t]);
 
   const recentData = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(locale, {
+      day: "numeric",
+      month: "short",
+    });
+
     return visibleMeasurements
       .slice(0, 4)
       .reverse()
       .map((measurement) => ({
-        label: new Intl.DateTimeFormat(locale, {
-          day: "numeric",
-          month: "short",
-        }).format(toSafeDate(measurement.created_at) || new Date()),
+        label: visiblePastures.length === 1
+          ? formatter.format(toSafeDate(measurement.created_at) || new Date())
+          : `${measurement.pastureName || t("biomass.dashboard.fallbackPasture")} · ${formatter.format(toSafeDate(measurement.created_at) || new Date())}`,
         biomass: Number((measurement.biomass_value ?? 0).toFixed(1)),
-        optimal: 10,
+        recommendedMinimum: getGrazingMinimum(measurement.grassTypeCode),
       }));
-  }, [locale, visibleMeasurements]);
+  }, [locale, t, visibleMeasurements, visiblePastures.length]);
 
   const distributionData = useMemo(() => {
     const grouped = new Map();
@@ -880,22 +920,28 @@ export default function BiomassDashboardPage() {
     .map((pasture) => pasture.latestMetrics)
     .filter(Boolean);
 
-  const avgBiomass = average(measuredPastures.map((item) => item.latestBiomass ?? 0));
+  const avgBiomass = average(visibleMeasurements.map((measurement) => measurement.biomass_value ?? 0));
   const totalArea = visiblePastures.reduce((sum, pasture) => sum + (pasture.areaHa || 0), 0);
   const avgNdvi = average(latestMetrics.map((metric) => metric.ndvi));
   const avgCoverage = average(latestMetrics.map((metric) => metric.coverage));
   const avgCapacity = average(latestMetrics.map((metric) => metric.cowsPerHa));
   const avgRotation = average(latestMetrics.map((metric) => metric.daysUntilRotation));
   const avgHeight = avgBiomass ? Math.max(8, avgBiomass * 1.8 + 6) : 0;
-  const winterReserveTons = latestMetrics.reduce((sum, metric) => sum + metric.usableForWinterKg, 0) / 1000;
+  const winterReserveTons = latestMetrics.reduce((sum, metric) => sum + metric.totalBiomassKg, 0) / 1000;
   const avgTrendPct = average(
     measuredPastures
       .map((pasture) => pasture.trendPct)
       .filter((value) => Number.isFinite(value))
   );
 
-  const healthScore = latestMetrics.length
-    ? Math.round((average(latestMetrics.map((metric) => metric.ndviGrade.pct)) + avgCoverage) / 2)
+  const healthScore = measuredPastures.length
+    ? Math.round(
+      average(
+        measuredPastures.map((pasture) =>
+          getHealthScoreForPasture(pasture.latestBiomass, pasture.latestMetrics)
+        )
+      )
+    )
     : 0;
 
   const healthTone = toneFromScore(healthScore);
@@ -1092,7 +1138,7 @@ export default function BiomassDashboardPage() {
                   </div>
                   <div className="bd-divider" style={{ margin: "4px 0" }} />
                   <div className="bd-card-desc" style={{ margin: 0 }}>
-                    {t("biomass.dashboard.stats.reserveHint", { ratio: 40 })}
+                    {t("biomass.dashboard.stats.reserveHint", { ratio: 100 })}
                   </div>
                 </div>
               </div>
@@ -1261,7 +1307,7 @@ export default function BiomassDashboardPage() {
                   subtitle={
                     <>
                       <Clock3 style={{ width: 14, height: 14 }} />
-                      {t("biomass.dashboard.stats.reserveHint", { ratio: 40 })}
+                      {t("biomass.dashboard.stats.reserveHint", { ratio: 100 })}
                     </>
                   }
                   icon={BarChart3}
@@ -1330,7 +1376,7 @@ export default function BiomassDashboardPage() {
                         <Tooltip contentStyle={chartTooltip} />
                         <Legend />
                         <Bar dataKey="biomass" name={`${t("biomass.actual")} (${measurementUnit})`} fill="#22c55e" radius={[8, 8, 0, 0]} />
-                        <Bar dataKey="optimal" name={`${t("biomass.optimal")} (${measurementUnit})`} fill="#94a3b8" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="recommendedMinimum" name={`${t("biomass.dashboard.recommendedMinimum")} (${measurementUnit})`} fill="#94a3b8" radius={[8, 8, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1490,7 +1536,7 @@ export default function BiomassDashboardPage() {
                   <div>
                     <h2 className="bd-card-title">{t("biomass.dashboard.stats.winterReserve")}</h2>
                     <p className="bd-card-desc">
-                      {t("biomass.dashboard.stats.reserveHint", { ratio: 40 })}
+                      {t("biomass.dashboard.stats.reserveHint", { ratio: 100 })}
                     </p>
                   </div>
                   <div className="bd-tone-good">
