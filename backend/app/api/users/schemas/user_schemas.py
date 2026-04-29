@@ -67,6 +67,15 @@ class PasswordReset(BaseModel):
     new_password : str = Field(..., min_length=6)
 
 
+class DeleteAccountRequest(BaseModel):
+    email : EmailStr
+
+
+class DeleteAccountConfirm(BaseModel):
+    confirmation_token : str
+    code               : str = Field(..., min_length=6, max_length=6)
+
+
 class ProfilePhotoUpdate(BaseModel):
     photo_base64 : str
     mime_type    : str

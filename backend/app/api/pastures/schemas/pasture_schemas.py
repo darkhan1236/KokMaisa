@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
 class CoordPoint(BaseModel):
@@ -12,7 +12,7 @@ class CoordPoint(BaseModel):
 class PastureBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     farm_id: int
-    area: float = Field(..., ge=0)
+    area: float = Field(..., gt=0)
     pasture_type: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("pasture_type", "grass_type"),
@@ -26,13 +26,17 @@ class PastureBase(BaseModel):
 
 
 class PastureCreate(PastureBase):
-    pass
+    @model_validator(mode="after")
+    def require_polygon(self):
+        if not self.coordinates or len(self.coordinates) < 3:
+            raise ValueError("Pasture boundaries must contain at least 3 points")
+        return self
 
 
 class PastureUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     farm_id: Optional[int] = None
-    area: Optional[float] = Field(None, ge=0)
+    area: Optional[float] = Field(None, gt=0)
     pasture_type: Optional[str] = Field(
         default=None,
         validation_alias=AliasChoices("pasture_type", "grass_type"),
@@ -43,6 +47,12 @@ class PastureUpdate(BaseModel):
     color: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_polygon(self):
+        if self.coordinates is not None and len(self.coordinates) < 3:
+            raise ValueError("Pasture boundaries must contain at least 3 points")
+        return self
 
 
 class PastureResponse(BaseModel):

@@ -3,7 +3,7 @@
 
 from sqlalchemy.orm import Session
 from core.security import get_password_hash
-from model.models import User
+from model.models import User, Farm
 from app.api.users.schemas.user_schemas import UserCreate, UserUpdate
 
 
@@ -77,3 +77,11 @@ def update_user_photo(db: Session, user_id: int, photo_url: str, mime_type: str)
     db.commit()
     db.refresh(user)
     return user
+
+
+def delete_user_with_related_data(db: Session, user: User) -> None:
+    farms = db.query(Farm).filter(Farm.owner_id == user.id).all()
+    for farm in farms:
+        db.delete(farm)
+    db.delete(user)
+    db.commit()

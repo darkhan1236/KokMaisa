@@ -652,6 +652,21 @@ function chartTooltipStyle(isDark) {
     borderColor: isDark ? "rgba(255,255,255,.1)" : "rgba(22,163,74,.15)",
     borderRadius: "16px",
     boxShadow: isDark ? "0 16px 36px rgba(0,0,0,.26)" : "0 12px 28px rgba(22,163,74,.08)",
+    color: isDark ? "#edf8ee" : "#112217",
+  };
+}
+
+function chartTooltipLabelStyle(isDark) {
+  return {
+    color: isDark ? "#edf8ee" : "#112217",
+    fontWeight: 700,
+    marginBottom: 6,
+  };
+}
+
+function chartTooltipItemStyle(isDark) {
+  return {
+    color: isDark ? "#edf8ee" : "#112217",
   };
 }
 
@@ -880,22 +895,51 @@ export default function BiomassDashboardPage() {
   }, [measuredPastures, t]);
 
   const recentData = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(locale, {
+    const shortFormatter = new Intl.DateTimeFormat(locale, {
       day: "numeric",
       month: "short",
     });
+    const fullFormatter = new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
 
-    return visibleMeasurements
+    const sourceMeasurements = selectedPasture === "all"
+      ? measuredPastures
+          .map((pasture) => pasture.latestMeasurement ? ({
+            ...pasture.latestMeasurement,
+            pastureName: pasture.name,
+            pastureId: pasture.id,
+            areaHa: pasture.areaHa,
+            grassTypeCode: pasture.grassTypeCode,
+          }) : null)
+          .filter(Boolean)
+          .sort((a, b) => {
+            const left = toSafeDate(a.created_at)?.getTime() ?? 0;
+            const right = toSafeDate(b.created_at)?.getTime() ?? 0;
+            return right - left;
+          })
+      : visibleMeasurements;
+
+    return sourceMeasurements
       .slice(0, 4)
       .reverse()
-      .map((measurement) => ({
-        label: visiblePastures.length === 1
-          ? formatter.format(toSafeDate(measurement.created_at) || new Date())
-          : `${measurement.pastureName || t("biomass.dashboard.fallbackPasture")} · ${formatter.format(toSafeDate(measurement.created_at) || new Date())}`,
+      .map((measurement, index) => {
+        const date = toSafeDate(measurement.created_at) || new Date();
+        const pastureName = measurement.pastureName || t("biomass.dashboard.fallbackPasture");
+        const shortLabel = visiblePastures.length === 1
+          ? `${shortFormatter.format(date)} #${index + 1}`
+          : `${pastureName} · ${shortFormatter.format(date)}`;
+
+        return {
+          label: shortLabel,
+          tooltipLabel: `${pastureName} · ${fullFormatter.format(date)}`,
+          measurementId: measurement.id ?? `${pastureName}-${date.toISOString()}-${index}`,
         biomass: Number((measurement.biomass_value ?? 0).toFixed(1)),
         recommendedMinimum: getGrazingMinimum(measurement.grassTypeCode),
-      }));
-  }, [locale, t, visibleMeasurements, visiblePastures.length]);
+        };
+      });
+  }, [locale, measuredPastures, selectedPasture, t, visibleMeasurements, visiblePastures.length]);
 
   const distributionData = useMemo(() => {
     const grouped = new Map();
@@ -1056,6 +1100,8 @@ export default function BiomassDashboardPage() {
   const axisColor = isDark ? "rgba(237,248,238,.44)" : "rgba(17,34,23,.46)";
   const gridColor = isDark ? "rgba(255,255,255,.08)" : "rgba(22,163,74,.1)";
   const chartTooltip = chartTooltipStyle(isDark);
+  const chartTooltipLabel = chartTooltipLabelStyle(isDark);
+  const chartTooltipItem = chartTooltipItemStyle(isDark);
   const activeSecondaryBtn = isDark ? "bd-btn-secondary-dark" : "bd-btn-secondary-light";
 
   if (authLoading || loading) {
@@ -1337,7 +1383,7 @@ export default function BiomassDashboardPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis dataKey="label" tick={{ fill: axisColor, fontSize: 12 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: axisColor, fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={chartTooltip} />
+                        <Tooltip contentStyle={chartTooltip} labelStyle={chartTooltipLabel} itemStyle={chartTooltipItem} />
                         <Legend />
                         <Area
                           type="monotone"
@@ -1373,7 +1419,13 @@ export default function BiomassDashboardPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis dataKey="label" tick={{ fill: axisColor, fontSize: 12 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: axisColor, fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={chartTooltip} />
+                        <Tooltip
+                          contentStyle={chartTooltip}
+                          labelStyle={chartTooltipLabel}
+                          itemStyle={chartTooltipItem}
+                          labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel || ""}
+                          formatter={(value, name) => [`${formatValue(value, 1, i18n.language)} ${measurementUnit}`, name]}
+                        />
                         <Legend />
                         <Bar dataKey="biomass" name={`${t("biomass.actual")} (${measurementUnit})`} fill="#22c55e" radius={[8, 8, 0, 0]} />
                         <Bar dataKey="recommendedMinimum" name={`${t("biomass.dashboard.recommendedMinimum")} (${measurementUnit})`} fill="#94a3b8" radius={[8, 8, 0, 0]} />
@@ -1404,7 +1456,12 @@ export default function BiomassDashboardPage() {
                           axisLine={false}
                           tickLine={false}
                         />
-                        <Tooltip contentStyle={chartTooltip} />
+                        <Tooltip
+                          contentStyle={chartTooltip}
+                          labelStyle={chartTooltipLabel}
+                          itemStyle={chartTooltipItem}
+                          formatter={(value) => [`${formatValue(value, 1, i18n.language)} ${measurementUnit}`, t("biomass.biomassName")]}
+                        />
                         <Bar dataKey="biomass" name={`${t("biomass.biomassName")} (${measurementUnit})`} radius={[0, 8, 8, 0]}>
                           {comparisonData.map((entry) => (
                             <Cell key={entry.name} fill={entry.fill} />
@@ -1441,7 +1498,12 @@ export default function BiomassDashboardPage() {
                                 <Cell key={entry.name} fill={entry.color} />
                               ))}
                             </Pie>
-                            <Tooltip contentStyle={chartTooltip} formatter={(value) => `${formatValue(value, 1, i18n.language)} ${t("common.hectares")}`} />
+                            <Tooltip
+                              contentStyle={chartTooltip}
+                              labelStyle={chartTooltipLabel}
+                              itemStyle={chartTooltipItem}
+                              formatter={(value, name) => [`${formatValue(value, 1, i18n.language)} ${t("common.hectares")}`, name]}
+                            />
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
@@ -1450,7 +1512,7 @@ export default function BiomassDashboardPage() {
                           <div key={item.name} className="bd-legend-item">
                             <span style={{ width: 10, height: 10, borderRadius: 999, background: item.color, flexShrink: 0 }} />
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
-                            <span>{formatValue(item.value, 1, i18n.language)}</span>
+                            <span>{formatValue(item.value, 1, i18n.language)} {t("pastures.units.hectaresShort", "га")}</span>
                           </div>
                         ))}
                       </div>
@@ -1544,6 +1606,9 @@ export default function BiomassDashboardPage() {
                     {formatValue(avgRotation || 0, 0, i18n.language)} {t("biomass.dashboard.units.days")}
                   </div>
                 </div>
+                <p className="bd-card-desc" style={{ marginTop: -4, marginBottom: 16 }}>
+                  {t("biomass.dashboard.stats.rotationHint")}
+                </p>
                 <div
                   style={{
                     display: "grid",
@@ -1556,7 +1621,7 @@ export default function BiomassDashboardPage() {
                     <p className="bd-indicator-value" style={{ color: "#22c55e" }}>
                       {formatValue(winterReserveTons || 0, 1, i18n.language)} {t("biomass.dashboard.units.tons")}
                     </p>
-                    <p className="bd-indicator-desc">{t("biomass.dashboard.stats.latestMeasurements", { count: visibleMeasurements.length })}</p>
+                    <p className="bd-indicator-desc">{t("biomass.dashboard.stats.winterReserveDescription")}</p>
                   </div>
                   <div className="bd-indicator">
                     <div className="bd-indicator-name">{t("biomass.dashboard.indicators.capacity")}</div>
@@ -1570,14 +1635,14 @@ export default function BiomassDashboardPage() {
                     <p className="bd-indicator-value" style={{ color: "#f59e0b" }}>
                       {recentData.length}
                     </p>
-                    <p className="bd-indicator-desc">{t("biomass.dashboard.recentDescription")}</p>
+                    <p className="bd-indicator-desc">{t("biomass.dashboard.stats.recentMeasurementsDescription")}</p>
                   </div>
                   <div className="bd-indicator">
                     <div className="bd-indicator-name">{t("biomass.dashboard.stats.healthScore")}</div>
                     <p className="bd-indicator-value" style={{ color: "#a78bfa" }}>
                       {healthScore}%
                     </p>
-                    <p className="bd-indicator-desc">{healthToneLabel}</p>
+                    <p className="bd-indicator-desc">{t("biomass.dashboard.stats.healthScoreDescription", { state: healthToneLabel.toLowerCase?.() ? healthToneLabel.toLowerCase() : healthToneLabel })}</p>
                   </div>
                 </div>
               </div>

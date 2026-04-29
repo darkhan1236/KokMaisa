@@ -33,12 +33,13 @@ const sanitizeForm = (obj) =>
 // Basic phone validation
 const validPhone = (p) => !p || /^[+\d\s\-()]{7,20}$/.test(p);
 
-// Validate IIN-less form
-const validateForm = (form, t) => {
-  if (!form.name?.trim()) return t("farms.err.nameRequired", "Название обязательно");
-  if (!form.region) return t("farms.err.regionRequired", "Выберите регион");
-  if (form.phone && !validPhone(form.phone)) return t("farms.err.phoneInvalid", "Некорректный телефон");
-  return null;
+// Validate IIN-less form — collect ALL errors
+const validateForm = (form) => {
+  const errors = [];
+  if (!form.name?.trim()) errors.push({ key: "farms.err.nameRequired", fallback: "Название обязательно" });
+  if (!form.region) errors.push({ key: "farms.err.regionRequired", fallback: "Выберите регион" });
+  if (form.phone && !validPhone(form.phone)) errors.push({ key: "farms.err.phoneInvalid", fallback: "Некорректный телефон" });
+  return errors.length ? errors : null;
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -1045,7 +1046,7 @@ const STYLE = `
 export default function FarmsPage() {
   const { user, isAuthenticated, getFarms, createFarm, updateFarm, deleteFarm } = useAuth();
   const { theme } = useTheme();
-  const { t }     = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate  = useNavigate();
   const isDark    = theme === "dark";
 
@@ -1217,8 +1218,24 @@ export default function FarmsPage() {
 
   // Save
   const handleSave = async () => {
-    const err = validateForm(form, t);
-    if (err) { setApiError(err); return; }
+    const errs = validateForm(form);
+    if (errs) {
+      const langs = [
+        { code: "ru", label: "Русский" },
+        { code: "en", label: "English" },
+        { code: "kk", label: "Қазақша" },
+      ];
+      const multiErrs = errs.map((err) => ({
+        key: err.key,
+        msgs: langs.map((l) => ({
+          lang: l.code,
+          label: l.label,
+          msg: i18n.t(err.key, { lng: l.code, defaultValue: err.fallback }),
+        })),
+      }));
+      setApiError(multiErrs);
+      return;
+    }
     setSubmitting(true); setApiError("");
     try {
       const coords = drawnCoords;
@@ -1494,9 +1511,20 @@ export default function FarmsPage() {
                 </div>
 
                 {apiError && (
-                  <div className="fp-err">
-                    <AlertCircle style={{ width: 14, height: 14, flexShrink: 0 }} />
-                    {apiError}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", padding: "12px 12px", gap: 12, borderRadius: 10, marginBottom: 14, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#f87171" }}>
+                      <AlertCircle style={{ width: 14, height: 14, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600 }}>{Array.isArray(apiError) ? t("common.errors", "Ошибки") : apiError}</span>
+                    </div>
+                    {Array.isArray(apiError) && apiError.map((errGrp, idx) => (
+                      <div key={idx} style={{ padding: "10px 0", borderTop: idx > 0 ? "1px solid rgba(239,68,68,.15)" : "none" }}>
+                        {errGrp.msgs.map((m) => (
+                          <div key={m.lang} style={{ fontSize: 12, lineHeight: 1.4, marginTop: m.lang === errGrp.msgs[0].lang ? 0 : 6, color: "#f87171" }}>
+                            <strong style={{ display: "inline-block", width: 70, opacity: 0.8 }}>{m.label}:</strong> <span>{m.msg}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
                   </div>
                 )}
 

@@ -8,10 +8,24 @@ from sqlalchemy.orm import Session
 from pathlib import Path
 
 from app.api.users.commands.create_user import execute as create_user_execute
+from app.api.users.commands.delete_account import (
+    confirm_delete_account,
+    request_delete_account,
+)
 from app.api.users.commands.login_user import execute as login_execute
 from app.api.users.commands.reset_password import request_reset, execute_reset
 from app.api.users.commands.update_user import execute as update_user_execute
-from app.api.users.schemas.user_schemas import UserCreate, UserLogin, PasswordResetRequest, PasswordReset, UserRead, UserUpdate, ProfilePhotoUpdate
+from app.api.users.schemas.user_schemas import (
+    DeleteAccountConfirm,
+    DeleteAccountRequest,
+    PasswordReset,
+    PasswordResetRequest,
+    ProfilePhotoUpdate,
+    UserCreate,
+    UserLogin,
+    UserRead,
+    UserUpdate,
+)
 from app.api.users.crud.user_crud import get_user_by_id, update_user_photo
 from database.db import get_db
 from core.security import CurrentUser, Token, create_access_token
@@ -85,6 +99,31 @@ def password_reset(
 ):
     try:
         return execute_reset(db, reset_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/me/delete-request")
+async def delete_account_request(
+    delete_request: DeleteAccountRequest,
+    current_user: CurrentUser,
+):
+    try:
+        return await request_delete_account(current_user, delete_request)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Не удалось отправить код подтверждения")
+
+
+@router.post("/me/delete-confirm")
+def delete_account_confirm(
+    delete_confirm: DeleteAccountConfirm,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db)
+):
+    try:
+        return confirm_delete_account(db, current_user, delete_confirm)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

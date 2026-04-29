@@ -38,13 +38,31 @@ const sanitizeForm = (obj) =>
     ])
   );
 
-const validateForm = (form, t) => {
-  if (!form.name?.trim())
-    return t("pastures.err.nameRequired", "Название обязательно");
-  if (!form.farm_id)
-    return t("pastures.err.farmRequired", "Выберите ферму");
-  return null;
+const validateForm = (form, t, coords) => {
+  const errors = {};
+
+  if (!form.name?.trim()) {
+    errors.name = t("pastures.err.nameRequired", "Name is required");
+  }
+
+  if (!form.farm_id) {
+    errors.farm_id = t("pastures.err.farmRequired", "Select a farm");
+  }
+
+  if (!form.grass_type) {
+    errors.grass_type = t("pastures.err.grassRequired", "Select grass type");
+  }
+
+  if (!coords || coords.length < 3) {
+    errors.coordinates = t("pastures.err.boundariesRequired", "Draw pasture boundaries on the map");
+  } else if (calcHectares(coords) <= 0) {
+    errors.coordinates = t("pastures.err.boundariesInvalid", "Draw a valid pasture area");
+  }
+
+  return errors;
 };
+
+const firstError = (errors) => Object.values(errors).find(Boolean) || null;
 
 /* ═══════════════════════════════════════════════════════════
    GEO HELPERS
@@ -798,6 +816,10 @@ const STYLE = `
 .pp-inp-l{background:#f4faf5;border:1px solid rgba(34,197,94,.22);color:#1a3d20;}
 .pp-inp-l::placeholder{color:rgba(20,55,20,.35);}
 .pp-inp-l:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.08);background:#fff;}
+.pp-inp-error{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.12)!important;}
+.pp-field-error{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;font-weight:600;color:#f87171;}
+.pp-map-field-error{display:flex;align-items:flex-start;gap:8px;margin:10px 12px 0;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.24);font-size:12px;font-weight:600;color:#f87171;line-height:1.35;}
+.pp-ha-badge.has-error{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#f87171;}
 
 .pp-lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
 .pp-lbl-d{color:rgba(255,255,255,.38);}
@@ -881,6 +903,7 @@ export default function PasturesPage() {
   const [pointCount,    setPointCount  ] = useState(0);
   const [submitting,    setSubmitting  ] = useState(false);
   const [apiError,      setApiError    ] = useState("");
+  const [formErrors,    setFormErrors  ] = useState({});
   const [editId,        setEditId      ] = useState(null);
   const [mapKey,        setMapKey      ] = useState(0);
   const [flyTo,         setFlyTo       ] = useState(null);
@@ -901,7 +924,11 @@ export default function PasturesPage() {
   }), []);
 
   const [form, setForm] = useState(blankForm);
-  const setF = (k, v) => setForm((f) => ({ ...f, [k]:v }));
+  const setF = (k, v) => {
+    setForm((f) => ({ ...f, [k]:v }));
+    setFormErrors((errs) => ({ ...errs, [k]: "" }));
+    if (apiError) setApiError("");
+  };
 
   /* ── Auth guard & load ──────────────────────────────────── */
   useEffect(() => {
@@ -987,7 +1014,7 @@ export default function PasturesPage() {
     setEditId(null);
     setForm({ ...blankForm(), color: PASTURE_COLORS[pastures.length % PASTURE_COLORS.length] });
     setDrawnCoords(null); setPointCount(0); setFlyTo(null); setSearchFlyTo(null);
-    setApiError("");
+    setApiError(""); setFormErrors({});
     setMapKey((k) => k + 1);
     setModal("create");
   };
@@ -1006,12 +1033,18 @@ export default function PasturesPage() {
     // Загружаем существующие координаты для отображения на карте
     setDrawnCoords(p.coordinates?.length ? p.coordinates : null);
     setPointCount(p.coordinates?.length || 0);
-    setFlyTo(null); setSearchFlyTo(null); setApiError("");
+    setFlyTo(null); setSearchFlyTo(null); setApiError(""); setFormErrors({});
     setMapKey((k) => k + 1);
     setModal("create");
   };
 
-  const handleCoordsChange = useCallback((c) => setDrawnCoords(c), []);
+  const handleCoordsChange = useCallback((c) => {
+    setDrawnCoords(c);
+    if (c?.length >= 3) {
+      setFormErrors((errs) => ({ ...errs, coordinates: "" }));
+      if (apiError) setApiError("");
+    }
+  }, [apiError]);
   const handlePointCount   = useCallback((n) => setPointCount(n),  []);
 
   const computedHa = useMemo(() =>
@@ -1020,9 +1053,15 @@ export default function PasturesPage() {
   );
 
   const handleSave = async () => {
-    const err = validateForm(form, t);
-    if (err) { setApiError(err); return; }
-    setSubmitting(true); setApiError("");
+    const errors = validateForm(form, t, drawnCoords);
+    const err = firstError(errors);
+    if (err) {
+      setFormErrors(errors);
+      setApiError(t("pastures.err.fixFields", "Check the highlighted fields"));
+      if (errors.coordinates) setMobileTab("map");
+      return;
+    }
+    setSubmitting(true); setApiError(""); setFormErrors({});
     try {
       const coords = drawnCoords;
       const ha     = coords?.length >= 3 ? calcHectares(coords) : 0;
@@ -1063,7 +1102,7 @@ export default function PasturesPage() {
   };
 
   const closeCreateModal = () => {
-    setModal(null); setDrawnCoords(null);
+    setModal(null); setDrawnCoords(null); setFormErrors({}); setApiError("");
     setFlyTo(null); setSearchFlyTo(null);
   };
 
@@ -1289,12 +1328,16 @@ export default function PasturesPage() {
 
                 <div style={{ marginBottom:12 }}>
                   <label className={`pp-lbl ${d?"pp-lbl-d":"pp-lbl-l"}`}>{t("pastures.field.name","Название")} *</label>
-                  <input className={`pp-inp pp-inp-${d?"d":"l"}`} placeholder={t("pastures.placeholder.name","Северный луг")} value={form.name} onChange={(e)=>setF("name",e.target.value)} maxLength={120} />
+                  <input className={`pp-inp pp-inp-${d?"d":"l"}${formErrors.name?" pp-inp-error":""}`} placeholder={t("pastures.placeholder.name","Северный луг")} value={form.name} onChange={(e)=>setF("name",e.target.value)} maxLength={120} aria-invalid={!!formErrors.name} />
+                  {formErrors.name && <div className="pp-field-error"><AlertCircle style={{ width:12, height:12 }} />{formErrors.name}</div>}
                 </div>
 
                 <div style={{ marginBottom:12 }}>
                   <label className={`pp-lbl ${d?"pp-lbl-d":"pp-lbl-l"}`}>{t("pastures.field.farm","Ферма")} *</label>
-                  <StyledSelect isDark={d} value={form.farm_id} onChange={(v)=>setF("farm_id",v)} options={farmOptions} placeholder={t("pastures.placeholder.farm","Выберите ферму")} />
+                  <div className={formErrors.farm_id ? "pp-inp-error" : ""} style={{ borderRadius:11 }}>
+                    <StyledSelect isDark={d} value={form.farm_id} onChange={(v)=>setF("farm_id",v)} options={farmOptions} placeholder={t("pastures.placeholder.farm","Выберите ферму")} />
+                  </div>
+                  {formErrors.farm_id && <div className="pp-field-error"><AlertCircle style={{ width:12, height:12 }} />{formErrors.farm_id}</div>}
                 </div>
 
                 <div className="pp-2col">
@@ -1320,7 +1363,9 @@ export default function PasturesPage() {
 
                 <div style={{ marginBottom:14 }}>
                   <label className={`pp-lbl ${d?"pp-lbl-d":"pp-lbl-l"}`}>{t("pastures.field.grassType","Вид трав")}</label>
-                  <StyledSelect isDark={d} value={form.grass_type} onChange={(v)=>setF("grass_type",v)} options={grassOptions} placeholder={t("pastures.placeholder.grassType","Выберите вид")} />
+                  <div className={formErrors.grass_type ? "pp-inp-error" : ""} style={{ borderRadius:11 }}>
+                    <StyledSelect isDark={d} value={form.grass_type} onChange={(v)=>setF("grass_type",v)} options={grassOptions} placeholder={t("pastures.placeholder.grassType","Выберите вид")} />
+                  </div>
                   {form.grass_type && (() => {
                     const found = GRASS_TYPES.find((g)=>g.value===form.grass_type);
                     return found ? (
@@ -1329,6 +1374,7 @@ export default function PasturesPage() {
                       </div>
                     ) : null;
                   })()}
+                  {formErrors.grass_type && <div className="pp-field-error"><AlertCircle style={{ width:12, height:12 }} />{formErrors.grass_type}</div>}
                 </div>
 
                 <div style={{ marginBottom:14 }}>
@@ -1367,13 +1413,20 @@ export default function PasturesPage() {
                     <RotateCcw style={{ width:13, height:13 }} />
                   </button>
 
-                  <div className={`pp-ha-badge${computedHa?" has-poly":""}`}>
+                  <div className={`pp-ha-badge${computedHa?" has-poly":""}${formErrors.coordinates?" has-error":""}`}>
                     {computedHa
                       ? <><CheckCircle2 style={{ width:13, height:13 }} />{computedHa} {t("pastures.units.hectaresShort", "ha")}</>
                       : <><MousePointer style={{ width:13, height:13, opacity:.6 }} /><span style={{ opacity:.65 }}>{t("pastures.map.noBounds","Нет границ")}</span></>
                     }
                   </div>
                 </div>
+
+                {formErrors.coordinates && (
+                  <div className="pp-map-field-error">
+                    <AlertCircle style={{ width:14, height:14, flexShrink:0, marginTop:1 }} />
+                    <span>{formErrors.coordinates}</span>
+                  </div>
+                )}
 
                 {/* FIX: Обёртка с position:relative но БЕЗ overflow:hidden
                          чтобы MapSearch dropdown не обрезался.

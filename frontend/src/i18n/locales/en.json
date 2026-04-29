@@ -220,6 +220,10 @@
         "healthScore": "Health score",
         "winterReserve": "Winter reserve",
         "reserveHint": "{{ratio}}% of estimated biomass is reserved for winter fodder stock.",
+        "rotationHint": "Average number of days until the next rotation or repeat grazing based on current pasture condition.",
+        "winterReserveDescription": "Total estimated biomass volume that can be set aside for winter fodder reserve.",
+        "recentMeasurementsDescription": "How many recent measurements are currently shown on the comparison chart.",
+        "healthScoreDescription": "Overall pasture condition score: currently {{state}}.",
         "changeStable": "Stable versus previous measurements"
       },
       "alerts": {
@@ -371,7 +375,11 @@
     "err": {
       "nameRequired": "Name is required",
       "farmRequired": "Select a farm",
-      "saveFailed": "Save error"
+      "grassRequired": "Select grass type",
+      "saveFailed": "Save error",
+      "boundariesRequired": "Mark the pasture on the map with at least 3 points",
+      "boundariesInvalid": "Draw a valid pasture area",
+      "fixFields": "Check the highlighted fields"
     },
     "measurements": {
       "loading": "Loading measurement data...",
@@ -455,6 +463,7 @@
     }
   },
   "common": {
+    "errors": "Errors",
     "loading": "Loading...",
     "sending": "Sending...",
     "close": "Close",
