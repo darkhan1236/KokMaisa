@@ -670,10 +670,6 @@ const handleExport = async () => {
           <div className="max-w-5xl mx-auto">
 
             <div className="mb-8">
-              <p className="text-xs font-semibold tracking-[.18em] uppercase mb-2"
-                style={{ color: isDark ? "#4ade80" : "#16a34a" }}>
-                {t("nav.settings", "Настройки")}
-              </p>
               <h1 className="text-3xl sm:text-4xl font-extrabold"
                 style={{ fontFamily: "Syne,sans-serif", color: isDark ? "#fff" : "#1a3d20" }}>
                 {t("settings.title", "Настройки аккаунта")}

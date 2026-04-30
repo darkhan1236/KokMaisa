@@ -805,7 +805,9 @@
     "deleteDrone": "Удалить дрон",
     "deleteMeas": "Удалить измерение",
     "droneModel": "Модель",
-    "droneSerial": "Серийный №"
+    "droneSerial": "Серийный №",
+    "backToMain": "На главную",
+    "editPasture": "Редактировать пастбище"
   },
   "errors": {
     "required": "Обязательное поле",

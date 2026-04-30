@@ -811,7 +811,9 @@
     "deleteDrone": "Дронды жою",
     "deleteMeas": "Өлшеуді жою",
     "droneModel": "Үлгі",
-    "droneSerial": "Сериялық №"
+    "droneSerial": "Сериялық №",
+    "backToMain": "Басты бетке",
+    "editPasture": "Жайылымды өңдеу"
   },
   "countries": {
     "kazakhstan": "Қазақстан",

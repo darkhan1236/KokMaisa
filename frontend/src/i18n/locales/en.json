@@ -680,7 +680,9 @@
     "deleteDrone": "Delete Drone",
     "deleteMeas": "Delete Measurement",
     "droneModel": "Model",
-    "droneSerial": "Serial No."
+    "droneSerial": "Serial No.",
+    "backToMain": "Back to main",
+    "editPasture": "Edit pasture"
   },
   "countries": {
     "kazakhstan": "Kazakhstan",

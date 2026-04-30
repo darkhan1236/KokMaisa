@@ -34,14 +34,14 @@ const STYLE = `
   .sidebar{transform:translateX(-100%);}
   .sidebar.open{transform:translateX(0);}
   .adm-wrap{margin-left:0!important;}
-  .adm-main{padding:14px!important;}
-  .mob-bar{display:flex!important;}
 }
 .adm-wrap{flex:1;margin-left:230px;display:flex;flex-direction:column;min-width:0;min-height:100vh;}
-.mob-bar{display:none;position:sticky;top:0;z-index:90;align-items:center;justify-content:space-between;padding:13px 16px;}
-.mob-bar-d{background:#061309;border-bottom:1px solid rgba(255,255,255,.07);}
-.mob-bar-l{background:#fff;border-bottom:1px solid rgba(34,197,94,.12);box-shadow:0 2px 10px rgba(34,197,94,.06);}
 .adm-main{flex:1;overflow-y:auto;padding:28px;}
+
+.logo-btn{display:flex;align-items:center;gap:10px;margin-bottom:24px;padding:6px 2px;
+  border-radius:12px;cursor:pointer;border:none;background:transparent;width:100%;
+  transition:opacity .15s;}
+.logo-btn:hover{opacity:.75;}
 
 .ni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;
   font-size:13px;font-weight:500;transition:background .15s;border:none;width:100%;
@@ -59,9 +59,6 @@ const STYLE = `
 .sc:hover{transform:translateY(-3px);}
 .sc:hover.sc-l{box-shadow:0 8px 28px rgba(34,197,94,.12);}
 
-.pnl-d{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);}
-.pnl-l{background:#fff;border:1px solid rgba(34,197,94,.1);box-shadow:0 4px 16px rgba(34,197,94,.06);}
-
 .tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .tbl th{padding:11px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;}
 .tbl td{padding:10px 14px;vertical-align:middle;}
@@ -71,7 +68,6 @@ const STYLE = `
 .tbl-l th{color:rgba(20,55,20,.4);border-bottom:1px solid rgba(34,197,94,.1);}
 .tbl-l td{border-bottom:1px solid rgba(34,197,94,.06);color:rgba(20,55,20,.8);}
 .tbl-l tr:hover td{background:rgba(34,197,94,.025);}
-
 .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
 .mc{border-radius:14px;padding:15px;margin-bottom:10px;}
@@ -130,7 +126,7 @@ const STYLE = `
 .mo-l{background:#fff;border:1px solid rgba(34,197,94,.15);box-shadow:0 24px 60px rgba(0,0,0,.12);}
 
 .lang-dd{position:relative;}
-.lang-menu{position:absolute;left:0;bottom:calc(100%+6px);min-width:148px;border-radius:12px;overflow:hidden;z-index:300;}
+.lang-menu{position:absolute;right:0;top:calc(100%+6px);min-width:148px;border-radius:12px;overflow:hidden;z-index:300;}
 .lang-menu-d{background:#061309;border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.5);}
 .lang-menu-l{background:#fff;border:1px solid rgba(34,197,94,.15);box-shadow:0 12px 32px rgba(0,0,0,.1);}
 .lang-item{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;cursor:pointer;transition:background .12s;}
@@ -139,12 +135,30 @@ const STYLE = `
 .lang-item-l{color:rgba(20,55,20,.75);}
 .lang-item-l:hover,.lang-item-l.cur{background:rgba(34,197,94,.07);color:#166534;}
 
+.adm-hdr{position:sticky;top:0;z-index:80;display:flex;align-items:center;gap:8px;padding:10px 20px;border-bottom:1px solid transparent;}
+.adm-hdr-d{background:#061309;border-color:rgba(255,255,255,.07);}
+.adm-hdr-l{background:#fff;border-color:rgba(34,197,94,.12);box-shadow:0 2px 10px rgba(34,197,94,.06);}
+.hdr-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-sep{width:1px;height:20px;background:rgba(128,128,128,.18);flex-shrink:0;}
+.hdr-burger{display:none;padding:7px;border-radius:8px;cursor:pointer;align-items:center;justify-content:center;}
+.hdr-add-btn-txt{display:inline;}
+@media(max-width:768px){
+  .hdr-burger{display:flex;}
+  .adm-hdr{padding:9px 12px;gap:5px;}
+  .hdr-sep{display:none;}
+  .adm-main{padding:12px!important;}
+}
+@media(max-width:480px){
+  .hdr-title{font-size:12px;}
+  .hdr-add-btn-txt{display:none;}
+  .adm-main{padding:8px!important;}
+}
+
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 @media(max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:480px){.stat-grid{grid-template-columns:repeat(2,1fr);gap:8px;}}
 
 .filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center;}
-.page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:10px;flex-wrap:wrap;}
 
 ::-webkit-scrollbar{width:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -204,26 +218,37 @@ function LangSwitcher({d}){
 
 /* ── API hook ───────────────────────────────────────────────────────────── */
 function useAPI(){
-  const token = localStorage.getItem("access_token")||"";
-  const H = {Authorization:`Bearer ${token}`,"Content-Type":"application/json"};
-  const r  = (url,opts={}) => fetch(`${API}${url}`,{headers:H,...opts}).then(r=>r.json());
+  const getH = () => {
+    const token = localStorage.getItem('token')||'';
+    return {Authorization:`Bearer ${token}`,"Content-Type":"application/json"};
+  };
+  const r = async (url, opts={}) => {
+    const res = await fetch(`${API}${url}`, {headers:getH(), ...opts});
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw Object.assign(new Error(err.detail||res.statusText), {status:res.status, data:err});
+    }
+    return res.json().catch(()=>({}));
+  };
+  const safe = (fn) => fn().then(d => Array.isArray(d) ? d : []).catch(() => []);
   return {
-    stats:       ()      => r("/admin/stats"),
-    users:       q       => r(`/admin/users${q}`),
-    userToggle:  id      => r(`/admin/users/${id}/toggle-active`,{method:"POST"}),
-    userDelete:  id      => r(`/admin/users/${id}`,{method:"DELETE"}),
-    userUpdate:  (id,d)  => r(`/admin/users/${id}`,{method:"PUT",body:JSON.stringify(d)}),
-    userCreate:  d       => r("/admin/users",{method:"POST",body:JSON.stringify(d)}),
-    farms:       q       => r(`/admin/farms${q}`),
-    farmUpdate:  (id,d)  => r(`/admin/farms/${id}`,{method:"PUT",body:JSON.stringify(d)}),
-    farmDelete:  id      => r(`/admin/farms/${id}`,{method:"DELETE"}),
-    pastures:    q       => r(`/admin/pastures${q}`),
-    pastureDelete:id     => r(`/admin/pastures/${id}`,{method:"DELETE"}),
-    drones:      ()      => r("/admin/drones"),
-    droneUpdate: (id,d)  => r(`/admin/drones/${id}`,{method:"PUT",body:JSON.stringify(d)}),
-    droneDelete: id      => r(`/admin/drones/${id}`,{method:"DELETE"}),
-    measurements:q       => r(`/admin/measurements${q}`),
-    measDelete:  id      => r(`/admin/measurements/${id}`,{method:"DELETE"}),
+    stats:        ()      => r("/admin/stats").catch(()=>({})),
+    users:        q       => safe(()=>r(`/admin/users${q}`)),
+    userToggle:   id      => r(`/admin/users/${id}/toggle-active`,{method:"POST"}),
+    userDelete:   id      => r(`/admin/users/${id}`,{method:"DELETE"}),
+    userUpdate:   (id,d)  => r(`/admin/users/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    userCreate:   d       => r("/admin/users",{method:"POST",body:JSON.stringify(d)}),
+    farms:        q       => safe(()=>r(`/admin/farms${q}`)),
+    farmUpdate:   (id,d)  => r(`/admin/farms/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    farmDelete:   id      => r(`/admin/farms/${id}`,{method:"DELETE"}),
+    pastures:     q       => safe(()=>r(`/admin/pastures${q}`)),
+    pastureUpdate:(id,d)  => r(`/admin/pastures/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    pastureDelete:id      => r(`/admin/pastures/${id}`,{method:"DELETE"}),
+    drones:       ()      => safe(()=>r("/admin/drones")),
+    droneUpdate:  (id,d)  => r(`/admin/drones/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    droneDelete:  id      => r(`/admin/drones/${id}`,{method:"DELETE"}),
+    measurements: q       => safe(()=>r(`/admin/measurements${q}`)),
+    measDelete:   id      => r(`/admin/measurements/${id}`,{method:"DELETE"}),
   };
 }
 
@@ -266,6 +291,7 @@ export default function AdminPanel(){
   const [delPasture, setDelPasture] = useState(null);
   const [editDrone,  setEditDrone]  = useState(null); const [editDroneF,setEditDroneF]=useState({});
   const [delDrone,   setDelDrone]   = useState(null);
+  const [editPasture,setEditPasture]= useState(null); const [editPastureF,setEditPastureF]=useState({});
   const [delMeas,    setDelMeas]    = useState(null);
   const [saving,     setSaving]     = useState(false);
 
@@ -273,17 +299,17 @@ export default function AdminPanel(){
   const loadStats    = useCallback(()=>api.stats().then(setStats).catch(()=>{}), []);
   const loadUsers    = useCallback(async()=>{
     setLoading(true);
-    try{ let q="?limit=200"; if(uFilter!=="all")q+=`&account_type=${uFilter}`; if(uSearch)q+=`&search=${encodeURIComponent(uSearch)}`; setUsers((await api.users(q))||[]); }
+    try{ let q="?limit=200"; if(uFilter!=="all")q+=`&account_type=${uFilter}`; if(uSearch)q+=`&search=${encodeURIComponent(uSearch)}`; setUsers(await api.users(q)); }
     catch{setUsers([]);} finally{setLoading(false);}
   },[uFilter,uSearch]);
   const loadFarms    = useCallback(async()=>{
     setLoading(true);
-    try{ let q="?limit=100"; if(fSearch)q+=`&search=${encodeURIComponent(fSearch)}`; if(fStatus!=="all")q+=`&status=${fStatus}`; setFarms((await api.farms(q))||[]); }
+    try{ let q="?limit=100"; if(fSearch)q+=`&search=${encodeURIComponent(fSearch)}`; if(fStatus!=="all")q+=`&status=${fStatus}`; setFarms(await api.farms(q)); }
     catch{setFarms([]);} finally{setLoading(false);}
   },[fSearch,fStatus]);
-  const loadPastures = useCallback(async()=>{ setLoading(true); try{setPastures((await api.pastures("?limit=200"))||[]);}catch{setPastures([]);} finally{setLoading(false);} },[]);
-  const loadDrones   = useCallback(async()=>{ setLoading(true); try{setDrones((await api.drones())||[]);}catch{setDrones([]);} finally{setLoading(false);} },[]);
-  const loadMeas     = useCallback(async()=>{ setLoading(true); try{setMeas((await api.measurements("?limit=100"))||[]);}catch{setMeas([]);} finally{setLoading(false);} },[]);
+  const loadPastures = useCallback(async()=>{ setLoading(true); try{setPastures(await api.pastures("?limit=200"));}catch{setPastures([]);} finally{setLoading(false);} },[]);
+  const loadDrones   = useCallback(async()=>{ setLoading(true); try{setDrones(await api.drones());}catch{setDrones([]);} finally{setLoading(false);} },[]);
+  const loadMeas     = useCallback(async()=>{ setLoading(true); try{setMeas(await api.measurements("?limit=100"));}catch{setMeas([]);} finally{setLoading(false);} },[]);
 
   useEffect(()=>{ loadStats(); },[]);
   useEffect(()=>{
@@ -306,17 +332,17 @@ export default function AdminPanel(){
       const res = await api.userCreate(newUF);
       if(res.id){ setNewUOk(true); setTimeout(()=>{ setNewU(false);setNewUOk(false);setNewUF({full_name:"",email:"",phone:"",password:"",account_type:"farmer",country:"",city:""})},1300); loadUsers();loadStats(); }
       else setNewUErr(res.detail||"Error");
-    }catch{ setNewUErr("Connection error"); }
+    }catch(e){ setNewUErr(e.message||"Connection error"); }
   };
 
   const doFarmEdit    = async()   =>{ if(!editFarm)return; setSaving(true); await api.farmUpdate(editFarm.id,editFarmF); setSaving(false); setEditFarm(null); loadFarms(); };
   const doFarmDelete  = async()   =>{ if(!delFarm)return; await api.farmDelete(delFarm.id); setDelFarm(null); loadFarms(); loadStats(); };
+  const doPastureEdit  =async()   =>{ if(!editPasture)return; setSaving(true); try{ await api.pastureUpdate(editPasture.id,editPastureF); }catch{} setSaving(false); setEditPasture(null); loadPastures(); };
   const doPastureDelete=async()   =>{ if(!delPasture)return; await api.pastureDelete(delPasture.id); setDelPasture(null); loadPastures(); loadStats(); };
   const doDroneEdit   = async()   =>{ if(!editDrone)return; setSaving(true); await api.droneUpdate(editDrone.id,editDroneF); setSaving(false); setEditDrone(null); loadDrones(); };
   const doDroneDelete = async()   =>{ if(!delDrone)return; await api.droneDelete(delDrone.id); setDelDrone(null); loadDrones(); loadStats(); };
   const doMeasDelete  = async()   =>{ if(!delMeas)return; await api.measDelete(delMeas.id); setDelMeas(null); loadMeas(); loadStats(); };
 
-  /* ─ Misc ─ */
   const goTab = id=>{ setTab(id); setSideOpen(false); };
   const nc    = id=>`ni ${d?`ni-d${tab===id?" act":""}` :`ni-l${tab===id?" act":""}`}`;
 
@@ -326,7 +352,6 @@ export default function AdminPanel(){
     </div>
   );
 
-  /* ─ Stat cards ─ */
   const statCards = stats?[
     {icon:Users,   val:stats.users?.total,   lbl:t("admin.totalUsers"),    a:"#4ade80"},
     {icon:Users,   val:stats.users?.farmers, lbl:t("admin.totalFarmers"),  a:"#22d3ee"},
@@ -347,37 +372,6 @@ export default function AdminPanel(){
     {id:"measurements", icon:Activity,  lbl:t("admin.measurements")},
   ];
 
-  /* ─── Sidebar content ─── */
-  const SideContent = ()=>(
-    <>
-      <div className="flex items-center gap-2 mb-8 px-1">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:"linear-gradient(135deg,#22c55e,#0d9488)"}}>
-          <Leaf className="w-4 h-4 text-white"/>
-        </div>
-        <span className="font-extrabold text-sm" style={{fontFamily:"Syne,sans-serif",color:tc}}>KokMaisa</span>
-      </div>
-      <p className="text-xs font-bold uppercase px-2 mb-2" style={{color:sc,letterSpacing:".15em"}}>Admin</p>
-      <nav className="space-y-0.5 flex-1">
-        {navItems.map(({id,icon:Icon,lbl})=>(
-          <button key={id} onClick={()=>goTab(id)} className={nc(id)}>
-            <Icon className="w-4 h-4 flex-shrink-0"/>{lbl}
-          </button>
-        ))}
-      </nav>
-      <div className="mt-auto space-y-0.5 pt-4" style={{borderTop:d?"1px solid rgba(255,255,255,.06)":"1px solid rgba(34,197,94,.12)"}}>
-        <LangSwitcher d={d}/>
-        <button onClick={toggleTheme} className={`ni ${d?"ni-d":"ni-l"}`}>
-          {d?<Sun className="w-4 h-4"/>:<Moon className="w-4 h-4"/>}
-          {d?t("common.lightMode","Light"):t("common.darkMode","Dark")}
-        </button>
-        <button onClick={()=>{logout?.();navigate("/");}} className={`ni ${d?"ni-d":"ni-l"}`}>
-          <LogOut className="w-4 h-4"/>{t("nav.logout")}
-        </button>
-      </div>
-    </>
-  );
-
-  /* ─── Empty / Loading ─── */
   const Empty = ({icon:Icon,text})=>(
     <div style={{padding:"56px 24px",textAlign:"center",color:sc}}>
       <Icon className="w-10 h-10 mx-auto mb-3 opacity-40"/><p style={{fontSize:14}}>{text}</p>
@@ -386,10 +380,33 @@ export default function AdminPanel(){
   const LoadRow = ()=>(
     <div style={{padding:"48px",display:"flex",justifyContent:"center"}}><Spin c={d?"#4ade80":"#22c55e"}/></div>
   );
-
-  /* ─── Table container ─── */
   const Panel = ({children})=>(
     <div style={{...pBg,borderRadius:16,overflow:"hidden"}}>{children}</div>
+  );
+
+  /* ─── Sidebar ─── */
+  const SideContent = ()=>(
+    <>
+      {/* Кликабельный логотип → главная */}
+      <button className="logo-btn" onClick={()=>navigate("/")}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{background:"linear-gradient(135deg,#22c55e,#0d9488)"}}>
+          <Leaf className="w-4 h-4 text-white"/>
+        </div>
+        <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:14,color:tc}}>KokMaisa</span>
+      </button>
+
+      <p style={{fontSize:10,fontWeight:700,letterSpacing:".15em",textTransform:"uppercase",color:sc,padding:"0 6px",marginBottom:6}}>Admin</p>
+
+      <nav style={{display:"flex",flexDirection:"column",gap:2,flex:1}}>
+        {navItems.map(({id,icon:Icon,lbl})=>(
+          <button key={id} onClick={()=>goTab(id)} className={nc(id)}>
+            <Icon className="w-4 h-4 flex-shrink-0"/>{lbl}
+          </button>
+        ))}
+      </nav>
+
+    </>
   );
 
   /* ══════════════ RENDER ══════════════════════════════════════════════════ */
@@ -399,65 +416,75 @@ export default function AdminPanel(){
       <div className={`sid-ov ${sideOpen?"open":""}`} onClick={()=>setSideOpen(false)}/>
       <div className={`adm ${d?"adm-d":"adm-l"}`}>
 
-        {/* Sidebar */}
         <aside className={`sidebar ${d?"sidebar-d":"sidebar-l"} ${sideOpen?"open":""}`}>
           <SideContent/>
         </aside>
 
-        {/* Main */}
         <div className="adm-wrap">
 
-          {/* Mobile bar */}
-          <div className={`mob-bar ${d?"mob-bar-d":"mob-bar-l"}`}>
-            <button onClick={()=>setSideOpen(o=>!o)} className={gg} style={{padding:"8px"}}><Menu className="w-5 h-5"/></button>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{background:"linear-gradient(135deg,#22c55e,#0d9488)"}}>
-                <Leaf className="w-3.5 h-3.5 text-white"/>
-              </div>
-              <span className="font-extrabold text-sm" style={{fontFamily:"Syne,sans-serif",color:tc}}>Admin</span>
-            </div>
-            <button onClick={toggleTheme} className={gg} style={{padding:"8px"}}>
-              {d?<Sun className="w-4 h-4"/>:<Moon className="w-4 h-4"/>}
+          {/* ── Top header ── */}
+          <div className={`adm-hdr ${d?"adm-hdr-d":"adm-hdr-l"}`}>
+
+            {/* Burger — только мобилка */}
+            <button onClick={()=>setSideOpen(o=>!o)} className="hdr-burger"
+              style={{background:"none",border:`1px solid ${d?"rgba(255,255,255,.12)":"rgba(34,197,94,.2)"}`,color:d?"rgba(255,255,255,.7)":"rgba(20,55,20,.7)"}}>
+              <Menu style={{width:18,height:18}}/>
             </button>
+
+            {/* Заголовок страницы */}
+            <span className="hdr-title" style={{color:tc}}>
+              {navItems.find(n=>n.id===tab)?.lbl||t("admin.title")}
+            </span>
+
+            {/* Кнопка добавить пользователя */}
+            {tab==="users"&&(
+              <button className="btn-p" style={{padding:"6px 12px",fontSize:12,flexShrink:0}} onClick={()=>setNewU(true)}>
+                <Plus style={{width:13,height:13}}/>
+                <span className="hdr-add-btn-txt">{t("admin.addUser")}</span>
+              </button>
+            )}
+
+            {/* Обновить */}
+            <button onClick={doRefresh} className={gg} style={{padding:"6px",flexShrink:0}} title={t("common.refresh","Обновить")}>
+              <RefreshCw style={{width:14,height:14}}/>
+            </button>
+
+            <div className="hdr-sep"/>
+
+            {/* Язык */}
+            <LangSwitcher d={d}/>
+
+            {/* Тема */}
+            <button onClick={toggleTheme} className={gg} style={{padding:"6px",flexShrink:0}}>
+              {d?<Sun style={{width:14,height:14}}/>:<Moon style={{width:14,height:14}}/>}
+            </button>
+
+            {/* Выход */}
+            <button onClick={()=>{logout?.();navigate("/");}} className={gg} style={{padding:"6px",flexShrink:0}} title={t("nav.logout")}>
+              <LogOut style={{width:14,height:14}}/>
+            </button>
+
           </div>
 
           <main className="adm-main">
 
-            {/* Page header */}
-            <div className="page-hdr">
-              <div>
-                <h1 className="text-2xl font-extrabold" style={{fontFamily:"Syne,sans-serif",color:tc}}>
-                  {navItems.find(n=>n.id===tab)?.lbl||t("admin.title")}
-                </h1>
-                <p className="text-xs mt-0.5" style={{color:sc}}>{user?.email}</p>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {tab==="users"&&(
-                  <button className="btn-p" onClick={()=>setNewU(true)}><Plus className="w-4 h-4"/>{t("admin.addUser")}</button>
-                )}
-                <button onClick={doRefresh} className={gg} style={{padding:"8px 10px"}} title={t("common.refresh","Refresh")}>
-                  <RefreshCw className="w-4 h-4"/>
-                </button>
-              </div>
-            </div>
-
             {/* ═══ DASHBOARD ═══ */}
             {tab==="dashboard"&&(
               <div className="afu">
-                <div className="stat-grid mb-6">
+                <div className="stat-grid" style={{marginBottom:20}}>
                   {statCards.map(({icon:Icon,val,lbl,a})=>(
                     <div key={lbl} className={`sc ${d?"sc-d":"sc-l"}`}>
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{background:`${a}18`,border:`1px solid ${a}28`}}>
+                      <div style={{width:36,height:36,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12,background:`${a}18`,border:`1px solid ${a}28`}}>
                         <Icon className="w-4 h-4" style={{color:a}}/>
                       </div>
-                      <div className="text-2xl font-extrabold" style={{fontFamily:"Syne,sans-serif",color:tc}}>{val??"—"}</div>
-                      <div className="text-xs mt-0.5" style={{color:sc}}>{lbl}</div>
+                      <div style={{fontSize:26,fontWeight:800,fontFamily:"Syne,sans-serif",color:tc,lineHeight:1}}>{val??"—"}</div>
+                      <div style={{fontSize:11,color:sc,marginTop:4}}>{lbl}</div>
                     </div>
                   ))}
                 </div>
                 <div style={{...pBg,borderRadius:16,padding:20}}>
-                  <h2 className="font-bold mb-4" style={{fontFamily:"Syne,sans-serif",color:tc,fontSize:14}}>{t("admin.quickActions","Быстрые действия")}</h2>
-                  <div className="flex flex-wrap gap-2">
+                  <h2 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:14,marginBottom:14}}>{t("admin.quickActions","Быстрые действия")}</h2>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
                     {navItems.filter(n=>n.id!=="dashboard").map(({id,icon:Icon,lbl})=>(
                       <button key={id} onClick={()=>goTab(id)} className="btn-p" style={{fontSize:12,padding:"7px 14px"}}><Icon className="w-3.5 h-3.5"/>{lbl}</button>
                     ))}
@@ -472,7 +499,7 @@ export default function AdminPanel(){
                 <div className="filter-bar">
                   <div style={{position:"relative"}}>
                     <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:sc}}/>
-                    <input className={`${cls}`} style={{paddingLeft:32,width:185}} placeholder={t("admin.search")} value={uSearch} onChange={e=>setUSearch(e.target.value)}/>
+                    <input className={cls} style={{paddingLeft:32,width:185}} placeholder={t("admin.search")} value={uSearch} onChange={e=>setUSearch(e.target.value)}/>
                   </div>
                   {["all","farmer","admin"].map(f=>(
                     <button key={f} onClick={()=>setUFilter(f)} className={uFilter===f?"btn-p":gg} style={{padding:"7px 12px"}}>
@@ -502,8 +529,8 @@ export default function AdminPanel(){
                             <td><span className={`bdg ${u.is_active?(d?"bdg-on-d":"bdg-on-l"):(d?"bdg-off-d":"bdg-off-l")}`}>{u.is_active?t("common.active"):t("common.inactive")}</span></td>
                             <td>
                               <div style={{display:"flex",gap:5}}>
-                                <button className={gg} title={t("common.edit")} onClick={()=>{setEditU(u);setEditUF({account_type:u.account_type,full_name:u.full_name,city:u.city,country:u.country});}}><Edit3 className="w-3.5 h-3.5"/></button>
-                                <button className={gg} onClick={()=>doUserToggle(u.id)} title={u.is_active?t("admin.deactivate"):t("admin.activate")}>
+                                <button className={gg} title={t("common.edit")} onClick={()=>{setEditU(u);setEditUF({account_type:u.account_type,full_name:u.full_name,email:u.email||"",phone:u.phone||"",city:u.city||"",country:u.country||""});}}><Edit3 className="w-3.5 h-3.5"/></button>
+                                <button className={gg} onClick={()=>doUserToggle(u.id)}>
                                   {u.is_active?<ToggleRight className="w-3.5 h-3.5" style={{color:"#4ade80"}}/>:<ToggleLeft className="w-3.5 h-3.5"/>}
                                 </button>
                                 <button className="btn-del" onClick={()=>setDelU(u)}><Trash2 className="w-3.5 h-3.5"/></button>
@@ -557,7 +584,7 @@ export default function AdminPanel(){
                               <div style={{fontSize:11,color:sc}}>{f.owner_email||""}</div>
                             </td>
                             <td style={{color:sc,fontSize:12}}>{f.farm_type||"—"}</td>
-                            <td style={{color:sc,fontSize:12,textAlign:"center"}}>{f.pasture_count??0}</td>
+                            <td style={{textAlign:"center",color:sc,fontSize:12}}>{f.pasture_count??0}</td>
                             <td><span className={`bdg ${f.status==="active"?(d?"bdg-on-d":"bdg-on-l"):(d?"bdg-off-d":"bdg-off-l")}`}>{f.status}</span></td>
                             <td>
                               <div style={{display:"flex",gap:5}}>
@@ -603,7 +630,10 @@ export default function AdminPanel(){
                             </td>
                             <td><span className={`bdg ${p.status==="active"?(d?"bdg-on-d":"bdg-on-l"):(d?"bdg-off-d":"bdg-off-l")}`}>{p.status}</span></td>
                             <td>
-                              <button className="btn-del" onClick={()=>setDelPasture(p)}><Trash2 className="w-3.5 h-3.5"/></button>
+                              <div style={{display:"flex",gap:5}}>
+                                <button className={gg} onClick={()=>{setEditPasture(p);setEditPastureF({name:p.name,area:p.area,status:p.status,pasture_type:p.pasture_type||"",description:p.description||""});}}><Edit3 style={{width:13,height:13}}/></button>
+                                <button className="btn-del" onClick={()=>setDelPasture(p)}><Trash2 style={{width:13,height:13}}/></button>
+                              </div>
                             </td>
                           </tr>
                         ))}</tbody>
@@ -672,8 +702,6 @@ export default function AdminPanel(){
                           <th>{t("admin.farms","Ферма")}</th>
                           <th>{t("admin.method")}</th>
                           <th>{t("admin.biomassValue","Биомасса")}</th>
-                          <th>{t("admin.ndviValue","NDVI")}</th>
-                          <th>{t("admin.measCoverage","Покрытие %")}</th>
                           <th>{t("admin.status")}</th>
                           <th>{t("admin.date")}</th>
                           <th>{t("admin.actions")}</th>
@@ -687,9 +715,7 @@ export default function AdminPanel(){
                             </td>
                             <td style={{fontSize:12,color:sc}}>{m.farm_name}</td>
                             <td><span className={`bdg ${d?"bdg-fa-d":"bdg-fa-l"}`}>{m.method}</span></td>
-                            <td style={{color:tc,fontWeight:600,fontSize:12}}>{fmt(m.biomass_value," t/ha")}</td>
-                            <td style={{color:tc,fontSize:12}}>{fmt(m.ndvi_value)}</td>
-                            <td style={{color:tc,fontSize:12}}>{m.coverage_percent!=null?`${m.coverage_percent.toFixed(1)}%`:"—"}</td>
+                            <td style={{color:tc,fontWeight:600,fontSize:12}}>{fmt(m.biomass_value," т/га")}</td>
                             <td>
                               <span className={`bdg ${m.status==="completed"||m.status==="done"?(d?"bdg-on-d":"bdg-on-l"):m.status==="processing"?(d?"bdg-yw-d":"bdg-yw-l"):(d?"bdg-me-d":"bdg-me-l")}`}>
                                 {m.status}
@@ -721,15 +747,25 @@ export default function AdminPanel(){
               <h3 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:17}}>{t("admin.editUser")}</h3>
               <button onClick={()=>setEditU(null)} style={{background:"none",border:"none",cursor:"pointer",color:sc}}><X className="w-5 h-5"/></button>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {[{k:"full_name",l:t("admin.name")},{k:"city",l:t("admin.city","Город")},{k:"country",l:t("admin.country","Страна")}].map(({k,l})=>(
-                <div key={k}><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{l}</label>
-                  <input className={cls} value={editUF[k]||""} onChange={e=>setEditUF(f=>({...f,[k]:e.target.value}))}/></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                {k:"full_name",l:t("admin.name"),    type:"text",  span:2},
+                {k:"email",    l:t("admin.email"),   type:"email", span:1},
+                {k:"phone",    l:t("admin.phone"),   type:"text",  span:1},
+                {k:"city",     l:t("admin.city","Город"),   type:"text",  span:1},
+                {k:"country",  l:t("admin.country","Страна"), type:"text",  span:1},
+              ].map(({k,l,type,span})=>(
+                <div key={k} style={{gridColumn:`span ${span}`}}>
+                  <label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{l}</label>
+                  <input className={cls} type={type} value={editUF[k]||""} onChange={e=>setEditUF(f=>({...f,[k]:e.target.value}))}/>
+                </div>
               ))}
-              <div><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.role")}</label>
+              <div style={{gridColumn:"span 2"}}>
+                <label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.role")}</label>
                 <select className={cls} value={editUF.account_type||"farmer"} onChange={e=>setEditUF(f=>({...f,account_type:e.target.value}))}>
                   <option value="farmer">Farmer</option><option value="admin">Admin</option>
-                </select></div>
+                </select>
+              </div>
             </div>
             <div style={{display:"flex",gap:10,marginTop:18}}>
               <button onClick={()=>setEditU(null)} className={gg} style={{flex:1,justifyContent:"center",padding:10}}>{t("common.cancel")}</button>
@@ -805,6 +841,43 @@ export default function AdminPanel(){
         </div>
       )}
 
+      {/* ══ MODAL: Редактировать пастбище ══ */}
+      {editPasture&&(
+        <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setEditPasture(null)}>
+          <div className={`mo ${d?"mo-d":"mo-l"} afu`}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+              <h3 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:17}}>{t("admin.editPasture","Редактировать пастбище")}</h3>
+              <button onClick={()=>setEditPasture(null)} style={{background:"none",border:"none",cursor:"pointer",color:sc}}><X style={{width:18,height:18}}/></button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                {k:"name",         l:t("admin.name"),                   span:2},
+                {k:"area",         l:t("admin.area")+" (га)",           span:1, num:true},
+                {k:"pasture_type", l:t("admin.pastureType","Тип"),      span:1},
+                {k:"description",  l:t("admin.description","Описание"), span:2},
+              ].map(({k,l,span,num})=>(
+                <div key={k} style={{gridColumn:`span ${span}`}}>
+                  <label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{l}</label>
+                  <input className={cls} type={num?"number":"text"} value={editPastureF[k]||""} onChange={e=>setEditPastureF(f=>({...f,[k]:num?Number(e.target.value):e.target.value}))}/>
+                </div>
+              ))}
+              <div style={{gridColumn:"span 2"}}>
+                <label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.status")}</label>
+                <select className={cls} value={editPastureF.status||"active"} onChange={e=>setEditPastureF(f=>({...f,status:e.target.value}))}>
+                  <option value="active">active</option><option value="inactive">inactive</option>
+                </select>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:18}}>
+              <button onClick={()=>setEditPasture(null)} className={gg} style={{flex:1,justifyContent:"center",padding:10}}>{t("common.cancel")}</button>
+              <button onClick={doPastureEdit} className="btn-p" style={{flex:1,justifyContent:"center"}} disabled={saving}>
+                {saving?<Spin c="#fff"/>:t("common.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══ MODAL: Редактировать дрон ══ */}
       {editDrone&&(
         <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setEditDrone(null)}>
@@ -837,11 +910,11 @@ export default function AdminPanel(){
 
       {/* ══ MODALS: Delete confirmations ══ */}
       {[
-        {state:delU,    onClose:()=>setDelU(null),    onConfirm:doUserDelete,   name:delU?.full_name,    label:t("admin.deleteUser")},
-        {state:delFarm, onClose:()=>setDelFarm(null), onConfirm:doFarmDelete,   name:delFarm?.name,      label:t("admin.deleteFarm","Удалить ферму")},
-        {state:delPasture,onClose:()=>setDelPasture(null),onConfirm:doPastureDelete,name:delPasture?.name,label:t("admin.deletePasture","Удалить пастбище")},
-        {state:delDrone,onClose:()=>setDelDrone(null),onConfirm:doDroneDelete,  name:delDrone?.model,    label:t("admin.deleteDrone","Удалить дрон")},
-        {state:delMeas, onClose:()=>setDelMeas(null), onConfirm:doMeasDelete,   name:`#${delMeas?.id}`,  label:t("admin.deleteMeas","Удалить измерение")},
+        {state:delU,       onClose:()=>setDelU(null),       onConfirm:doUserDelete,    name:delU?.full_name,  label:t("admin.deleteUser")},
+        {state:delFarm,    onClose:()=>setDelFarm(null),    onConfirm:doFarmDelete,    name:delFarm?.name,    label:t("admin.deleteFarm","Удалить ферму")},
+        {state:delPasture, onClose:()=>setDelPasture(null), onConfirm:doPastureDelete, name:delPasture?.name, label:t("admin.deletePasture","Удалить пастбище")},
+        {state:delDrone,   onClose:()=>setDelDrone(null),   onConfirm:doDroneDelete,   name:delDrone?.model,  label:t("admin.deleteDrone","Удалить дрон")},
+        {state:delMeas,    onClose:()=>setDelMeas(null),    onConfirm:doMeasDelete,    name:`#${delMeas?.id}`,label:t("admin.deleteMeas","Удалить измерение")},
       ].filter(x=>x.state).map(({state,onClose,onConfirm,name,label})=>(
         <div key={label} className="mo-ov" onClick={e=>e.target===e.currentTarget&&onClose()}>
           <div className={`mo ${d?"mo-d":"mo-l"} afu`} style={{maxWidth:400}}>
