@@ -33,14 +33,52 @@ const sanitizeForm = (obj) =>
 // Basic phone validation
 const validPhone = (p) => !p || /^[+\d\s\-()]{7,20}$/.test(p);
 
-// Validate IIN-less form — collect ALL errors
-const validateForm = (form) => {
-  const errors = [];
-  if (!form.name?.trim()) errors.push({ key: "farms.err.nameRequired", fallback: "Название обязательно" });
-  if (!form.region) errors.push({ key: "farms.err.regionRequired", fallback: "Выберите регион" });
-  if (form.phone && !validPhone(form.phone)) errors.push({ key: "farms.err.phoneInvalid", fallback: "Некорректный телефон" });
-  return errors.length ? errors : null;
+/* ═══════════════════════════════════════════════════════════
+   SERVER ERROR → i18n KEY MAPPER
+═══════════════════════════════════════════════════════════ */
+const resolveServerError = (e, t) => {
+  const status  = e?.response?.status;
+  const detail  = (e?.response?.data?.detail || "").toLowerCase();
+
+  // Network / no response
+  if (!e?.response) return t("farms.err.networkError", "Нет соединения с сервером");
+
+  // 403 — permission errors
+  if (status === 403) {
+    if (detail.includes("farmer"))  return t("farms.err.noPermission", "Только фермеры могут создавать фермы");
+    return t("farms.err.accessDenied", "У вас нет доступа к этой ферме");
+  }
+
+  // 404
+  if (status === 404) return t("farms.err.notFound", "Ферма не найдена");
+
+  // 409 / unique constraint — duplicate name
+  if (status === 409 || detail.includes("exist") || detail.includes("unique") || detail.includes("duplicate"))
+    return t("farms.err.nameExists", "Ферма с таким названием уже существует");
+
+  // 422 — validation from server (shouldn't normally happen after frontend validation)
+  if (status === 422) {
+    const firstMsg = e?.response?.data?.detail?.[0]?.msg;
+    return firstMsg || t("farms.err.serverError", "Ошибка сервера");
+  }
+
+  // 500 and everything else
+  return t("farms.err.serverError", "Ошибка сервера. Попробуйте позже");
 };
+
+// Validate form — return per-field errors object (like PasturesPage)
+const validateForm = (form, t, drawnCoords) => {
+  const errors = {};
+  if (!form.name?.trim())                    errors.name   = t("farms.err.nameRequired",    "Название обязательно");
+  if (!form.region)                          errors.region = t("farms.err.regionRequired",   "Выберите регион");
+  if (form.phone && !validPhone(form.phone)) errors.phone  = t("farms.err.phoneInvalid",     "Некорректный телефон");
+  if (!drawnCoords || drawnCoords.length < 3)
+    errors.coordinates = t("farms.err.boundariesRequired", "Обозначьте границы фермы (минимум 3 точки)");
+  else if (drawnCoords.length < 3)
+    errors.coordinates = t("farms.err.boundariesInvalid",  "Нарисуйте корректную область фермы");
+  return Object.keys(errors).length ? errors : null;
+};
+
 
 /* ═══════════════════════════════════════════════════════════
    GEODESIC AREA — Shoelace + sphere
@@ -952,6 +990,8 @@ const STYLE = `
   margin-left:auto;flex-shrink:0;
 }
 .fp-ha-badge.has-poly{background:rgba(74,222,128,.18);border-color:rgba(74,222,128,.45);}
+.fp-ha-badge.has-error{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#f87171;}
+.fp-map-field-error{display:flex;align-items:flex-start;gap:8px;margin:10px 12px 0;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.24);font-size:12px;font-weight:600;color:#f87171;line-height:1.35;}
 
 /* Draw hint */
 .fp-draw-hint{
@@ -984,6 +1024,10 @@ const STYLE = `
 .fp-lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
 .fp-lbl-d{color:rgba(255,255,255,.38);}
 .fp-lbl-l{color:rgba(20,55,20,.48);}
+
+.fp-inp-error{border-color:#ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.12)!important;}
+.fp-field-error{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;font-weight:600;color:#f87171;}
+.fp-select-error{border-radius:11px;border:1px solid #ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.12)!important;}
 
 .fp-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:12px;font-weight:500;}
 .fp-tag-d{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.2);}
@@ -1060,6 +1104,7 @@ export default function FarmsPage() {
   const [pointCount, setPointCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [apiError,   setApiError  ] = useState("");
+  const [formErrors,  setFormErrors ] = useState({});
   const [editId,     setEditId    ] = useState(null);
   const [mapKey,     setMapKey    ] = useState(0);
   const [flyTo,      setFlyTo     ] = useState(null); // { latlng, zoom }
@@ -1089,7 +1134,11 @@ export default function FarmsPage() {
   }), [user]);
 
   const [form, setForm] = useState(blankForm);
-  const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setF = (k, v) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    setFormErrors((errs) => ({ ...errs, [k]: "" }));
+    if (apiError) setApiError("");
+  };
 
   // Auth guard
   useEffect(() => {
@@ -1166,7 +1215,13 @@ export default function FarmsPage() {
     setModal("create");
   };
 
-  const handleCoordsChange = useCallback((coords) => setDrawnCoords(coords), []);
+  const handleCoordsChange = useCallback((coords) => {
+    setDrawnCoords(coords);
+    if (coords?.length >= 3) {
+      setFormErrors((errs) => ({ ...errs, coordinates: "" }));
+      setApiError("");
+    }
+  }, []);
   const handlePointCount   = useCallback((n)      => setPointCount(n), []);
 
   useEffect(() => {
@@ -1218,25 +1273,21 @@ export default function FarmsPage() {
 
   // Save
   const handleSave = async () => {
-    const errs = validateForm(form);
+    const errs = validateForm(form, t, drawnCoords);
     if (errs) {
-      const langs = [
-        { code: "ru", label: "Русский" },
-        { code: "en", label: "English" },
-        { code: "kk", label: "Қазақша" },
-      ];
-      const multiErrs = errs.map((err) => ({
-        key: err.key,
-        msgs: langs.map((l) => ({
-          lang: l.code,
-          label: l.label,
-          msg: i18n.t(err.key, { lng: l.code, defaultValue: err.fallback }),
-        })),
-      }));
-      setApiError(multiErrs);
+      setFormErrors(errs);
+      // Build list of field names for the banner
+      const FIELD_LABELS = {
+        name:        t("farms.field.name",   "Название"),
+        region:      t("farms.field.region", "Регион"),
+        phone:       t("farms.field.phone",  "Телефон"),
+        coordinates: t("farms.field.boundaries", "Границы фермы"),
+      };
+      const fieldList = Object.keys(errs).map((k) => FIELD_LABELS[k] || k).join(", ");
+      setApiError(t("farms.err.fillFields", "Заполните обязательные поля") + ": " + fieldList);
       return;
     }
-    setSubmitting(true); setApiError("");
+    setFormErrors({}); setSubmitting(true); setApiError("");
     try {
       const coords = drawnCoords;
       const ha     = coords?.length >= 3 ? calcHectares(coords) : 0;
@@ -1263,9 +1314,9 @@ export default function FarmsPage() {
       if (editId) await updateFarm?.(editId, payload);
       else        await createFarm?.(payload);
       await load();
-      setModal(null); setDrawnCoords(null); setEditId(null); setForm(blankForm());
+      setModal(null); setDrawnCoords(null); setEditId(null); setForm(blankForm()); setFormErrors({}); setApiError("");
     } catch (e) {
-      setApiError(e?.response?.data?.detail || t("farms.err.saveFailed", "Ошибка сохранения"));
+      setApiError(resolveServerError(e, t));
     } finally { setSubmitting(false); }
   };
 
@@ -1292,6 +1343,8 @@ export default function FarmsPage() {
     setDrawnCoords(null);
     setFlyTo(null);
     setSearchFlyTo(null);
+    setFormErrors({});
+    setApiError("");
     addressAbortRef.current?.abort();
   };
 
@@ -1511,20 +1564,9 @@ export default function FarmsPage() {
                 </div>
 
                 {apiError && (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", padding: "12px 12px", gap: 12, borderRadius: 10, marginBottom: 14, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#f87171" }}>
-                      <AlertCircle style={{ width: 14, height: 14, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600 }}>{Array.isArray(apiError) ? t("common.errors", "Ошибки") : apiError}</span>
-                    </div>
-                    {Array.isArray(apiError) && apiError.map((errGrp, idx) => (
-                      <div key={idx} style={{ padding: "10px 0", borderTop: idx > 0 ? "1px solid rgba(239,68,68,.15)" : "none" }}>
-                        {errGrp.msgs.map((m) => (
-                          <div key={m.lang} style={{ fontSize: 12, lineHeight: 1.4, marginTop: m.lang === errGrp.msgs[0].lang ? 0 : 6, color: "#f87171" }}>
-                            <strong style={{ display: "inline-block", width: 70, opacity: 0.8 }}>{m.label}:</strong> <span>{m.msg}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, marginBottom: 14, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", color: "#f87171" }}>
+                    <AlertCircle style={{ width: 14, height: 14, flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{apiError}</span>
                   </div>
                 )}
 
@@ -1537,18 +1579,21 @@ export default function FarmsPage() {
                   <div style={{ gridColumn: "1/-1" }}>
                     <label className={`fp-lbl ${d ? "fp-lbl-d" : "fp-lbl-l"}`}>{t("farms.field.name", "Название")} *</label>
                     <input
-                      className={`fp-inp fp-inp-${d ? "d" : "l"}`}
+                      className={`fp-inp fp-inp-${d ? "d" : "l"}${formErrors.name ? " fp-inp-error" : ""}`}
                       placeholder={t("farms.placeholder.name", "Ферма Жасыл Дала")}
                       value={form.name}
                       onChange={(e) => setF("name", e.target.value)}
                       maxLength={120}
+                      aria-invalid={!!formErrors.name}
                     />
+                    {formErrors.name && <div className="fp-field-error"><AlertCircle style={{ width: 12, height: 12 }} />{formErrors.name}</div>}
                   </div>
                   <div style={{ gridColumn: "1/-1" }}>
                     <label className={`fp-lbl ${d ? "fp-lbl-d" : "fp-lbl-l"}`}>
                       <MapPin style={{ width: 11, height: 11 }} />
                       {t("farms.field.region", "Регион")} *
                     </label>
+                    <div className={formErrors.region ? "fp-select-error" : ""} style={{ borderRadius: 11 }}>
                     <StyledSelect
                       isDark={d}
                       value={form.region}
@@ -1556,6 +1601,8 @@ export default function FarmsPage() {
                       options={REGIONS}
                       placeholder={t("farms.placeholder.region", "Выберите регион")}
                     />
+                    </div>
+                    {formErrors.region && <div className="fp-field-error"><AlertCircle style={{ width: 12, height: 12 }} />{formErrors.region}</div>}
                   </div>
                   <div>
                     <label className={`fp-lbl ${d ? "fp-lbl-d" : "fp-lbl-l"}`}>{t("farms.field.farmType", "Тип хозяйства")}</label>
@@ -1644,13 +1691,15 @@ export default function FarmsPage() {
                       {t("farms.field.phone", "Телефон")}
                     </label>
                     <input
-                      className={`fp-inp fp-inp-${d ? "d" : "l"}`}
+                      className={`fp-inp fp-inp-${d ? "d" : "l"}${formErrors.phone ? " fp-inp-error" : ""}`}
                       type="tel"
                       placeholder="+7 (777) 123-45-67"
                       value={form.phone}
                       onChange={(e) => setF("phone", e.target.value)}
                       maxLength={20}
+                      aria-invalid={!!formErrors.phone}
                     />
+                    {formErrors.phone && <div className="fp-field-error"><AlertCircle style={{ width: 12, height: 12 }} />{formErrors.phone}</div>}
                   </div>
                 </div>
 
@@ -1790,7 +1839,7 @@ export default function FarmsPage() {
                   </button>
 
                   {/* Ha badge */}
-                  <div className={`fp-ha-badge${computedHa ? " has-poly" : ""}`}>
+                  <div className={`fp-ha-badge${computedHa ? " has-poly" : ""}${formErrors.coordinates ? " has-error" : ""}`}>
                     {computedHa ? (
                       <><CheckCircle2 style={{ width: 13, height: 13 }} />{computedHa} га</>
                     ) : (
@@ -1798,6 +1847,13 @@ export default function FarmsPage() {
                     )}
                   </div>
                 </div>
+
+                {formErrors.coordinates && (
+                  <div className="fp-map-field-error">
+                    <AlertCircle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
+                    <span>{formErrors.coordinates}</span>
+                  </div>
+                )}
 
                 {/* Map */}
                 <div className="fp-map-search-wrap">

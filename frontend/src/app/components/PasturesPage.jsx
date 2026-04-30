@@ -49,10 +49,6 @@ const validateForm = (form, t, coords) => {
     errors.farm_id = t("pastures.err.farmRequired", "Select a farm");
   }
 
-  if (!form.grass_type) {
-    errors.grass_type = t("pastures.err.grassRequired", "Select grass type");
-  }
-
   if (!coords || coords.length < 3) {
     errors.coordinates = t("pastures.err.boundariesRequired", "Draw pasture boundaries on the map");
   } else if (calcHectares(coords) <= 0) {
@@ -1363,9 +1359,7 @@ export default function PasturesPage() {
 
                 <div style={{ marginBottom:14 }}>
                   <label className={`pp-lbl ${d?"pp-lbl-d":"pp-lbl-l"}`}>{t("pastures.field.grassType","Вид трав")}</label>
-                  <div className={formErrors.grass_type ? "pp-inp-error" : ""} style={{ borderRadius:11 }}>
-                    <StyledSelect isDark={d} value={form.grass_type} onChange={(v)=>setF("grass_type",v)} options={grassOptions} placeholder={t("pastures.placeholder.grassType","Выберите вид")} />
-                  </div>
+                  <StyledSelect isDark={d} value={form.grass_type} onChange={(v)=>setF("grass_type",v)} options={grassOptions} placeholder={t("pastures.placeholder.grassType","Выберите вид")} />
                   {form.grass_type && (() => {
                     const found = GRASS_TYPES.find((g)=>g.value===form.grass_type);
                     return found ? (
@@ -1374,7 +1368,6 @@ export default function PasturesPage() {
                       </div>
                     ) : null;
                   })()}
-                  {formErrors.grass_type && <div className="pp-field-error"><AlertCircle style={{ width:12, height:12 }} />{formErrors.grass_type}</div>}
                 </div>
 
                 <div style={{ marginBottom:14 }}>

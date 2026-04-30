@@ -232,14 +232,12 @@ export default function Header() {
 
   // ── Полное меню пользователя (восстановлено как в оригинале) ──
  const userMenuItems = user ? [
-  { label: t("nav.profile"), icon: User, href: "/profile/farmer", accent: isDark?"#4ade80":"#16a34a" },
   { label: t("nav.myFarms"), icon: LandPlot, href: "/farms", accent: isDark?"#4ade80":"#16a34a" },
   { label: t("nav.myPastures"), icon: Wheat, href: "/pastures", accent: isDark?"#4ade80":"#16a34a" },
   { label: t("nav.myDrones"), icon: Plane, href: "/drones", accent: isDark?"#4ade80":"#16a34a" },
   { label: t("nav.biomass"), icon: Leaf, href: "/biomass", accent: isDark?"#fbbf24":"#d97706" },
   { type: "divider" },
   { label: t("nav.biomassDashboard"), icon: BarChart3, href: "/biomass-dashboard", accent: isDark?"#fbbf24":"#d97706" },
-  { label: t("nav.pastureMap"), icon: Map, href: "/pastures-map", accent: isDark?"#fbbf24":"#d97706" },
   { type: "divider" },
   { label: t("nav.aiConsultant"), icon: MessageSquareText, href: "/ai-chat", accent: isDark?"#60a5fa":"#2563eb" },
   ...(isAdmin ? [{ label: "Admin Panel", icon: LayoutDashboard, href: "/admin", accent: isDark?"#a78bfa":"#7c3aed" }] : []),

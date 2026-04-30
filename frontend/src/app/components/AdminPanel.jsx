@@ -1,51 +1,94 @@
 // src/app/components/AdminPanel.jsx
-// KokMaisa 2025 — Admin Dashboard: stats + user management, light/dark
+// KokMaisa 2025 — Admin Dashboard: полный CRUD + мультиязычность + адаптив
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Users, Wheat, BarChart3, Shield, LogOut, Search, Trash2, ToggleLeft, ToggleRight, Edit3, X, Leaf, Sun, Moon, TrendingUp, RefreshCw } from "lucide-react";
+import {
+  Users, Wheat, BarChart3, Shield, LogOut, Search, Trash2,
+  ToggleLeft, ToggleRight, Edit3, X, Leaf, Sun, Moon,
+  RefreshCw, Plus, Menu, Globe, Check, MapPin, Activity,
+  Cpu, ChevronDown,
+} from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 const API = "http://127.0.0.1:8000/api";
 
-const ADM_STYLE = `
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
-.adm{font-family:'DM Sans',sans-serif;min-height:100vh;}
+/* ── CSS ───────────────────────────────────────────────────────────────── */
+const STYLE = `
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;}
+.adm{font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;}
 .adm-d{background:#040d06;color:#fff;}
 .adm-l{background:#f5fcf2;color:#1a3d20;}
-.sidebar{width:230px;flex-shrink:0;display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+
+.sidebar{width:230px;flex-shrink:0;display:flex;flex-direction:column;padding:20px 14px;
+  position:fixed;top:0;left:0;height:100vh;overflow-y:auto;
+  transition:transform .3s cubic-bezier(.22,1,.36,1);z-index:100;}
 .sidebar-d{background:#061309;border-right:1px solid rgba(255,255,255,.07);}
 .sidebar-l{background:#fff;border-right:1px solid rgba(34,197,94,.15);box-shadow:2px 0 16px rgba(34,197,94,.06);}
-@media(max-width:768px){.sidebar{display:none;}}
-.ni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s;text-decoration:none;border:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+.sid-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:99;}
+.sid-ov.open{display:block;}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .adm-wrap{margin-left:0!important;}
+  .adm-main{padding:14px!important;}
+  .mob-bar{display:flex!important;}
+}
+.adm-wrap{flex:1;margin-left:230px;display:flex;flex-direction:column;min-width:0;min-height:100vh;}
+.mob-bar{display:none;position:sticky;top:0;z-index:90;align-items:center;justify-content:space-between;padding:13px 16px;}
+.mob-bar-d{background:#061309;border-bottom:1px solid rgba(255,255,255,.07);}
+.mob-bar-l{background:#fff;border-bottom:1px solid rgba(34,197,94,.12);box-shadow:0 2px 10px rgba(34,197,94,.06);}
+.adm-main{flex:1;overflow-y:auto;padding:28px;}
+
+.ni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;
+  font-size:13px;font-weight:500;transition:background .15s;border:none;width:100%;
+  text-align:left;font-family:'DM Sans',sans-serif;}
 .ni-d{color:rgba(255,255,255,.55);background:transparent;}
-.ni-d:hover,.ni-d.act{background:rgba(255,255,255,.07);color:#fff;}
-.ni-d.act{color:#4ade80;}
+.ni-d:hover{background:rgba(255,255,255,.07);color:#fff;}
+.ni-d.act{background:rgba(74,222,128,.1);color:#4ade80;}
 .ni-l{color:rgba(20,55,20,.6);background:transparent;}
-.ni-l:hover,.ni-l.act{background:rgba(34,197,94,.08);color:#166534;}
-.ni-l.act{color:#16a34a;}
-.sc{border-radius:18px;padding:20px;}
+.ni-l:hover{background:rgba(34,197,94,.08);color:#166534;}
+.ni-l.act{background:rgba(34,197,94,.1);color:#16a34a;font-weight:600;}
+
+.sc{border-radius:18px;padding:18px;transition:transform .25s,box-shadow .25s;cursor:default;}
 .sc-d{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);}
 .sc-l{background:#fff;border:1px solid rgba(34,197,94,.14);box-shadow:0 4px 14px rgba(34,197,94,.07);}
-.sc:hover{transform:translateY(-3px);transition:transform .25s;}
+.sc:hover{transform:translateY(-3px);}
+.sc:hover.sc-l{box-shadow:0 8px 28px rgba(34,197,94,.12);}
+
+.pnl-d{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);}
+.pnl-l{background:#fff;border:1px solid rgba(34,197,94,.1);box-shadow:0 4px 16px rgba(34,197,94,.06);}
+
 .tbl{width:100%;border-collapse:collapse;font-size:13px;}
-.tbl th{padding:11px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;}
-.tbl td{padding:11px 14px;vertical-align:middle;}
+.tbl th{padding:11px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;}
+.tbl td{padding:10px 14px;vertical-align:middle;}
 .tbl-d th{color:rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.06);}
 .tbl-d td{border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.75);}
 .tbl-d tr:hover td{background:rgba(255,255,255,.025);}
 .tbl-l th{color:rgba(20,55,20,.4);border-bottom:1px solid rgba(34,197,94,.1);}
 .tbl-l td{border-bottom:1px solid rgba(34,197,94,.06);color:rgba(20,55,20,.8);}
 .tbl-l tr:hover td{background:rgba(34,197,94,.025);}
-.inp-d{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:9px 14px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;}
+
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+.mc{border-radius:14px;padding:15px;margin-bottom:10px;}
+.mc-d{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);}
+.mc-l{background:#fff;border:1px solid rgba(34,197,94,.12);box-shadow:0 2px 8px rgba(34,197,94,.05);}
+
+.inp-d{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;
+  border-radius:10px;padding:9px 14px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;width:100%;}
 .inp-d::placeholder{color:rgba(255,255,255,.3);}
-.inp-d:focus{border-color:rgba(74,222,128,.5);}
-.inp-l{background:#f8fdf8;border:1px solid rgba(34,197,94,.22);color:#1a3d20;border-radius:10px;padding:9px 14px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;}
+.inp-d:focus{border-color:rgba(74,222,128,.5);box-shadow:0 0 0 3px rgba(74,222,128,.07);}
+.inp-l{background:#f8fdf8;border:1px solid rgba(34,197,94,.22);color:#1a3d20;
+  border-radius:10px;padding:9px 14px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;width:100%;}
 .inp-l::placeholder{color:rgba(20,55,20,.35);}
 .inp-l:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.1);}
-.bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;}
+
+.bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;
+  font-size:10px;font-weight:700;letter-spacing:.05em;white-space:nowrap;}
 .bdg-fa-d{background:rgba(74,222,128,.12);color:#4ade80;}
 .bdg-fa-l{background:rgba(22,163,74,.1);color:#16a34a;}
 .bdg-ad-d{background:rgba(139,92,246,.15);color:#a78bfa;}
@@ -54,285 +97,773 @@ const ADM_STYLE = `
 .bdg-on-l{background:rgba(22,163,74,.08);color:#15803d;}
 .bdg-off-d{background:rgba(239,68,68,.1);color:#f87171;}
 .bdg-off-l{background:rgba(239,68,68,.07);color:#dc2626;}
-.btn-p{padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#22c55e,#0d9488);color:#fff;transition:transform .2s,box-shadow .2s;display:inline-flex;align-items:center;gap:6px;}
+.bdg-me-d{background:rgba(34,211,238,.1);color:#67e8f9;}
+.bdg-me-l{background:rgba(8,145,178,.08);color:#0e7490;}
+.bdg-yw-d{background:rgba(251,191,36,.1);color:#fbbf24;}
+.bdg-yw-l{background:rgba(217,119,6,.08);color:#b45309;}
+
+.btn-p{padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;
+  font-weight:600;font-family:'DM Sans',sans-serif;
+  background:linear-gradient(135deg,#22c55e,#0d9488);color:#fff;
+  transition:transform .2s,box-shadow .2s;display:inline-flex;align-items:center;gap:6px;}
 .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(34,197,94,.35);}
-.btn-g-d{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.11);background:transparent;color:rgba(255,255,255,.55);cursor:pointer;transition:background .15s;display:inline-flex;align-items:center;gap:4px;font-size:12px;}
+.btn-g-d{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.11);
+  background:transparent;color:rgba(255,255,255,.55);cursor:pointer;
+  transition:background .15s;display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-family:'DM Sans',sans-serif;}
 .btn-g-d:hover{background:rgba(255,255,255,.08);color:#fff;}
-.btn-g-l{padding:6px 10px;border-radius:8px;border:1px solid rgba(34,197,94,.2);background:transparent;color:rgba(20,55,20,.6);cursor:pointer;transition:background .15s;display:inline-flex;align-items:center;gap:4px;font-size:12px;}
+.btn-g-l{padding:6px 10px;border-radius:8px;border:1px solid rgba(34,197,94,.2);
+  background:transparent;color:rgba(20,55,20,.6);cursor:pointer;
+  transition:background .15s;display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-family:'DM Sans',sans-serif;}
 .btn-g-l:hover{background:rgba(34,197,94,.07);color:#166534;}
-.mo-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;}
-.mo-d{background:#061309;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:420px;}
-.mo-l{background:#fff;border:1px solid rgba(34,197,94,.15);border-radius:20px;padding:28px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.12);}
-.adm-main{flex:1;overflow-y:auto;padding:28px;}
-@media(max-width:640px){.adm-main{padding:14px;}}
+.btn-del{padding:6px 10px;border-radius:8px;border:1px solid rgba(239,68,68,.2);
+  background:transparent;color:#f87171;cursor:pointer;
+  display:inline-flex;align-items:center;gap:4px;font-size:12px;
+  font-family:'DM Sans',sans-serif;transition:background .15s;}
+.btn-del:hover{background:rgba(239,68,68,.08);}
+
+.mo-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(5px);
+  z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.mo{border-radius:20px;padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+.mo-d{background:#061309;border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 80px rgba(0,0,0,.7);}
+.mo-l{background:#fff;border:1px solid rgba(34,197,94,.15);box-shadow:0 24px 60px rgba(0,0,0,.12);}
+
+.lang-dd{position:relative;}
+.lang-menu{position:absolute;left:0;bottom:calc(100%+6px);min-width:148px;border-radius:12px;overflow:hidden;z-index:300;}
+.lang-menu-d{background:#061309;border:1px solid rgba(255,255,255,.1);box-shadow:0 12px 40px rgba(0,0,0,.5);}
+.lang-menu-l{background:#fff;border:1px solid rgba(34,197,94,.15);box-shadow:0 12px 32px rgba(0,0,0,.1);}
+.lang-item{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;cursor:pointer;transition:background .12s;}
+.lang-item-d{color:rgba(255,255,255,.7);}
+.lang-item-d:hover,.lang-item-d.cur{background:rgba(255,255,255,.07);color:#fff;}
+.lang-item-l{color:rgba(20,55,20,.75);}
+.lang-item-l:hover,.lang-item-l.cur{background:rgba(34,197,94,.07);color:#166534;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media(max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.stat-grid{grid-template-columns:repeat(2,1fr);gap:8px;}}
+
+.filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center;}
+.page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:10px;flex-wrap:wrap;}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(34,197,94,.25);border-radius:8px;}
 @keyframes afu{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-.afu{animation:afu .35s cubic-bezier(.22,1,.36,1) both;}
+.afu{animation:afu .32s cubic-bezier(.22,1,.36,1) both;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{animation:spin 1s linear infinite;}
 `;
 
-function useAdminAPI() {
-  const token = localStorage.getItem("access_token") || "";
-  const H = { Authorization: `Bearer ${token}`, "Content-Type":"application/json" };
+/* ── Langs ─────────────────────────────────────────────────────────────── */
+const LANGS = [
+  {code:"kk",name:"Қазақша",flag:"🇰🇿"},
+  {code:"ru",name:"Русский",flag:"🇷🇺"},
+  {code:"en",name:"English",flag:"🇬🇧"},
+];
+
+/* ── Helpers ────────────────────────────────────────────────────────────── */
+function fmt(v, unit="") { return (v==null)?"—":`${Number(v).toFixed(2)}${unit}`; }
+function fmtD(dt,lang="ru") { return dt ? new Date(dt).toLocaleDateString(lang) : "—"; }
+function Spin({c="#4ade80"}){ return <div style={{width:22,height:22,border:`3px solid ${c}28`,borderTopColor:c,borderRadius:"50%"}} className="spin"/>; }
+
+/* ── LangSwitcher ───────────────────────────────────────────────────────── */
+function LangSwitcher({d}){
+  const {i18n} = useTranslation();
+  const [open,setOpen] = useState(false);
+  const ref = useRef(null);
+  const cur = LANGS.find(l=>l.code===i18n.language)||LANGS[1];
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener("mousedown",h);
+    return()=>document.removeEventListener("mousedown",h);
+  },[]);
+  return(
+    <div className="lang-dd" ref={ref}>
+      <button onClick={()=>setOpen(o=>!o)} className={`ni ${d?"ni-d":"ni-l"}`} style={{justifyContent:"space-between"}}>
+        <span style={{display:"flex",alignItems:"center",gap:8}}>
+          <Globe className="w-4 h-4 flex-shrink-0"/>
+          <span>{cur.flag} {cur.name}</span>
+        </span>
+        <ChevronDown className="w-3 h-3" style={{transform:open?"rotate(180deg)":"none",transition:"transform .2s"}}/>
+      </button>
+      {open&&(
+        <div className={`lang-menu ${d?"lang-menu-d":"lang-menu-l"}`}>
+          {LANGS.map(l=>(
+            <div key={l.code} className={`lang-item ${d?"lang-item-d":"lang-item-l"} ${i18n.language===l.code?"cur":""}`}
+              onClick={()=>{i18n.changeLanguage(l.code);setOpen(false);}}>
+              <span>{l.flag}</span><span>{l.name}</span>
+              {i18n.language===l.code&&<Check className="w-3 h-3 ml-auto" style={{color:"#22c55e"}}/>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── API hook ───────────────────────────────────────────────────────────── */
+function useAPI(){
+  const token = localStorage.getItem("access_token")||"";
+  const H = {Authorization:`Bearer ${token}`,"Content-Type":"application/json"};
+  const r  = (url,opts={}) => fetch(`${API}${url}`,{headers:H,...opts}).then(r=>r.json());
   return {
-    stats:       () => fetch(`${API}/admin/stats`,{headers:H}).then(r=>r.json()),
-    users:       (q) => fetch(`${API}/admin/users${q}`,{headers:H}).then(r=>r.json()),
-    toggle:      (id) => fetch(`${API}/admin/users/${id}/toggle-active`,{method:"POST",headers:H}).then(r=>r.json()),
-    del:         (id) => fetch(`${API}/admin/users/${id}`,{method:"DELETE",headers:H}).then(r=>r.json()),
-    update:      (id,d) => fetch(`${API}/admin/users/${id}`,{method:"PUT",headers:H,body:JSON.stringify(d)}).then(r=>r.json()),
+    stats:       ()      => r("/admin/stats"),
+    users:       q       => r(`/admin/users${q}`),
+    userToggle:  id      => r(`/admin/users/${id}/toggle-active`,{method:"POST"}),
+    userDelete:  id      => r(`/admin/users/${id}`,{method:"DELETE"}),
+    userUpdate:  (id,d)  => r(`/admin/users/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    userCreate:  d       => r("/admin/users",{method:"POST",body:JSON.stringify(d)}),
+    farms:       q       => r(`/admin/farms${q}`),
+    farmUpdate:  (id,d)  => r(`/admin/farms/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    farmDelete:  id      => r(`/admin/farms/${id}`,{method:"DELETE"}),
+    pastures:    q       => r(`/admin/pastures${q}`),
+    pastureDelete:id     => r(`/admin/pastures/${id}`,{method:"DELETE"}),
+    drones:      ()      => r("/admin/drones"),
+    droneUpdate: (id,d)  => r(`/admin/drones/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    droneDelete: id      => r(`/admin/drones/${id}`,{method:"DELETE"}),
+    measurements:q       => r(`/admin/measurements${q}`),
+    measDelete:  id      => r(`/admin/measurements/${id}`,{method:"DELETE"}),
   };
 }
 
-export default function AdminPanel() {
-  const { t } = useTranslation();
-  const { theme, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+/* ══════════════════════════════ MAIN ══════════════════════════════════════ */
+export default function AdminPanel(){
+  const {t,i18n} = useTranslation();
+  const {theme,toggleTheme} = useTheme();
+  const {user,logout} = useAuth();
   const navigate = useNavigate();
-  const d = theme === "dark";
-  const api = useAdminAPI();
+  const d = theme==="dark";
+  const api = useAPI();
 
-  const [tab, setTab]     = useState("dashboard");
-  const [stats, setStats] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
-  const [loading, setLoading] = useState(false);
-  const [editU, setEditU] = useState(null);
-  const [editF, setEditF] = useState({});
-  const [delU,  setDelU]  = useState(null);
+  const tc = d?"#fff":"#1a3d20";
+  const sc = d?"rgba(255,255,255,.45)":"rgba(20,55,20,.5)";
+  const cls = d?"inp-d":"inp-l";
+  const gg  = d?"btn-g-d":"btn-g-l";
+  const pBg = d?{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)"}
+                :{background:"#fff",border:"1px solid rgba(34,197,94,.1)",boxShadow:"0 4px 16px rgba(34,197,94,.06)"};
 
-  const tc = d ? "#fff" : "#1a3d20";
-  const sc = d ? "rgba(255,255,255,.45)" : "rgba(20,55,20,.5)";
+  /* ─ State ─ */
+  const [tab,      setTab]      = useState("dashboard");
+  const [sideOpen, setSideOpen] = useState(false);
+  const [stats,    setStats]    = useState(null);
+  const [loading,  setLoading]  = useState(false);
 
-  useEffect(() => { api.stats().then(setStats).catch(()=>{}); }, []);
+  const [users,   setUsers]   = useState([]); const [uSearch,setUSearch]=useState(""); const [uFilter,setUFilter]=useState("all");
+  const [farms,   setFarms]   = useState([]); const [fSearch,setFSearch]=useState(""); const [fStatus,setFStatus]=useState("all");
+  const [pastures,setPastures]= useState([]);
+  const [drones,  setDrones]  = useState([]);
+  const [meas,    setMeas]    = useState([]);
 
-  const loadUsers = useCallback(async () => {
+  /* Modals */
+  const [editU,      setEditU]      = useState(null); const [editUF,setEditUF] = useState({});
+  const [newU,       setNewU]       = useState(false);
+  const [newUF,      setNewUF]      = useState({full_name:"",email:"",phone:"",password:"",account_type:"farmer",country:"",city:""});
+  const [newUErr,    setNewUErr]    = useState(""); const [newUOk,setNewUOk]=useState(false);
+  const [delU,       setDelU]       = useState(null);
+  const [editFarm,   setEditFarm]   = useState(null); const [editFarmF,setEditFarmF]=useState({});
+  const [delFarm,    setDelFarm]    = useState(null);
+  const [delPasture, setDelPasture] = useState(null);
+  const [editDrone,  setEditDrone]  = useState(null); const [editDroneF,setEditDroneF]=useState({});
+  const [delDrone,   setDelDrone]   = useState(null);
+  const [delMeas,    setDelMeas]    = useState(null);
+  const [saving,     setSaving]     = useState(false);
+
+  /* ─ Loaders ─ */
+  const loadStats    = useCallback(()=>api.stats().then(setStats).catch(()=>{}), []);
+  const loadUsers    = useCallback(async()=>{
     setLoading(true);
-    try {
-      let q = "?limit=200";
-      if (filter !== "all") q += `&account_type=${filter}`;
-      if (search) q += `&search=${encodeURIComponent(search)}`;
-      const data = await api.users(q);
-      setUsers(Array.isArray(data) ? data : []);
-    } catch { setUsers([]); }
-    finally { setLoading(false); }
-  }, [filter, search]);
+    try{ let q="?limit=200"; if(uFilter!=="all")q+=`&account_type=${uFilter}`; if(uSearch)q+=`&search=${encodeURIComponent(uSearch)}`; setUsers((await api.users(q))||[]); }
+    catch{setUsers([]);} finally{setLoading(false);}
+  },[uFilter,uSearch]);
+  const loadFarms    = useCallback(async()=>{
+    setLoading(true);
+    try{ let q="?limit=100"; if(fSearch)q+=`&search=${encodeURIComponent(fSearch)}`; if(fStatus!=="all")q+=`&status=${fStatus}`; setFarms((await api.farms(q))||[]); }
+    catch{setFarms([]);} finally{setLoading(false);}
+  },[fSearch,fStatus]);
+  const loadPastures = useCallback(async()=>{ setLoading(true); try{setPastures((await api.pastures("?limit=200"))||[]);}catch{setPastures([]);} finally{setLoading(false);} },[]);
+  const loadDrones   = useCallback(async()=>{ setLoading(true); try{setDrones((await api.drones())||[]);}catch{setDrones([]);} finally{setLoading(false);} },[]);
+  const loadMeas     = useCallback(async()=>{ setLoading(true); try{setMeas((await api.measurements("?limit=100"))||[]);}catch{setMeas([]);} finally{setLoading(false);} },[]);
 
-  useEffect(() => { if (tab === "users") loadUsers(); }, [tab, loadUsers]);
+  useEffect(()=>{ loadStats(); },[]);
+  useEffect(()=>{
+    if(tab==="users")        loadUsers();
+    if(tab==="farms")        loadFarms();
+    if(tab==="pastures")     loadPastures();
+    if(tab==="drones")       loadDrones();
+    if(tab==="measurements") loadMeas();
+  },[tab,loadUsers,loadFarms,loadPastures,loadDrones,loadMeas]);
 
-  const handleToggle = async (id) => { await api.toggle(id); loadUsers(); };
-  const handleDel    = async () => { if (!delU) return; await api.del(delU.id); setDelU(null); loadUsers(); api.stats().then(setStats); };
-  const handleEdit   = async () => { if (!editU) return; await api.update(editU.id, editF); setEditU(null); loadUsers(); };
+  /* ─ Actions ─ */
+  const doRefresh = ()=>{ loadStats(); if(tab==="users")loadUsers(); if(tab==="farms")loadFarms(); if(tab==="pastures")loadPastures(); if(tab==="drones")loadDrones(); if(tab==="measurements")loadMeas(); };
 
-  if (user?.account_type !== "admin") return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background: d?"#040d06":"#f5fcf2" }}>
-      <div className="text-center">
-        <Shield className="w-16 h-16 mx-auto mb-4" style={{ color: sc }} />
-        <p style={{ color: sc }}>{t("admin.accessDenied","Admin only")}</p>
-      </div>
+  const doUserToggle  = async id  =>{ await api.userToggle(id); loadUsers(); };
+  const doUserDelete  = async()   =>{ if(!delU)return; await api.userDelete(delU.id); setDelU(null); loadUsers(); loadStats(); };
+  const doUserEdit    = async()   =>{ if(!editU)return; setSaving(true); await api.userUpdate(editU.id,editUF); setSaving(false); setEditU(null); loadUsers(); };
+  const doUserCreate  = async()   =>{
+    setNewUErr("");
+    try{
+      const res = await api.userCreate(newUF);
+      if(res.id){ setNewUOk(true); setTimeout(()=>{ setNewU(false);setNewUOk(false);setNewUF({full_name:"",email:"",phone:"",password:"",account_type:"farmer",country:"",city:""})},1300); loadUsers();loadStats(); }
+      else setNewUErr(res.detail||"Error");
+    }catch{ setNewUErr("Connection error"); }
+  };
+
+  const doFarmEdit    = async()   =>{ if(!editFarm)return; setSaving(true); await api.farmUpdate(editFarm.id,editFarmF); setSaving(false); setEditFarm(null); loadFarms(); };
+  const doFarmDelete  = async()   =>{ if(!delFarm)return; await api.farmDelete(delFarm.id); setDelFarm(null); loadFarms(); loadStats(); };
+  const doPastureDelete=async()   =>{ if(!delPasture)return; await api.pastureDelete(delPasture.id); setDelPasture(null); loadPastures(); loadStats(); };
+  const doDroneEdit   = async()   =>{ if(!editDrone)return; setSaving(true); await api.droneUpdate(editDrone.id,editDroneF); setSaving(false); setEditDrone(null); loadDrones(); };
+  const doDroneDelete = async()   =>{ if(!delDrone)return; await api.droneDelete(delDrone.id); setDelDrone(null); loadDrones(); loadStats(); };
+  const doMeasDelete  = async()   =>{ if(!delMeas)return; await api.measDelete(delMeas.id); setDelMeas(null); loadMeas(); loadStats(); };
+
+  /* ─ Misc ─ */
+  const goTab = id=>{ setTab(id); setSideOpen(false); };
+  const nc    = id=>`ni ${d?`ni-d${tab===id?" act":""}` :`ni-l${tab===id?" act":""}`}`;
+
+  if(user?.account_type!=="admin") return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:d?"#040d06":"#f5fcf2"}}>
+      <div style={{textAlign:"center"}}><Shield className="w-16 h-16 mx-auto mb-4" style={{color:sc}}/><p style={{color:sc}}>{t("admin.accessDenied")}</p></div>
     </div>
   );
 
-  const nc = (id) => `ni ${d?`ni-d${tab===id?" act":""}` :`ni-l${tab===id?" act":""}`}`;
-  const cls = d ? "inp-d" : "inp-l";
+  /* ─ Stat cards ─ */
+  const statCards = stats?[
+    {icon:Users,   val:stats.users?.total,   lbl:t("admin.totalUsers"),    a:"#4ade80"},
+    {icon:Users,   val:stats.users?.farmers, lbl:t("admin.totalFarmers"),  a:"#22d3ee"},
+    {icon:Shield,  val:stats.users?.admins,  lbl:t("admin.totalAdmins"),   a:"#a78bfa"},
+    {icon:Users,   val:stats.users?.active,  lbl:t("admin.activeUsers"),   a:"#34d399"},
+    {icon:Wheat,   val:stats.farms,          lbl:t("admin.totalFarms"),    a:"#fbbf24"},
+    {icon:MapPin,  val:stats.pastures,       lbl:t("admin.totalPastures"), a:"#f97316"},
+    {icon:Cpu,     val:stats.drones,         lbl:t("admin.totalDrones"),   a:"#818cf8"},
+    {icon:Activity,val:stats.analyses,       lbl:t("admin.totalAnalyses"), a:"#f472b6"},
+  ]:[];
 
-  const statCards = stats ? [
-    { icon:Users,     val:stats.users?.total,   lbl:t("admin.totalUsers"),   a:"#4ade80" },
-    { icon:Wheat,     val:stats.users?.farmers,  lbl:t("admin.totalFarmers"), a:"#22d3ee" },
-    { icon:Shield,    val:stats.users?.admins,   lbl:t("admin.totalAdmins"),  a:"#a78bfa" },
-    { icon:BarChart3, val:stats.farms,           lbl:t("admin.totalFarms"),   a:"#fbbf24" },
-    { icon:TrendingUp,val:stats.analyses,        lbl:t("admin.totalAnalyses"),a:"#f472b6" },
-    { icon:Users,     val:stats.users?.active,   lbl:t("admin.activeUsers"),  a:"#34d399" },
-  ] : [];
+  const navItems = [
+    {id:"dashboard",    icon:BarChart3, lbl:t("admin.dashboard")},
+    {id:"users",        icon:Users,     lbl:t("admin.users")},
+    {id:"farms",        icon:Wheat,     lbl:t("admin.farms")},
+    {id:"pastures",     icon:MapPin,    lbl:t("admin.pastures","Пастбища")},
+    {id:"drones",       icon:Cpu,       lbl:t("admin.drones","Дроны")},
+    {id:"measurements", icon:Activity,  lbl:t("admin.measurements")},
+  ];
 
-  return (
+  /* ─── Sidebar content ─── */
+  const SideContent = ()=>(
     <>
-      <style>{ADM_STYLE}</style>
-      <div className={`adm flex ${d?"adm-d":"adm-l"}`}>
+      <div className="flex items-center gap-2 mb-8 px-1">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:"linear-gradient(135deg,#22c55e,#0d9488)"}}>
+          <Leaf className="w-4 h-4 text-white"/>
+        </div>
+        <span className="font-extrabold text-sm" style={{fontFamily:"Syne,sans-serif",color:tc}}>KokMaisa</span>
+      </div>
+      <p className="text-xs font-bold uppercase px-2 mb-2" style={{color:sc,letterSpacing:".15em"}}>Admin</p>
+      <nav className="space-y-0.5 flex-1">
+        {navItems.map(({id,icon:Icon,lbl})=>(
+          <button key={id} onClick={()=>goTab(id)} className={nc(id)}>
+            <Icon className="w-4 h-4 flex-shrink-0"/>{lbl}
+          </button>
+        ))}
+      </nav>
+      <div className="mt-auto space-y-0.5 pt-4" style={{borderTop:d?"1px solid rgba(255,255,255,.06)":"1px solid rgba(34,197,94,.12)"}}>
+        <LangSwitcher d={d}/>
+        <button onClick={toggleTheme} className={`ni ${d?"ni-d":"ni-l"}`}>
+          {d?<Sun className="w-4 h-4"/>:<Moon className="w-4 h-4"/>}
+          {d?t("common.lightMode","Light"):t("common.darkMode","Dark")}
+        </button>
+        <button onClick={()=>{logout?.();navigate("/");}} className={`ni ${d?"ni-d":"ni-l"}`}>
+          <LogOut className="w-4 h-4"/>{t("nav.logout")}
+        </button>
+      </div>
+    </>
+  );
+
+  /* ─── Empty / Loading ─── */
+  const Empty = ({icon:Icon,text})=>(
+    <div style={{padding:"56px 24px",textAlign:"center",color:sc}}>
+      <Icon className="w-10 h-10 mx-auto mb-3 opacity-40"/><p style={{fontSize:14}}>{text}</p>
+    </div>
+  );
+  const LoadRow = ()=>(
+    <div style={{padding:"48px",display:"flex",justifyContent:"center"}}><Spin c={d?"#4ade80":"#22c55e"}/></div>
+  );
+
+  /* ─── Table container ─── */
+  const Panel = ({children})=>(
+    <div style={{...pBg,borderRadius:16,overflow:"hidden"}}>{children}</div>
+  );
+
+  /* ══════════════ RENDER ══════════════════════════════════════════════════ */
+  return(
+    <>
+      <style>{STYLE}</style>
+      <div className={`sid-ov ${sideOpen?"open":""}`} onClick={()=>setSideOpen(false)}/>
+      <div className={`adm ${d?"adm-d":"adm-l"}`}>
 
         {/* Sidebar */}
-        <aside className={`sidebar ${d?"sidebar-d":"sidebar-l"}`}>
-          <div className="flex items-center gap-2 mb-8 px-1">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background:"linear-gradient(135deg,#22c55e,#0d9488)" }}>
-              <Leaf className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-extrabold text-sm" style={{ fontFamily:"Syne,sans-serif", color:tc }}>KokMaisa</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-2 px-2" style={{ color:sc, letterSpacing:".15em" }}>Admin</p>
-          <nav className="space-y-0.5 flex-1">
-            {[
-              { id:"dashboard", icon:BarChart3, lbl:t("admin.dashboard","Dashboard") },
-              { id:"users",     icon:Users,     lbl:t("admin.users","Users") },
-              { id:"farms",     icon:Wheat,     lbl:t("admin.farms","Farms") },
-            ].map(({ id, icon:Icon, lbl }) => (
-              <button key={id} onClick={()=>setTab(id)} className={nc(id)}>
-                <Icon className="w-4 h-4 flex-shrink-0" />{lbl}
-              </button>
-            ))}
-          </nav>
-          <div className="mt-auto space-y-0.5 pt-4 border-t" style={{ borderColor: d?"rgba(255,255,255,.06)":"rgba(34,197,94,.12)" }}>
-            <button onClick={toggleTheme} className={`ni ${d?"ni-d":"ni-l"}`}>
-              {d?<Sun className="w-4 h-4"/>:<Moon className="w-4 h-4"/>}
-              {d?"Light":"Dark"}
-            </button>
-            <button onClick={()=>{logout?.();navigate("/");}} className={`ni ${d?"ni-d":"ni-l"}`}>
-              <LogOut className="w-4 h-4"/>{t("nav.logout")}
-            </button>
-          </div>
+        <aside className={`sidebar ${d?"sidebar-d":"sidebar-l"} ${sideOpen?"open":""}`}>
+          <SideContent/>
         </aside>
 
         {/* Main */}
-        <main className="adm-main">
-          <div className="flex items-center justify-between mb-7">
-            <div>
-              <h1 className="text-2xl font-extrabold" style={{ fontFamily:"Syne,sans-serif", color:tc }}>{t("admin.title","Admin Panel")}</h1>
-              <p className="text-xs mt-0.5" style={{ color:sc }}>{user?.email}</p>
+        <div className="adm-wrap">
+
+          {/* Mobile bar */}
+          <div className={`mob-bar ${d?"mob-bar-d":"mob-bar-l"}`}>
+            <button onClick={()=>setSideOpen(o=>!o)} className={gg} style={{padding:"8px"}}><Menu className="w-5 h-5"/></button>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{background:"linear-gradient(135deg,#22c55e,#0d9488)"}}>
+                <Leaf className="w-3.5 h-3.5 text-white"/>
+              </div>
+              <span className="font-extrabold text-sm" style={{fontFamily:"Syne,sans-serif",color:tc}}>Admin</span>
             </div>
-            <button onClick={()=>api.stats().then(setStats)} className={d?"btn-g-d":"btn-g-l"}>
-              <RefreshCw className="w-3.5 h-3.5"/>
+            <button onClick={toggleTheme} className={gg} style={{padding:"8px"}}>
+              {d?<Sun className="w-4 h-4"/>:<Moon className="w-4 h-4"/>}
             </button>
           </div>
 
-          {/* Dashboard */}
-          {tab==="dashboard" && (
-            <div className="afu">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                {statCards.map(({ icon:Icon, val, lbl, a }) => (
-                  <div key={lbl} className={`sc ${d?"sc-d":"sc-l"}`}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background:`${a}18`, border:`1px solid ${a}28` }}>
-                      <Icon className="w-4 h-4" style={{ color:a }} />
-                    </div>
-                    <div className="text-2xl font-extrabold" style={{ fontFamily:"Syne,sans-serif", color:tc }}>{val??"-"}</div>
-                    <div className="text-xs mt-0.5" style={{ color:sc }}>{lbl}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-2xl p-5" style={{ background:d?"rgba(255,255,255,.03)":"#fff", border:d?"1px solid rgba(255,255,255,.07)":"1px solid rgba(34,197,94,.12)" }}>
-                <h2 className="font-bold mb-4" style={{ fontFamily:"Syne,sans-serif", color:tc }}>Quick Actions</h2>
-                <button className="btn-p" onClick={()=>setTab("users")}><Users className="w-4 h-4"/>Manage Users</button>
-              </div>
-            </div>
-          )}
+          <main className="adm-main">
 
-          {/* Users */}
-          {tab==="users" && (
-            <div className="afu">
-              <div className="flex flex-wrap gap-2 mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color:sc }} />
-                  <input className={`${cls} pl-9 w-48`} placeholder={t("admin.search","Search...")} value={search} onChange={e=>setSearch(e.target.value)} />
-                </div>
-                {["all","farmer","admin"].map(f=>(
-                  <button key={f} onClick={()=>setFilter(f)} className={filter===f?"btn-p":(d?"btn-g-d":"btn-g-l")} style={{ padding:"7px 12px" }}>
-                    {f==="all"?t("admin.filterAll","All"):f==="farmer"?t("admin.filterFarmer","Farmers"):t("admin.filterAdmin","Admins")}
-                  </button>
-                ))}
+            {/* Page header */}
+            <div className="page-hdr">
+              <div>
+                <h1 className="text-2xl font-extrabold" style={{fontFamily:"Syne,sans-serif",color:tc}}>
+                  {navItems.find(n=>n.id===tab)?.lbl||t("admin.title")}
+                </h1>
+                <p className="text-xs mt-0.5" style={{color:sc}}>{user?.email}</p>
               </div>
-              <div className="rounded-2xl overflow-hidden" style={{ background:d?"rgba(255,255,255,.03)":"#fff", border:d?"1px solid rgba(255,255,255,.06)":"1px solid rgba(34,197,94,.1)" }}>
-                {loading ? (
-                  <div className="p-10 text-center" style={{ color:sc }}>Loading...</div>
-                ) : users.length===0 ? (
-                  <div className="p-10 text-center" style={{ color:sc }}>{t("admin.noUsers","No users found")}</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className={`tbl ${d?"tbl-d":"tbl-l"}`}>
-                      <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
-                      <tbody>
-                        {users.map(u=>(
-                          <tr key={u.id}>
-                            <td className="font-mono text-xs" style={{ color:sc }}>#{u.id}</td>
-                            <td>
-                              <div className="font-medium" style={{ color:tc }}>{u.full_name}</div>
-                              <div className="text-xs" style={{ color:sc }}>{u.city}, {u.country}</div>
-                            </td>
-                            <td style={{ color:sc, fontSize:12 }}>{u.email}</td>
-                            <td>
-                              <span className={`bdg ${u.account_type==="admin"?(d?"bdg-ad-d":"bdg-ad-l"):(d?"bdg-fa-d":"bdg-fa-l")}`}>
-                                {u.account_type==="admin"?"Admin":"Farmer"}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`bdg ${u.is_active?(d?"bdg-on-d":"bdg-on-l"):(d?"bdg-off-d":"bdg-off-l")}`}>
-                                {u.is_active?"Active":"Inactive"}
-                              </span>
-                            </td>
-                            <td>
-                              <div className="flex gap-1.5">
-                                <button onClick={()=>{setEditU(u);setEditF({account_type:u.account_type,full_name:u.full_name});}} className={d?"btn-g-d":"btn-g-l"} title="Edit">
-                                  <Edit3 className="w-3.5 h-3.5"/>
-                                </button>
-                                <button onClick={()=>handleToggle(u.id)} className={d?"btn-g-d":"btn-g-l"} title="Toggle active">
-                                  {u.is_active?<ToggleRight className="w-3.5 h-3.5" style={{ color:"#4ade80" }}/>:<ToggleLeft className="w-3.5 h-3.5"/>}
-                                </button>
-                                <button onClick={()=>setDelU(u)} className={d?"btn-g-d":"btn-g-l"} title="Delete" style={{ color:"#f87171" }}>
-                                  <Trash2 className="w-3.5 h-3.5"/>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              <div className="flex gap-2 flex-wrap">
+                {tab==="users"&&(
+                  <button className="btn-p" onClick={()=>setNewU(true)}><Plus className="w-4 h-4"/>{t("admin.addUser")}</button>
                 )}
-              </div>
-            </div>
-          )}
-
-          {tab==="farms" && (
-            <div className="afu rounded-2xl p-8 text-center" style={{ background:d?"rgba(255,255,255,.03)":"#fff", border:d?"1px solid rgba(255,255,255,.06)":"1px solid rgba(34,197,94,.1)" }}>
-              <Wheat className="w-12 h-12 mx-auto mb-3" style={{ color:sc }} />
-              <p style={{ color:sc }}>Farm management — coming soon</p>
-            </div>
-          )}
-        </main>
-
-        {/* Edit Modal */}
-        {editU && (
-          <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setEditU(null)}>
-            <div className={`${d?"mo-d":"mo-l"} afu`}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold" style={{ fontFamily:"Syne,sans-serif", color:tc }}>Edit User</h3>
-                <button onClick={()=>setEditU(null)} style={{ background:"none", border:"none", cursor:"pointer", color:sc }}><X className="w-5 h-5"/></button>
-              </div>
-              <div className="space-y-3">
-                <div><label className="text-xs font-semibold mb-1 block" style={{ color:sc }}>Full Name</label><input className={`${cls} w-full`} value={editF.full_name||""} onChange={e=>setEditF(f=>({...f,full_name:e.target.value}))}/></div>
-                <div><label className="text-xs font-semibold mb-1 block" style={{ color:sc }}>Role</label>
-                  <select className={`${cls} w-full`} value={editF.account_type||"farmer"} onChange={e=>setEditF(f=>({...f,account_type:e.target.value}))}>
-                    <option value="farmer">Farmer</option><option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={()=>setEditU(null)} className={d?"btn-g-d":"btn-g-l"} style={{ flex:1, justifyContent:"center", padding:"9px" }}>Cancel</button>
-                <button onClick={handleEdit} className="btn-p" style={{ flex:1, justifyContent:"center" }}>Save</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirm */}
-        {delU && (
-          <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setDelU(null)}>
-            <div className={`${d?"mo-d":"mo-l"} afu`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background:"rgba(239,68,68,.12)" }}>
-                  <Trash2 className="w-5 h-5 text-red-400"/>
-                </div>
-                <h3 className="font-bold" style={{ fontFamily:"Syne,sans-serif", color:tc }}>Delete User</h3>
-              </div>
-              <p className="text-sm mb-6" style={{ color:sc }}>
-                {t("admin.confirmDelete","Are you sure?")} <br/>
-                <strong style={{ color:tc }}>{delU.full_name}</strong>
-              </p>
-              <div className="flex gap-3">
-                <button onClick={()=>setDelU(null)} className={d?"btn-g-d":"btn-g-l"} style={{ flex:1, justifyContent:"center", padding:"9px" }}>Cancel</button>
-                <button onClick={handleDel} style={{ flex:1, padding:"9px", borderRadius:"9px", border:"none", background:"linear-gradient(135deg,#ef4444,#dc2626)", color:"#fff", cursor:"pointer", fontWeight:600, fontSize:13, display:"flex", alignItems:"center", justifyContent:"center", gap:6 }}>
-                  <Trash2 className="w-4 h-4"/> Delete
+                <button onClick={doRefresh} className={gg} style={{padding:"8px 10px"}} title={t("common.refresh","Refresh")}>
+                  <RefreshCw className="w-4 h-4"/>
                 </button>
               </div>
             </div>
-          </div>
-        )}
+
+            {/* ═══ DASHBOARD ═══ */}
+            {tab==="dashboard"&&(
+              <div className="afu">
+                <div className="stat-grid mb-6">
+                  {statCards.map(({icon:Icon,val,lbl,a})=>(
+                    <div key={lbl} className={`sc ${d?"sc-d":"sc-l"}`}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{background:`${a}18`,border:`1px solid ${a}28`}}>
+                        <Icon className="w-4 h-4" style={{color:a}}/>
+                      </div>
+                      <div className="text-2xl font-extrabold" style={{fontFamily:"Syne,sans-serif",color:tc}}>{val??"—"}</div>
+                      <div className="text-xs mt-0.5" style={{color:sc}}>{lbl}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{...pBg,borderRadius:16,padding:20}}>
+                  <h2 className="font-bold mb-4" style={{fontFamily:"Syne,sans-serif",color:tc,fontSize:14}}>{t("admin.quickActions","Быстрые действия")}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {navItems.filter(n=>n.id!=="dashboard").map(({id,icon:Icon,lbl})=>(
+                      <button key={id} onClick={()=>goTab(id)} className="btn-p" style={{fontSize:12,padding:"7px 14px"}}><Icon className="w-3.5 h-3.5"/>{lbl}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ USERS ═══ */}
+            {tab==="users"&&(
+              <div className="afu">
+                <div className="filter-bar">
+                  <div style={{position:"relative"}}>
+                    <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:sc}}/>
+                    <input className={`${cls}`} style={{paddingLeft:32,width:185}} placeholder={t("admin.search")} value={uSearch} onChange={e=>setUSearch(e.target.value)}/>
+                  </div>
+                  {["all","farmer","admin"].map(f=>(
+                    <button key={f} onClick={()=>setUFilter(f)} className={uFilter===f?"btn-p":gg} style={{padding:"7px 12px"}}>
+                      {f==="all"?t("admin.filterAll"):f==="farmer"?t("admin.filterFarmer"):t("admin.filterAdmin")}
+                    </button>
+                  ))}
+                </div>
+                <Panel>
+                  {loading?<LoadRow/>:users.length===0?<Empty icon={Users} text={t("admin.noUsers")}/>:(
+                    <div className="tbl-scroll">
+                      <table className={`tbl ${d?"tbl-d":"tbl-l"}`}>
+                        <thead><tr>
+                          <th>#</th><th>{t("admin.name")}</th><th>{t("admin.email")}</th>
+                          <th>{t("admin.phone")}</th><th>{t("admin.role")}</th>
+                          <th>{t("admin.status")}</th><th>{t("admin.actions")}</th>
+                        </tr></thead>
+                        <tbody>{users.map(u=>(
+                          <tr key={u.id}>
+                            <td style={{color:sc,fontSize:11,fontFamily:"monospace"}}>#{u.id}</td>
+                            <td>
+                              <div style={{fontWeight:600,color:tc}}>{u.full_name}</div>
+                              <div style={{fontSize:11,color:sc}}>{u.city}, {u.country}</div>
+                            </td>
+                            <td style={{fontSize:12,color:sc}}>{u.email}</td>
+                            <td style={{fontSize:12,color:sc}}>{u.phone||"—"}</td>
+                            <td><span className={`bdg ${u.account_type==="admin"?(d?"bdg-ad-d":"bdg-ad-l"):(d?"bdg-fa-d":"bdg-fa-l")}`}>{u.account_type==="admin"?"Admin":"Farmer"}</span></td>
+                            <td><span className={`bdg ${u.is_active?(d?"bdg-on-d":"bdg-on-l"):(d?"bdg-off-d":"bdg-off-l")}`}>{u.is_active?t("common.active"):t("common.inactive")}</span></td>
+                            <td>
+                              <div style={{display:"flex",gap:5}}>
+                                <button className={gg} title={t("common.edit")} onClick={()=>{setEditU(u);setEditUF({account_type:u.account_type,full_name:u.full_name,city:u.city,country:u.country});}}><Edit3 className="w-3.5 h-3.5"/></button>
+                                <button className={gg} onClick={()=>doUserToggle(u.id)} title={u.is_active?t("admin.deactivate"):t("admin.activate")}>
+                                  {u.is_active?<ToggleRight className="w-3.5 h-3.5" style={{color:"#4ade80"}}/>:<ToggleLeft className="w-3.5 h-3.5"/>}
+                                </button>
+                                <button className="btn-del" onClick={()=>setDelU(u)}><Trash2 className="w-3.5 h-3.5"/></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+                <p style={{color:sc,fontSize:11,marginTop:8}}>{t("admin.total","Всего")}: {users.length}</p>
+              </div>
+            )}
+
+            {/* ═══ FARMS ═══ */}
+            {tab==="farms"&&(
+              <div className="afu">
+                <div className="filter-bar">
+                  <div style={{position:"relative"}}>
+                    <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:sc}}/>
+                    <input className={cls} style={{paddingLeft:32,width:185}} placeholder={t("admin.search")} value={fSearch} onChange={e=>setFSearch(e.target.value)}/>
+                  </div>
+                  {["all","active","inactive"].map(s=>(
+                    <button key={s} onClick={()=>setFStatus(s)} className={fStatus===s?"btn-p":gg} style={{padding:"7px 12px",fontSize:12}}>
+                      {s==="all"?t("admin.filterAll"):s==="active"?t("common.active"):t("common.inactive")}
+                    </button>
+                  ))}
+                </div>
+                <Panel>
+                  {loading?<LoadRow/>:farms.length===0?<Empty icon={Wheat} text={t("admin.noFarms","Нет ферм")}/>:(
+                    <div className="tbl-scroll">
+                      <table className={`tbl ${d?"tbl-d":"tbl-l"}`}>
+                        <thead><tr>
+                          <th>#</th><th>{t("admin.name")}</th><th>{t("admin.region")}</th>
+                          <th>{t("admin.area")} (га)</th><th>{t("admin.farmOwner","Владелец")}</th>
+                          <th>{t("admin.farmType")}</th><th>{t("admin.pastures","Пастбища")}</th>
+                          <th>{t("admin.status")}</th><th>{t("admin.actions")}</th>
+                        </tr></thead>
+                        <tbody>{farms.map(f=>(
+                          <tr key={f.id}>
+                            <td style={{color:sc,fontSize:11,fontFamily:"monospace"}}>#{f.id}</td>
+                            <td>
+                              <div style={{fontWeight:600,color:tc}}>{f.name}</div>
+                              <div style={{fontSize:11,color:sc}}>{f.address||"—"}</div>
+                            </td>
+                            <td style={{color:sc,fontSize:12}}>{f.region||"—"}</td>
+                            <td style={{color:tc,fontWeight:600,fontSize:13}}>{f.area} га</td>
+                            <td>
+                              <div style={{color:tc,fontSize:12,fontWeight:500}}>{f.owner_name||"—"}</div>
+                              <div style={{fontSize:11,color:sc}}>{f.owner_email||""}</div>
+                            </td>
+                            <td style={{color:sc,fontSize:12}}>{f.farm_type||"—"}</td>
+                            <td style={{color:sc,fontSize:12,textAlign:"center"}}>{f.pasture_count??0}</td>
+                            <td><span className={`bdg ${f.status==="active"?(d?"bdg-on-d":"bdg-on-l"):(d?"bdg-off-d":"bdg-off-l")}`}>{f.status}</span></td>
+                            <td>
+                              <div style={{display:"flex",gap:5}}>
+                                <button className={gg} onClick={()=>{setEditFarm(f);setEditFarmF({name:f.name,region:f.region,area:f.area,status:f.status,farm_type:f.farm_type||"",address:f.address||""});}}><Edit3 className="w-3.5 h-3.5"/></button>
+                                <button className="btn-del" onClick={()=>setDelFarm(f)}><Trash2 className="w-3.5 h-3.5"/></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+                <p style={{color:sc,fontSize:11,marginTop:8}}>{t("admin.total","Всего")}: {farms.length}</p>
+              </div>
+            )}
+
+            {/* ═══ PASTURES ═══ */}
+            {tab==="pastures"&&(
+              <div className="afu">
+                <Panel>
+                  {loading?<LoadRow/>:pastures.length===0?<Empty icon={MapPin} text={t("admin.noPastures","Нет пастбищ")}/>:(
+                    <div className="tbl-scroll">
+                      <table className={`tbl ${d?"tbl-d":"tbl-l"}`}>
+                        <thead><tr>
+                          <th>#</th><th>{t("admin.name")}</th><th>{t("admin.farms","Ферма")}</th>
+                          <th>{t("admin.area")} (га)</th><th>{t("admin.pastureType","Тип")}</th>
+                          <th>{t("admin.measurements","Измерения")}</th>
+                          <th>{t("admin.status")}</th><th>{t("admin.actions")}</th>
+                        </tr></thead>
+                        <tbody>{pastures.map(p=>(
+                          <tr key={p.id}>
+                            <td style={{color:sc,fontSize:11,fontFamily:"monospace"}}>#{p.id}</td>
+                            <td style={{fontWeight:600,color:tc}}>{p.name}</td>
+                            <td style={{fontSize:12,color:sc}}>
+                              <div>{p.farm_name}</div>
+                              <div style={{fontSize:10,color:sc}}>ID #{p.farm_id}</div>
+                            </td>
+                            <td style={{color:tc,fontWeight:600,fontSize:13}}>{p.area} га</td>
+                            <td style={{fontSize:12,color:sc}}>{p.pasture_type||"—"}</td>
+                            <td style={{textAlign:"center"}}>
+                              <span className={`bdg ${d?"bdg-me-d":"bdg-me-l"}`}>{p.measurement_count??0}</span>
+                            </td>
+                            <td><span className={`bdg ${p.status==="active"?(d?"bdg-on-d":"bdg-on-l"):(d?"bdg-off-d":"bdg-off-l")}`}>{p.status}</span></td>
+                            <td>
+                              <button className="btn-del" onClick={()=>setDelPasture(p)}><Trash2 className="w-3.5 h-3.5"/></button>
+                            </td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+                <p style={{color:sc,fontSize:11,marginTop:8}}>{t("admin.total","Всего")}: {pastures.length}</p>
+              </div>
+            )}
+
+            {/* ═══ DRONES ═══ */}
+            {tab==="drones"&&(
+              <div className="afu">
+                <Panel>
+                  {loading?<LoadRow/>:drones.length===0?<Empty icon={Cpu} text={t("admin.noDrones","Нет дронов")}/>:(
+                    <div className="tbl-scroll">
+                      <table className={`tbl ${d?"tbl-d":"tbl-l"}`}>
+                        <thead><tr>
+                          <th>#</th><th>{t("admin.droneModel","Модель")}</th>
+                          <th>{t("admin.droneSerial","Серийный №")}</th>
+                          <th>{t("admin.farms","Ферма")}</th>
+                          <th>{t("admin.status")}</th><th>{t("admin.date")}</th>
+                          <th>{t("admin.actions")}</th>
+                        </tr></thead>
+                        <tbody>{drones.map(dr=>(
+                          <tr key={dr.id}>
+                            <td style={{color:sc,fontSize:11,fontFamily:"monospace"}}>#{dr.id}</td>
+                            <td style={{fontWeight:600,color:tc}}>{dr.model}</td>
+                            <td style={{fontSize:12,fontFamily:"monospace",color:sc}}>{dr.serial_number}</td>
+                            <td style={{fontSize:12,color:sc}}>
+                              <div>{dr.farm_name}</div>
+                              <div style={{fontSize:10}}>ID #{dr.farm_id}</div>
+                            </td>
+                            <td>
+                              <span className={`bdg ${dr.status==="active"?(d?"bdg-on-d":"bdg-on-l"):dr.status==="maintenance"?(d?"bdg-yw-d":"bdg-yw-l"):(d?"bdg-off-d":"bdg-off-l")}`}>
+                                {dr.status}
+                              </span>
+                            </td>
+                            <td style={{color:sc,fontSize:12}}>{fmtD(dr.created_at,i18n.language)}</td>
+                            <td>
+                              <div style={{display:"flex",gap:5}}>
+                                <button className={gg} onClick={()=>{setEditDrone(dr);setEditDroneF({model:dr.model,serial_number:dr.serial_number,status:dr.status,description:dr.description||""});}}><Edit3 className="w-3.5 h-3.5"/></button>
+                                <button className="btn-del" onClick={()=>setDelDrone(dr)}><Trash2 className="w-3.5 h-3.5"/></button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+                <p style={{color:sc,fontSize:11,marginTop:8}}>{t("admin.total","Всего")}: {drones.length}</p>
+              </div>
+            )}
+
+            {/* ═══ MEASUREMENTS ═══ */}
+            {tab==="measurements"&&(
+              <div className="afu">
+                <Panel>
+                  {loading?<LoadRow/>:meas.length===0?<Empty icon={Activity} text={t("admin.noMeasurements","Нет измерений")}/>:(
+                    <div className="tbl-scroll">
+                      <table className={`tbl ${d?"tbl-d":"tbl-l"}`}>
+                        <thead><tr>
+                          <th>#</th><th>{t("admin.pasture","Пастбище")}</th>
+                          <th>{t("admin.farms","Ферма")}</th>
+                          <th>{t("admin.method")}</th>
+                          <th>{t("admin.biomassValue","Биомасса")}</th>
+                          <th>{t("admin.ndviValue","NDVI")}</th>
+                          <th>{t("admin.measCoverage","Покрытие %")}</th>
+                          <th>{t("admin.status")}</th>
+                          <th>{t("admin.date")}</th>
+                          <th>{t("admin.actions")}</th>
+                        </tr></thead>
+                        <tbody>{meas.map(m=>(
+                          <tr key={m.id}>
+                            <td style={{color:sc,fontSize:11,fontFamily:"monospace"}}>#{m.id}</td>
+                            <td>
+                              <div style={{fontWeight:500,color:tc,fontSize:12}}>{m.pasture_name}</div>
+                              <div style={{fontSize:10,color:sc}}>ID #{m.pasture_id}</div>
+                            </td>
+                            <td style={{fontSize:12,color:sc}}>{m.farm_name}</td>
+                            <td><span className={`bdg ${d?"bdg-fa-d":"bdg-fa-l"}`}>{m.method}</span></td>
+                            <td style={{color:tc,fontWeight:600,fontSize:12}}>{fmt(m.biomass_value," t/ha")}</td>
+                            <td style={{color:tc,fontSize:12}}>{fmt(m.ndvi_value)}</td>
+                            <td style={{color:tc,fontSize:12}}>{m.coverage_percent!=null?`${m.coverage_percent.toFixed(1)}%`:"—"}</td>
+                            <td>
+                              <span className={`bdg ${m.status==="completed"||m.status==="done"?(d?"bdg-on-d":"bdg-on-l"):m.status==="processing"?(d?"bdg-yw-d":"bdg-yw-l"):(d?"bdg-me-d":"bdg-me-l")}`}>
+                                {m.status}
+                              </span>
+                            </td>
+                            <td style={{color:sc,fontSize:11,whiteSpace:"nowrap"}}>{fmtD(m.created_at,i18n.language)}</td>
+                            <td>
+                              <button className="btn-del" onClick={()=>setDelMeas(m)}><Trash2 className="w-3.5 h-3.5"/></button>
+                            </td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+                <p style={{color:sc,fontSize:11,marginTop:8}}>{t("admin.total","Всего")}: {meas.length}</p>
+              </div>
+            )}
+
+          </main>
+        </div>
       </div>
+
+      {/* ══ MODAL: Редактировать пользователя ══ */}
+      {editU&&(
+        <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setEditU(null)}>
+          <div className={`mo ${d?"mo-d":"mo-l"} afu`}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:17}}>{t("admin.editUser")}</h3>
+              <button onClick={()=>setEditU(null)} style={{background:"none",border:"none",cursor:"pointer",color:sc}}><X className="w-5 h-5"/></button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {[{k:"full_name",l:t("admin.name")},{k:"city",l:t("admin.city","Город")},{k:"country",l:t("admin.country","Страна")}].map(({k,l})=>(
+                <div key={k}><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{l}</label>
+                  <input className={cls} value={editUF[k]||""} onChange={e=>setEditUF(f=>({...f,[k]:e.target.value}))}/></div>
+              ))}
+              <div><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.role")}</label>
+                <select className={cls} value={editUF.account_type||"farmer"} onChange={e=>setEditUF(f=>({...f,account_type:e.target.value}))}>
+                  <option value="farmer">Farmer</option><option value="admin">Admin</option>
+                </select></div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:18}}>
+              <button onClick={()=>setEditU(null)} className={gg} style={{flex:1,justifyContent:"center",padding:10}}>{t("common.cancel")}</button>
+              <button onClick={doUserEdit} className="btn-p" style={{flex:1,justifyContent:"center"}} disabled={saving}>
+                {saving?<Spin c="#fff"/>:t("common.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL: Создать пользователя ══ */}
+      {newU&&(
+        <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setNewU(false)}>
+          <div className={`mo ${d?"mo-d":"mo-l"} afu`} style={{maxWidth:500}}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:17}}>{t("admin.createUser")}</h3>
+              <button onClick={()=>setNewU(false)} style={{background:"none",border:"none",cursor:"pointer",color:sc}}><X className="w-5 h-5"/></button>
+            </div>
+            {newUErr&&<div style={{background:"rgba(239,68,68,.12)",border:"1px solid rgba(239,68,68,.2)",borderRadius:10,padding:"9px 14px",marginBottom:12,color:"#f87171",fontSize:13}}>{newUErr}</div>}
+            {newUOk&&<div style={{background:"rgba(34,197,94,.1)",borderRadius:10,padding:"9px 14px",marginBottom:12,color:"#4ade80",fontSize:13}}>✓ {t("admin.createUser")}!</div>}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[{k:"full_name",l:t("admin.name"),type:"text"},{k:"email",l:t("admin.email"),type:"email"},
+                {k:"phone",l:t("admin.phone"),type:"text"},{k:"password",l:t("admin.password"),type:"password"},
+                {k:"country",l:t("admin.country","Страна"),type:"text"},{k:"city",l:t("admin.city","Город"),type:"text"}
+              ].map(({k,l,type})=>(
+                <div key={k}><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{l}</label>
+                  <input className={cls} type={type} value={newUF[k]||""} onChange={e=>setNewUF(f=>({...f,[k]:e.target.value}))}/></div>
+              ))}
+              <div style={{gridColumn:"span 2"}}>
+                <label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.role")}</label>
+                <select className={cls} value={newUF.account_type} onChange={e=>setNewUF(f=>({...f,account_type:e.target.value}))}>
+                  <option value="farmer">Farmer</option><option value="admin">Admin</option>
+                </select></div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:18}}>
+              <button onClick={()=>setNewU(false)} className={gg} style={{flex:1,justifyContent:"center",padding:10}}>{t("common.cancel")}</button>
+              <button onClick={doUserCreate} className="btn-p" style={{flex:1,justifyContent:"center"}}><Plus className="w-4 h-4"/>{t("admin.createUser")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL: Редактировать ферму ══ */}
+      {editFarm&&(
+        <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setEditFarm(null)}>
+          <div className={`mo ${d?"mo-d":"mo-l"} afu`}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:17}}>{t("admin.editFarm","Редактировать ферму")}</h3>
+              <button onClick={()=>setEditFarm(null)} style={{background:"none",border:"none",cursor:"pointer",color:sc}}><X className="w-5 h-5"/></button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[{k:"name",l:t("admin.name")},{k:"region",l:t("admin.region")},
+                {k:"area",l:t("admin.area")+" (га)",n:true},{k:"farm_type",l:t("admin.farmType")},
+                {k:"address",l:t("admin.address","Адрес")}
+              ].map(({k,l,n})=>(
+                <div key={k} style={{gridColumn:k==="address"?"span 2":"auto"}}>
+                  <label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{l}</label>
+                  <input className={cls} type={n?"number":"text"} value={editFarmF[k]||""} onChange={e=>setEditFarmF(f=>({...f,[k]:n?Number(e.target.value):e.target.value}))}/></div>
+              ))}
+              <div><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.status")}</label>
+                <select className={cls} value={editFarmF.status||"active"} onChange={e=>setEditFarmF(f=>({...f,status:e.target.value}))}>
+                  <option value="active">active</option><option value="inactive">inactive</option>
+                </select></div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:18}}>
+              <button onClick={()=>setEditFarm(null)} className={gg} style={{flex:1,justifyContent:"center",padding:10}}>{t("common.cancel")}</button>
+              <button onClick={doFarmEdit} className="btn-p" style={{flex:1,justifyContent:"center"}} disabled={saving}>
+                {saving?<Spin c="#fff"/>:t("common.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL: Редактировать дрон ══ */}
+      {editDrone&&(
+        <div className="mo-ov" onClick={e=>e.target===e.currentTarget&&setEditDrone(null)}>
+          <div className={`mo ${d?"mo-d":"mo-l"} afu`}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:17}}>{t("admin.editDrone","Редактировать дрон")}</h3>
+              <button onClick={()=>setEditDrone(null)} style={{background:"none",border:"none",cursor:"pointer",color:sc}}><X className="w-5 h-5"/></button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {[{k:"model",l:t("admin.droneModel","Модель")},{k:"serial_number",l:t("admin.droneSerial","Серийный №")}].map(({k,l})=>(
+                <div key={k}><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{l}</label>
+                  <input className={cls} value={editDroneF[k]||""} onChange={e=>setEditDroneF(f=>({...f,[k]:e.target.value}))}/></div>
+              ))}
+              <div><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.status")}</label>
+                <select className={cls} value={editDroneF.status||"active"} onChange={e=>setEditDroneF(f=>({...f,status:e.target.value}))}>
+                  <option value="active">active</option><option value="maintenance">maintenance</option><option value="inactive">inactive</option>
+                </select></div>
+              <div><label style={{fontSize:11,fontWeight:600,color:sc,display:"block",marginBottom:4}}>{t("admin.description","Описание")}</label>
+                <textarea className={cls} rows={2} value={editDroneF.description||""} onChange={e=>setEditDroneF(f=>({...f,description:e.target.value}))} style={{resize:"vertical"}}/></div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:18}}>
+              <button onClick={()=>setEditDrone(null)} className={gg} style={{flex:1,justifyContent:"center",padding:10}}>{t("common.cancel")}</button>
+              <button onClick={doDroneEdit} className="btn-p" style={{flex:1,justifyContent:"center"}} disabled={saving}>
+                {saving?<Spin c="#fff"/>:t("common.save")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODALS: Delete confirmations ══ */}
+      {[
+        {state:delU,    onClose:()=>setDelU(null),    onConfirm:doUserDelete,   name:delU?.full_name,    label:t("admin.deleteUser")},
+        {state:delFarm, onClose:()=>setDelFarm(null), onConfirm:doFarmDelete,   name:delFarm?.name,      label:t("admin.deleteFarm","Удалить ферму")},
+        {state:delPasture,onClose:()=>setDelPasture(null),onConfirm:doPastureDelete,name:delPasture?.name,label:t("admin.deletePasture","Удалить пастбище")},
+        {state:delDrone,onClose:()=>setDelDrone(null),onConfirm:doDroneDelete,  name:delDrone?.model,    label:t("admin.deleteDrone","Удалить дрон")},
+        {state:delMeas, onClose:()=>setDelMeas(null), onConfirm:doMeasDelete,   name:`#${delMeas?.id}`,  label:t("admin.deleteMeas","Удалить измерение")},
+      ].filter(x=>x.state).map(({state,onClose,onConfirm,name,label})=>(
+        <div key={label} className="mo-ov" onClick={e=>e.target===e.currentTarget&&onClose()}>
+          <div className={`mo ${d?"mo-d":"mo-l"} afu`} style={{maxWidth:400}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+              <div style={{width:42,height:42,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(239,68,68,.12)",flexShrink:0}}>
+                <Trash2 style={{width:20,height:20,color:"#f87171"}}/>
+              </div>
+              <h3 style={{fontFamily:"Syne,sans-serif",color:tc,fontWeight:700,fontSize:17}}>{label}</h3>
+            </div>
+            <p style={{color:sc,fontSize:13,lineHeight:1.6,marginBottom:20}}>
+              {t("admin.confirmDelete")} <strong style={{color:tc}}>{name}</strong>
+            </p>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={onClose} className={gg} style={{flex:1,justifyContent:"center",padding:10}}>{t("common.cancel")}</button>
+              <button onClick={onConfirm}
+                style={{flex:1,padding:10,borderRadius:10,border:"none",background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",cursor:"pointer",fontWeight:600,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                <Trash2 style={{width:14,height:14}}/>{t("common.delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
     </>
   );
 }
