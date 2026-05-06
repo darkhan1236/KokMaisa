@@ -1,8 +1,8 @@
 // src/app/components/Footer.jsx
 // KokMaisa 2025 — Light/dark text fixed, responsive, XSS-safe
 
-import { Leaf, Mail, Github, BookOpen } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Leaf, Mail, Github, BookOpen, Lightbulb } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -86,6 +86,8 @@ const FOOTER_STYLES = `
 export default function Footer() {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
   const isDark = theme === "dark";
   const currentYear = new Date().getFullYear();
 
@@ -98,6 +100,17 @@ export default function Footer() {
   const headCls  = isDark ? "footer-heading-dark" : "footer-heading-light";
   const copyCls  = isDark ? "footer-copy-dark"    : "footer-copy-light";
   const statusCls= isDark ? "footer-status-dark"  : "footer-status-light";
+
+  const handleSectionLink = (event, hash) => {
+    event.preventDefault();
+    const scroll = () => document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" });
+    if (location.pathname === "/") {
+      scroll();
+      return;
+    }
+    navigate(`/#${hash}`);
+    window.setTimeout(scroll, 60);
+  };
 
   return (
     <>
@@ -150,13 +163,13 @@ export default function Footer() {
               </h3>
               <ul className="space-y-3" role="list">
                 {[
-                  { to: "/#about",       label: t("nav.about") },
-                  { to: "/#how-it-works",label: t("nav.howItWorks") },
-                  { to: "/#features",    label: t("nav.features") },
-                  { to: "/#use-cases",   label: t("nav.useCases") },
-                ].map(({ to, label }) => (
+                  { hash: "about",       label: t("nav.about") },
+                  { hash: "how-it-works",label: t("nav.howItWorks") },
+                  { hash: "features",    label: t("nav.features") },
+                  { hash: "use-cases",   label: t("nav.useCases") },
+                ].map(({ hash, label }) => (
                   <li key={label}>
-                    <Link to={to} className={linkCls}>
+                    <Link to={`/#${hash}`} onClick={event => handleSectionLink(event, hash)} className={linkCls}>
                       <span style={{ color: isDark ? "rgba(74,222,128,.6)" : "rgba(22,163,74,.7)" }} aria-hidden="true">›</span>
                       {label}
                     </Link>
@@ -192,6 +205,12 @@ export default function Footer() {
                   </a>
                 </li>
                 <li>
+                  <Link to="/suggestions" className={linkCls}>
+                    <Lightbulb className="w-4 h-4" aria-hidden="true" />
+                    {t("footer.suggestions")}
+                  </Link>
+                </li>
+                <li>
                   <Link to="/register" className={linkCls}>
                     <BookOpen className="w-4 h-4" aria-hidden="true" />
                     {t("nav.register")}
@@ -214,7 +233,7 @@ export default function Footer() {
                 style={{ animation: "heroPulse 2s ease-in-out infinite" }}
                 aria-hidden="true"
               />
-              <span className={`text-xs ${statusCls}`}>AI systems operational</span>
+              <span className={`text-xs ${statusCls}`}>{t("footer.status")}</span>
             </div>
           </div>
         </div>

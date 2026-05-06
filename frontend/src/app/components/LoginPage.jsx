@@ -138,7 +138,7 @@ export function LoginPage() {
     try {
       const user = await login?.({ email, password });
       if (user?.account_type === "admin") navigate("/admin");
-      else navigate("/profile/farmer");
+      else navigate("/farms");
     } catch (err) {
       const detail =
         err?.response?.data?.detail ||

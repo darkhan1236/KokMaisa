@@ -138,3 +138,22 @@ class Measurement(Base):
 
     # ↓ ДОБАВИТЬ
     pasture = relationship("Pasture", back_populates="measurements")
+
+
+class SiteSuggestion(Base):
+    __tablename__ = "site_suggestions"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    name       = Column(String(120), nullable=True)
+    email      = Column(String(255), nullable=True, index=True)
+    category   = Column(String(40), nullable=False, default="general", index=True)
+    message    = Column(Text, nullable=False)
+    status     = Column(String(30), nullable=False, default="new", index=True)
+    admin_note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )

@@ -179,7 +179,7 @@ export function RegisterPage() {
     setApiError("");
     try {
       await register?.({ ...form, account_type: "farmer" });
-      navigate("/profile/farmer");
+      navigate("/farms");
     } catch (err) {
       let detail =
         err?.response?.data?.detail ||

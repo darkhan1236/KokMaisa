@@ -5,17 +5,16 @@ import { useTranslation } from 'react-i18next';
 import HomePage               from '@/app/components/HomePage';
 import { RegisterPage }       from '@/app/components/RegisterPage';
 import { LoginPage }          from '@/app/components/LoginPage';
-import ProfileFarmer          from '@/app/components/ProfileFarmer';
 import PasturesPage           from '@/app/components/PasturesPage';
 import DronesPage             from '@/app/components/DronesPage';
 import AIChatPage             from '@/app/components/AIChatPage';
 import FarmsPage              from '@/app/components/FarmsPage';
-import PasturesMapPage        from '@/app/components/PasturesMapPage';
 import SettingsPage           from '@/app/components/SettingsPage';
 import { ResetPassword }      from '@/app/components/ResetPassword';
 import BiomassMeasurementPage from '@/app/components/BiomassMeasurementPage';
 import BiomassDashboardPage   from '@/app/components/BiomassDashboardPage';
 import AdminPanel             from '@/app/components/AdminPanel';
+import SuggestionPage         from '@/app/components/SuggestionPage';
 import { ThemeProvider }      from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
@@ -43,14 +42,12 @@ function AppRoutes() {
       <Route path="/register"       element={<RegisterPage />} />
       <Route path="/login"          element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/suggestions"     element={<SuggestionPage />} />
 
       <Route path="/admin" element={
         <ProtectedRoute allowedTypes={['admin']}><AdminPanel /></ProtectedRoute>
       } />
 
-      <Route path="/profile/farmer" element={
-        <ProtectedRoute allowedTypes={['farmer']}><ProfileFarmer /></ProtectedRoute>
-      } />
       <Route path="/pastures" element={
         <ProtectedRoute allowedTypes={['farmer']}><PasturesPage /></ProtectedRoute>
       } />
@@ -67,7 +64,6 @@ function AppRoutes() {
       <Route path="/biomass"           element={<BiomassMeasurementPage />} />
       <Route path="/farms"             element={<FarmsPage />} />
       <Route path="/biomass-dashboard" element={<BiomassDashboardPage />} />
-      <Route path="/pastures-map"      element={<PasturesMapPage />} />
 
       <Route path="/profile"           element={<Navigate to="/" replace />} />
       <Route path="*"                  element={<Navigate to="/" replace />} />

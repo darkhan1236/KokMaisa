@@ -8,7 +8,7 @@ import {
   Users, Wheat, BarChart3, Shield, LogOut, Search, Trash2,
   ToggleLeft, ToggleRight, Edit3, X, Leaf, Sun, Moon,
   RefreshCw, Plus, Menu, Globe, Check, MapPin, Activity,
-  Cpu, ChevronDown,
+  Cpu, ChevronDown, MessageSquareText,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -249,6 +249,10 @@ function useAPI(){
     droneDelete:  id      => r(`/admin/drones/${id}`,{method:"DELETE"}),
     measurements: q       => safe(()=>r(`/admin/measurements${q}`)),
     measDelete:   id      => r(`/admin/measurements/${id}`,{method:"DELETE"}),
+    suggestions:  q       => safe(()=>r(`/suggestions${q}`)),
+    suggStats:    ()      => r("/suggestions/stats").catch(()=>({})),
+    suggUpdate:   (id,d)  => r(`/suggestions/${id}`,{method:"PUT",body:JSON.stringify(d)}),
+    suggDelete:   id      => r(`/suggestions/${id}`,{method:"DELETE"}),
   };
 }
 
@@ -279,6 +283,10 @@ export default function AdminPanel(){
   const [pastures,setPastures]= useState([]);
   const [drones,  setDrones]  = useState([]);
   const [meas,    setMeas]    = useState([]);
+  const [suggestions,setSuggestions]=useState([]);
+  const [suggStats,setSuggStats]=useState({});
+  const [sSearch,setSSearch]=useState("");
+  const [sStatus,setSStatus]=useState("all");
 
   /* Modals */
   const [editU,      setEditU]      = useState(null); const [editUF,setEditUF] = useState({});
@@ -293,6 +301,7 @@ export default function AdminPanel(){
   const [delDrone,   setDelDrone]   = useState(null);
   const [editPasture,setEditPasture]= useState(null); const [editPastureF,setEditPastureF]=useState({});
   const [delMeas,    setDelMeas]    = useState(null);
+  const [delSugg,    setDelSugg]    = useState(null);
   const [saving,     setSaving]     = useState(false);
 
   /* ─ Loaders ─ */
@@ -310,6 +319,17 @@ export default function AdminPanel(){
   const loadPastures = useCallback(async()=>{ setLoading(true); try{setPastures(await api.pastures("?limit=200"));}catch{setPastures([]);} finally{setLoading(false);} },[]);
   const loadDrones   = useCallback(async()=>{ setLoading(true); try{setDrones(await api.drones());}catch{setDrones([]);} finally{setLoading(false);} },[]);
   const loadMeas     = useCallback(async()=>{ setLoading(true); try{setMeas(await api.measurements("?limit=100"));}catch{setMeas([]);} finally{setLoading(false);} },[]);
+  const loadSuggestions = useCallback(async()=>{
+    setLoading(true);
+    try{
+      let q="?limit=200";
+      if(sStatus!=="all") q+=`&status=${sStatus}`;
+      if(sSearch) q+=`&search=${encodeURIComponent(sSearch)}`;
+      const [items, stats] = await Promise.all([api.suggestions(q), api.suggStats()]);
+      setSuggestions(items);
+      setSuggStats(stats||{});
+    }catch{setSuggestions([]);} finally{setLoading(false);}
+  },[sStatus,sSearch]);
 
   useEffect(()=>{ loadStats(); },[]);
   useEffect(()=>{
@@ -318,10 +338,11 @@ export default function AdminPanel(){
     if(tab==="pastures")     loadPastures();
     if(tab==="drones")       loadDrones();
     if(tab==="measurements") loadMeas();
-  },[tab,loadUsers,loadFarms,loadPastures,loadDrones,loadMeas]);
+    if(tab==="suggestions")  loadSuggestions();
+  },[tab,loadUsers,loadFarms,loadPastures,loadDrones,loadMeas,loadSuggestions]);
 
   /* ─ Actions ─ */
-  const doRefresh = ()=>{ loadStats(); if(tab==="users")loadUsers(); if(tab==="farms")loadFarms(); if(tab==="pastures")loadPastures(); if(tab==="drones")loadDrones(); if(tab==="measurements")loadMeas(); };
+  const doRefresh = ()=>{ loadStats(); if(tab==="users")loadUsers(); if(tab==="farms")loadFarms(); if(tab==="pastures")loadPastures(); if(tab==="drones")loadDrones(); if(tab==="measurements")loadMeas(); if(tab==="suggestions")loadSuggestions(); };
 
   const doUserToggle  = async id  =>{ await api.userToggle(id); loadUsers(); };
   const doUserDelete  = async()   =>{ if(!delU)return; await api.userDelete(delU.id); setDelU(null); loadUsers(); loadStats(); };
@@ -342,6 +363,9 @@ export default function AdminPanel(){
   const doDroneEdit   = async()   =>{ if(!editDrone)return; setSaving(true); await api.droneUpdate(editDrone.id,editDroneF); setSaving(false); setEditDrone(null); loadDrones(); };
   const doDroneDelete = async()   =>{ if(!delDrone)return; await api.droneDelete(delDrone.id); setDelDrone(null); loadDrones(); loadStats(); };
   const doMeasDelete  = async()   =>{ if(!delMeas)return; await api.measDelete(delMeas.id); setDelMeas(null); loadMeas(); loadStats(); };
+  const doSuggStatus  = async(id,status)=>{ await api.suggUpdate(id,{status}); loadSuggestions(); loadStats(); };
+  const doSuggNote    = async(item,note)=>{ await api.suggUpdate(item.id,{admin_note:note}); loadSuggestions(); };
+  const doSuggDelete  = async()   =>{ if(!delSugg)return; await api.suggDelete(delSugg.id); setDelSugg(null); loadSuggestions(); loadStats(); };
 
   const goTab = id=>{ setTab(id); setSideOpen(false); };
   const nc    = id=>`ni ${d?`ni-d${tab===id?" act":""}` :`ni-l${tab===id?" act":""}`}`;
@@ -361,6 +385,7 @@ export default function AdminPanel(){
     {icon:MapPin,  val:stats.pastures,       lbl:t("admin.totalPastures"), a:"#f97316"},
     {icon:Cpu,     val:stats.drones,         lbl:t("admin.totalDrones"),   a:"#818cf8"},
     {icon:Activity,val:stats.analyses,       lbl:t("admin.totalAnalyses"), a:"#f472b6"},
+    {icon:MessageSquareText,val:stats.suggestions?.new, lbl:t("admin.newSuggestions"), a:"#2dd4bf"},
   ]:[];
 
   const navItems = [
@@ -370,6 +395,7 @@ export default function AdminPanel(){
     {id:"pastures",     icon:MapPin,    lbl:t("admin.pastures","Пастбища")},
     {id:"drones",       icon:Cpu,       lbl:t("admin.drones","Дроны")},
     {id:"measurements", icon:Activity,  lbl:t("admin.measurements")},
+    {id:"suggestions",  icon:MessageSquareText, lbl:t("admin.suggestions")},
   ];
 
   const Empty = ({icon:Icon,text})=>(
@@ -735,6 +761,63 @@ export default function AdminPanel(){
               </div>
             )}
 
+            {tab==="suggestions"&&(
+              <div className="afu">
+                <div className="filter-bar">
+                  <div style={{position:"relative"}}>
+                    <Search style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",width:14,height:14,color:sc}}/>
+                    <input className={cls} style={{paddingLeft:32,width:220}} placeholder={t("admin.search")} value={sSearch} onChange={e=>setSSearch(e.target.value)}/>
+                  </div>
+                  {["all","new","in_review","planned","done","rejected"].map(status=>(
+                    <button key={status} onClick={()=>setSStatus(status)} className={sStatus===status?"btn-p":gg} style={{padding:"7px 12px"}}>
+                      {status==="all"?t("admin.filterAll"):t(`suggestions.status.${status}`)}
+                    </button>
+                  ))}
+                </div>
+                <div className="stat-grid" style={{marginBottom:14}}>
+                  {["total","new","in_review","planned"].map(key=>(
+                    <div key={key} className={`sc ${d?"sc-d":"sc-l"}`}>
+                      <div style={{fontSize:24,fontWeight:800,fontFamily:"Syne,sans-serif",color:tc,lineHeight:1}}>{suggStats?.[key]??0}</div>
+                      <div style={{fontSize:11,color:sc,marginTop:4}}>{key==="total"?t("admin.total"):t(`suggestions.status.${key}`)}</div>
+                    </div>
+                  ))}
+                </div>
+                <Panel>
+                  {loading?<LoadRow/>:suggestions.length===0?<Empty icon={MessageSquareText} text={t("admin.noSuggestions")}/> : (
+                    <div className="tbl-scroll">
+                      <table className={`tbl ${d?"tbl-d":"tbl-l"}`}>
+                        <thead><tr>
+                          <th>#</th><th>{t("admin.message")}</th><th>{t("admin.contact")}</th>
+                          <th>{t("admin.category")}</th><th>{t("admin.status")}</th><th>{t("admin.note")}</th><th>{t("admin.date")}</th><th>{t("admin.actions")}</th>
+                        </tr></thead>
+                        <tbody>{suggestions.map(item=>(
+                          <tr key={item.id}>
+                            <td style={{color:sc,fontSize:11,fontFamily:"monospace"}}>#{item.id}</td>
+                            <td style={{minWidth:240}}><div style={{color:tc,fontSize:12,lineHeight:1.45,whiteSpace:"pre-wrap"}}>{item.message}</div></td>
+                            <td style={{fontSize:12,color:sc,whiteSpace:"nowrap"}}><div style={{color:tc}}>{item.name||"—"}</div><div>{item.email||"—"}</div></td>
+                            <td><span className={`bdg ${d?"bdg-me-d":"bdg-me-l"}`}>{t(`suggestions.categories.${item.category}`)}</span></td>
+                            <td>
+                              <select className={cls} value={item.status} onChange={e=>doSuggStatus(item.id,e.target.value)} style={{minWidth:125}}>
+                                {["new","in_review","planned","done","rejected"].map(status=><option key={status} value={status}>{t(`suggestions.status.${status}`)}</option>)}
+                              </select>
+                            </td>
+                            <td style={{minWidth:220}}>
+                              <input className={cls} defaultValue={item.admin_note||""} maxLength={2000}
+                                onBlur={e=>{ if(e.target.value!==(item.admin_note||"")) doSuggNote(item,e.target.value); }}
+                                placeholder={t("admin.notePlaceholder")}/>
+                            </td>
+                            <td style={{color:sc,fontSize:11,whiteSpace:"nowrap"}}>{fmtD(item.created_at,i18n.language)}</td>
+                            <td><button className="btn-del" onClick={()=>setDelSugg(item)}><Trash2 className="w-3.5 h-3.5"/></button></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+                <p style={{color:sc,fontSize:11,marginTop:8}}>{t("admin.total","Р’СЃРµРіРѕ")}: {suggestions.length}</p>
+              </div>
+            )}
+
           </main>
         </div>
       </div>
@@ -915,6 +998,7 @@ export default function AdminPanel(){
         {state:delPasture, onClose:()=>setDelPasture(null), onConfirm:doPastureDelete, name:delPasture?.name, label:t("admin.deletePasture","Удалить пастбище")},
         {state:delDrone,   onClose:()=>setDelDrone(null),   onConfirm:doDroneDelete,   name:delDrone?.model,  label:t("admin.deleteDrone","Удалить дрон")},
         {state:delMeas,    onClose:()=>setDelMeas(null),    onConfirm:doMeasDelete,    name:`#${delMeas?.id}`,label:t("admin.deleteMeas","Удалить измерение")},
+        {state:delSugg,    onClose:()=>setDelSugg(null),    onConfirm:doSuggDelete,    name:`#${delSugg?.id}`,label:t("admin.deleteSuggestion")},
       ].filter(x=>x.state).map(({state,onClose,onConfirm,name,label})=>(
         <div key={label} className="mo-ov" onClick={e=>e.target===e.currentTarget&&onClose()}>
           <div className={`mo ${d?"mo-d":"mo-l"} afu`} style={{maxWidth:400}}>

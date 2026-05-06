@@ -4,6 +4,7 @@
 import logging
 from fastapi import APIRouter
 
+from app.api.suggestions.suggestion_api import router as suggestion_router
 from app.api.users.user_api      import router as user_router
 from app.api.farms.farm_api      import router as farm_router
 from app.api.pastures.pasture_api import router as pasture_router
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
+router.include_router(suggestion_router)
 router.include_router(user_router,        prefix="/users")
 router.include_router(farm_router)
 router.include_router(pasture_router)

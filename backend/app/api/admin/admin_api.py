@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from database.db import get_db
 from core.security import AdminUser, get_password_hash
-from model.models import User, Farm, Pasture, Drone, Measurement
+from model.models import User, Farm, Pasture, Drone, Measurement, SiteSuggestion
 from app.api.users.schemas.user_schemas import (
     AdminUserList, AdminUserUpdate, UserCreate, AccountType
 )
@@ -31,6 +31,10 @@ def get_admin_stats(admin: AdminUser, db: Session = Depends(get_db)):
         "pastures": db.query(func.count(Pasture.id)).scalar(),
         "drones":   db.query(func.count(Drone.id)).scalar(),
         "analyses": db.query(func.count(Measurement.id)).scalar(),
+        "suggestions": {
+            "total": db.query(func.count(SiteSuggestion.id)).scalar(),
+            "new": db.query(func.count(SiteSuggestion.id)).filter(SiteSuggestion.status == "new").scalar(),
+        },
     }
 
 

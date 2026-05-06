@@ -515,7 +515,9 @@
     "followUs": "Social Media",
     "allRightsReserved": "All rights reserved",
     "academicNote": "Academic project for sustainable pasture management in Kazakhstan",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "suggestions": "Suggest an improvement",
+    "status": "AI systems operational"
   },
   "register": {
     "title": "Register",
@@ -682,7 +684,46 @@
     "droneModel": "Model",
     "droneSerial": "Serial No.",
     "backToMain": "Back to main",
-    "editPasture": "Edit pasture"
+    "editPasture": "Edit pasture",
+    "suggestions": "Suggestions",
+    "newSuggestions": "New suggestions",
+    "noSuggestions": "No suggestions yet",
+    "deleteSuggestion": "Delete suggestion",
+    "message": "Message",
+    "contact": "Contact",
+    "category": "Category",
+    "note": "Admin note",
+    "notePlaceholder": "Add a working note"
+  },
+  "suggestions": {
+    "title": "Suggest an improvement",
+    "subtitle": "Tell us what would make KokMaisa more useful, clearer, or safer for your work.",
+    "name": "Name",
+    "namePlaceholder": "Optional",
+    "email": "Email",
+    "emailPlaceholder": "Optional, for follow-up",
+    "category": "Category",
+    "message": "Your suggestion",
+    "messagePlaceholder": "Describe the idea, problem, or improvement...",
+    "submit": "Send suggestion",
+    "privacy": "We only show this to site administrators.",
+    "success": "Thank you. Your suggestion was saved and is now visible in the admin panel.",
+    "errorShort": "Please write at least 10 characters.",
+    "errorSubmit": "Could not send the suggestion. Please try again.",
+    "categories": {
+      "general": "General",
+      "usability": "Usability",
+      "feature": "New feature",
+      "bug": "Bug",
+      "content": "Content"
+    },
+    "status": {
+      "new": "New",
+      "in_review": "In review",
+      "planned": "Planned",
+      "done": "Done",
+      "rejected": "Rejected"
+    }
   },
   "countries": {
     "kazakhstan": "Kazakhstan",

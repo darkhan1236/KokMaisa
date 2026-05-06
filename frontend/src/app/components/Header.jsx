@@ -224,10 +224,6 @@ export default function Header() {
     navigate("/");
   }
 
- function getProfilePath() {
-  return user?.account_type === "admin" ? "/admin" : "/profile/farmer";
-}
-
   const isAdmin = user?.account_type === "admin";
 
   // ── Полное меню пользователя (восстановлено как в оригинале) ──
