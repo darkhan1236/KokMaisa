@@ -6,7 +6,7 @@
     "profile": "Profile",
     "myFarms": "My Farms",
     "myPastures": "My Pastures",
-    "myDrones": "My Drones",
+    "myDrones": "Equipment",
     "backToHome": "Back to Home",
     "biomassDashboard": "Biomass Dashboard",
     "pastureMap": "Pasture Map",
@@ -42,56 +42,56 @@
   },
   "hero": {
     "title": "AI-Powered Pasture Biomass Assessment",
-    "subtitle": "Revolutionary platform for precise pasture biomass measurement using computer vision, deep learning, and NDVI data",
+    "subtitle": "Platform for pasture biomass estimation using computer vision, deep learning, and real field measurements",
     "cta": "Get Started"
   },
   "about": {
     "title": "What is KokMaisa?",
-    "description": "KokMaisa is an advanced AI platform that predicts pasture biomass (kg/ha) using state-of-the-art deep learning models trained on thousands of real field measurements.",
+    "description": "KokMaisa is an AI platform that predicts pasture biomass (c/ha) using deep learning models trained on real field measurements.",
     "details": {
-      "part1": "Our models leverage ",
-      "highlight1": "Convolutional Neural Networks (CNNs)",
+      "part1": "Our models use ",
+      "highlight1": "convolutional neural networks (CNNs)",
       "part2": " and ",
       "highlight2": "Vision Transformers",
-      "part3": ", combined with NDVI satellite data and ",
-      "highlight3": "environmental parameters",
-      "part4": ", to provide accurate real-time biomass estimates for sustainable pasture management."
+      "part3": ", trained on pasture imagery and ",
+      "highlight3": "field biomass measurements",
+      "part4": ", to estimate biomass and support pasture management decisions."
     },
     "badge": "Platform",
     "highlight1Title": "CNNs & Vision Transformers",
-    "highlight1Desc": "State-of-the-art deep learning architectures fine-tuned on real field data",
-    "highlight2Title": "NDVI Satellite Data",
-    "highlight2Desc": "Fusing aerial imagery with vegetation indices for sub-field precision",
-    "highlight3Title": "Environmental Parameters",
-    "highlight3Desc": "Climate, soil moisture and phenology integrated into every prediction"
+    "highlight1Desc": "Deep learning architectures for pasture image analysis",
+    "highlight2Title": "Field Measurements",
+    "highlight2Desc": "The model is trained and validated with real biomass measurements and pasture images",
+    "highlight3Title": "AI Consultant & RAG",
+    "highlight3Desc": "The consultant helps interpret results, and a RAG knowledge system is planned for project-specific answers"
   },
   "howItWorks": {
     "title": "How It Works",
     "subtitle": "Four simple steps to get accurate pasture biomass estimates",
     "step1Title": "Upload Photo",
-    "step1Desc": "Take a picture of the pasture from a drone or smartphone",
+    "step1Desc": "Upload a pasture image for AI biomass analysis",
     "step2Title": "AI Analysis",
-    "step2Desc": "Our deep learning algorithms analyze the image together with NDVI data",
+    "step2Desc": "Deep learning algorithms analyze the image and vegetation-cover cues",
     "step3Title": "Get Results",
-    "step3Desc": "Instant biomass estimate and management recommendations",
+    "step3Desc": "The system shows a biomass estimate and pasture management recommendations",
     "step4Title": "Result Accuracy",
-    "step4Desc": "Precise biomass estimate (kg/ha) with a confidence score"
+    "step4Desc": "Biomass estimate (c/ha) with a confidence score"
   },
   "features": {
     "title": "Platform Features",
-    "subtitle": "Advanced technologies for precise analysis",
-    "feature1": "Drone Analysis",
-    "feature1Desc": "High-precision analysis from aerial photos",
-    "feature2": "NDVI Integration",
-    "feature2Desc": "Combining visual data with vegetation index",
+    "subtitle": "Practical AI tools for biomass estimation and pasture management",
+    "feature1": "Image Analysis",
+    "feature1Desc": "Estimate biomass from uploaded pasture images",
+    "feature2": "Field Data",
+    "feature2Desc": "Real measurements are used to train and validate the model",
     "feature3": "Deep Learning",
-    "feature3Desc": "Advanced neural networks for accurate estimation",
-    "feature4": "Mobile Photos",
-    "feature4Desc": "Analysis even from a smartphone camera",
-    "feature5": "Environmental Data",
-    "feature5Desc": "Accounting for climate, soil and other factors",
-    "feature6": "Real-time Reports",
-    "feature6Desc": "Instant results and recommendations"
+    "feature3Desc": "Neural networks estimate biomass from visual pasture features",
+    "feature4": "AI Consultant",
+    "feature4Desc": "Helps interpret results and pasture recommendations",
+    "feature5": "RAG System",
+    "feature5Desc": "Planned project knowledge base for answering user questions",
+    "feature6": "Reports & History",
+    "feature6Desc": "Save measurement results and review pasture dynamics over time"
   },
   "useCases": {
     "title": "Use Cases",
@@ -113,17 +113,17 @@
     "values": {
       "images": "1000+",
       "accuracy": "RMSE",
-      "coverage": "Multi-season"
+      "coverage": "3"
     },
     "labels": {
       "images": "Pasture Images",
       "accuracy": "Optimized",
-      "coverage": "Data Support"
+      "coverage": "Seasons"
     },
     "descriptions": {
       "imagesDesc": "Trained on over 1000 pasture images",
       "accuracyDesc": "Minimized error for accurate biomass prediction",
-      "coverageDesc": "Works with data from different seasons and conditions"
+      "coverageDesc": "Spring, summer, and autumn are supported"
     },
     "cta": {
       "title": "Ready to analyse your pastures?",
@@ -140,7 +140,7 @@
     "analyzeButton": "Analyze",
     "analyzeSuccess": "Image analyzed successfully!",
     "avgBiomass": "Average biomass",
-    "unit": "kg/ha",
+    "unit": "c/ha",
     "totalArea": "Total area",
     "health": "Pasture health",
     "forecast": "Forecast",
@@ -199,7 +199,7 @@
       "allPastures": "All pastures",
       "fallbackPasture": "Pasture",
       "openMeasurements": "Open biomass measurements",
-      "trendDescription": "Real biomass and NDVI dynamics based on completed AI measurements.",
+      "trendDescription": "Real biomass and AI score dynamics based on completed AI measurements.",
       "recentTitle": "Recent measurements",
       "recentDescription": "Recent completed measurements compared with the recommended minimum biomass for safe grazing.",
       "recommendedMinimum": "Recommended minimum for grazing",
@@ -236,7 +236,7 @@
         "noAlerts": "No critical alerts right now. Keep tracking the next AI measurements."
       },
       "indicators": {
-        "ndviDescription": "Average NDVI reconstructed from the newest biomass result on each pasture.",
+        "ndviDescription": "AI score calculated from the newest biomass result on each pasture.",
         "coverDescription": "Estimated vegetation cover density based on the current biomass level.",
         "heightDescription": "Approximate grass height derived from the current biomass prediction.",
         "capacity": "Carrying capacity",
@@ -247,7 +247,19 @@
         "tons": "t",
         "days": "days"
       }
-    }
+    },
+    "results": {
+      "aiScoreLabel": "AI score"
+    },
+    "insights": {
+      "ndvi": {
+        "title": "Vegetation cover condition",
+        "grade": "Grade",
+        "sub": "Condition score from AI analysis: {{pct}}%"
+      }
+    },
+    "measNdvi": "AI score",
+    "ndviValue": "AI score"
   },
   "pastures": {
     "biomass": "Biomass",
@@ -300,7 +312,7 @@
     "stats": {
       "pastures": "Pastures",
       "hectares": "Hectares",
-      "avgBiomass": "Avg Biomass (kg/ha)",
+      "avgBiomass": "Avg Biomass (c/ha)",
       "analyses": "Analyses"
     },
     "badge": "Pastures",
@@ -642,8 +654,8 @@
     "deleteFarm": "Delete Farm",
     "confirmDeleteFarm": "Are you sure you want to delete this farm?",
     "measMethod": "Method",
-    "measBiomass": "Biomass kg/ha",
-    "measNdvi": "NDVI",
+    "measBiomass": "Biomass c/ha",
+    "measNdvi": "AI score",
     "measCoverage": "Coverage %",
     "measQuality": "Quality",
     "measDate": "Date",
@@ -664,7 +676,7 @@
     "pasture": "Pasture",
     "method": "Method",
     "biomassValue": "Biomass",
-    "ndviValue": "NDVI",
+    "ndviValue": "AI score",
     "createUser": "Create User",
     "password": "Password",
     "country": "Country",
@@ -786,7 +798,7 @@
   "ai": {
     "title": "AI Consultant",
     "subtitle": "Agronomy and pasture specialist",
-    "welcome": "Hello, {{name}}! I'm the KokMaisa AI consultant.\n\nI can help with:\n🌾 Biomass analysis and recommendations\n🚁 Drone monitoring advice\n📊 Grazing rotation planning\n🌤️ Weather impact assessment\n\nAsk me anything about your farm!",
+    "welcome": "Hello, {{name}}! I'm the KokMaisa AI consultant.\n\nI can help with:\n?? Biomass analysis and recommendations\n?? Grazing rotation planning\n?? Vegetation cover condition assessment\n??? Weather impact assessment\n\nAsk me anything about your farm!",
     "thinking": "AI is analyzing data...",
     "inputPlaceholder": "Ask a question about your farm...",
     "dataUsageNote": "AI uses your farm data for personalized recommendations",
@@ -795,8 +807,9 @@
     "suggestions": {
       "biomass": "What is the current biomass on my pastures?",
       "rotation": "How to optimize the grazing rotation plan?",
-      "droneMonitoring": "When is the best time to monitor with drones?",
-      "weatherImpact": "How does weather affect grass growth?"
+      "droneMonitoring": "How can I assess vegetation cover condition?",
+      "weatherImpact": "How does weather affect grass growth?",
+      "pastureHealth": "How can I assess vegetation cover condition?"
     }
   },
   "settings": {
@@ -832,8 +845,8 @@
       "emailDesc": "Receive notifications by email",
       "push": "Push notifications",
       "pushDesc": "Browser notifications",
-      "drone": "Drone notifications",
-      "droneDesc": "Flight status and technical alerts",
+      "drone": "System notifications",
+      "droneDesc": "Status and technical alerts",
       "biomass": "Biomass notifications",
       "biomassDesc": "Pasture health changes",
       "weather": "Weather notifications",
@@ -930,7 +943,7 @@
     "quickActions": {
       "title": "Quick Actions",
       "managePastures": "Manage Pastures",
-      "myDrones": "My Drones",
+      "myDrones": "Equipment",
       "biomassAnalysis": "Biomass Analysis",
       "biomassDashboard": "Biomass Dashboard",
       "aiConsultant": "AI Consultant"

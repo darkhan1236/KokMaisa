@@ -16,17 +16,15 @@ import {
 
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { apiErrorMessage, extractApiDetail } from "@/app/utils/apiErrors";
 
 /* ─── API helpers ─────────────────────────────────────────────────────────── */
 /* ─── API helpers ─────────────────────────────────────────────────────────── */
-const BASE = "http://127.0.0.1:8000/api";
+const BASE = "/api";
 
 function getToken() {
   return (
-    localStorage.getItem("token") ||          // ← 'token' первым!
-    localStorage.getItem("access_token") ||
-    localStorage.getItem("authToken") ||
-    sessionStorage.getItem("access_token") ||
+    localStorage.getItem("token") ||
     ""
   );
 }
@@ -40,7 +38,7 @@ function authHeaders(json = true) {
 async function apiGet(path) {
   const r = await fetch(`${BASE}${path}`, { headers: authHeaders() });
   const json = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(json.detail || r.statusText);
+  if (!r.ok) throw new Error(extractApiDetail(json.detail || r.statusText));
   return json;
 }
 
@@ -51,7 +49,7 @@ async function apiPut(path, body) {
     body: JSON.stringify(body),
   });
   const json = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(json.detail || r.statusText);
+  if (!r.ok) throw new Error(extractApiDetail(json.detail || r.statusText));
   return json;
 }
 
@@ -62,7 +60,7 @@ async function apiPostForm(path, formData) {
     body: formData,
   });
   const json = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(json.detail || r.statusText);
+  if (!r.ok) throw new Error(extractApiDetail(json.detail || r.statusText));
   return json;
 }
 
@@ -72,7 +70,7 @@ async function apiDelete(path) {
     headers: authHeaders(),
   });
   const json = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(json.detail || r.statusText);
+  if (!r.ok) throw new Error(extractApiDetail(json.detail || r.statusText));
   return json;
 }
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
@@ -194,6 +192,7 @@ function SectionCard({ titleKey, descKey, isDark, t, children }) {
 
 /* ─── Delete account modal ────────────────────────────────────────────────── */
 function DeleteAccountModal({ user, isDark, onClose, onConfirmed }) {
+  const { i18n } = useTranslation();
   const [step, setStep]                 = useState("email");
   const [inputEmail, setInputEmail]     = useState("");
   const [code, setCode]                 = useState("");
@@ -215,11 +214,11 @@ function DeleteAccountModal({ user, isDark, onClose, onConfirmed }) {
         body: JSON.stringify({ email: inputEmail }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.detail || "Ошибка отправки кода");
+      if (!res.ok) throw new Error(extractApiDetail(json.detail || "delete_code_send_failed"));
       setConfirmationToken(json.confirmation_token);
       setStep("code");
     } catch (e) {
-      setErr(e.message);
+      setErr(apiErrorMessage(e, i18n));
     } finally {
       setSending(false);
     }
@@ -236,10 +235,10 @@ function DeleteAccountModal({ user, isDark, onClose, onConfirmed }) {
         body: JSON.stringify({ confirmation_token: confirmationToken, code }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.detail || "Неверный код");
+      if (!res.ok) throw new Error(extractApiDetail(json.detail || "invalid_delete_code"));
       onConfirmed();
     } catch (e) {
-      setErr(e.message);
+      setErr(apiErrorMessage(e, i18n));
       setSending(false);
     }
   };
@@ -404,7 +403,7 @@ export default function SettingsPage() {
         country:   data.country   || "",
       });
     } catch (err) {
-      showToast("error", err.message);
+      showToast("error", apiErrorMessage(err, i18n));
     } finally {
       setLoading(false);
     }
@@ -431,7 +430,7 @@ export default function SettingsPage() {
       const data = await apiPut("/users/me", profileForm);
       setUser(data);
       showToast("success", t("common.saveChanges", "Сохранено") + " ✓");
-    } catch (err) { showToast("error", err.message); }
+    } catch (err) { showToast("error", apiErrorMessage(err, i18n)); }
     finally { setIsSaving(false); }
   };
 
@@ -439,8 +438,8 @@ export default function SettingsPage() {
   const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) { showToast("error", "Только изображения"); return; }
-    if (file.size > 5 * 1024 * 1024)    { showToast("error", "Макс 5 MB"); return; }
+    if (!file.type.startsWith("image/")) { showToast("error", apiErrorMessage("unsupported image", i18n)); return; }
+    if (file.size > 5 * 1024 * 1024)    { showToast("error", apiErrorMessage("file too large", i18n)); return; }
     const fd = new FormData();
     fd.append("file", file);
     setIsSaving(true);
@@ -448,7 +447,7 @@ export default function SettingsPage() {
       await apiPostForm("/users/me/photo", fd);
       await fetchUser();
       showToast("success", "Фото обновлено ✓");
-    } catch (err) { showToast("error", err.message); }
+    } catch (err) { showToast("error", apiErrorMessage(err, i18n)); }
     finally { setIsSaving(false); }
   };
 
@@ -458,7 +457,7 @@ export default function SettingsPage() {
       await apiDelete("/users/me/photo");
       await fetchUser();
       showToast("success", "Фото удалено");
-    } catch (err) { showToast("error", err.message); }
+    } catch (err) { showToast("error", apiErrorMessage(err, i18n)); }
     finally { setIsSaving(false); }
   };
 
@@ -472,9 +471,9 @@ export default function SettingsPage() {
   const handleSavePassword = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!pwdForm.oldPassword)                            errs.oldPassword     = "Обязательно";
-    if (pwdForm.newPassword.length < 6)                  errs.newPassword     = "Мин. 6 символов";
-    if (pwdForm.newPassword !== pwdForm.confirmPassword) errs.confirmPassword = "Пароли не совпадают";
+    if (!pwdForm.oldPassword)                            errs.oldPassword     = t("errors.required");
+    if (pwdForm.newPassword.length < 10)                 errs.newPassword     = apiErrorMessage("at least 10", i18n);
+    if (pwdForm.newPassword !== pwdForm.confirmPassword) errs.confirmPassword = t("reset.passwordMismatch");
     setPwdErr(errs);
     if (Object.keys(errs).length) return;
     setIsSaving(true);
@@ -485,7 +484,7 @@ export default function SettingsPage() {
       });
       setPwdForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
       showToast("success", "Пароль изменён ✓");
-    } catch (err) { showToast("error", err.message); }
+    } catch (err) { showToast("error", apiErrorMessage(err, i18n)); }
     finally { setIsSaving(false); }
   };
 
@@ -580,7 +579,7 @@ const handleExport = async () => {
 
     showToast("success", "PDF экспортирован ✓");
   } catch (err) {
-    showToast("error", "Ошибка экспорта: " + err.message);
+    showToast("error", apiErrorMessage(err, i18n));
   }
 };
   /* ── Delete confirmed ───────────────────────────────────────────────────── */
@@ -630,7 +629,7 @@ const handleExport = async () => {
   const photoSrc = user.profile_photo
     ? user.profile_photo.startsWith("http")
       ? user.profile_photo
-      : `http://127.0.0.1:8000${user.profile_photo}`
+      : user.profile_photo
     : null;
 
   /* ── Render ─────────────────────────────────────────────────────────────── */

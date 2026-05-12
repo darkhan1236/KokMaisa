@@ -2,7 +2,7 @@
 // KokMaisa 2025 — полная мультиязычность, светлая/тёмная тема
 
 import { useTranslation } from "react-i18next";
-import { Cpu, Satellite, FlaskConical } from "lucide-react";
+import { Brain, Database, MessageCircle } from "lucide-react";
 
 const ABOUT_STYLES = `
   .about-root {
@@ -33,19 +33,19 @@ export default function About() {
 
   const highlights = [
     {
-      icon : Cpu,
+      icon : Brain,
       titleKey: "about.highlight1Title",
       descKey : "about.highlight1Desc",
       color: "#4ade80",
     },
     {
-      icon : Satellite,
+      icon : Database,
       titleKey: "about.highlight2Title",
       descKey : "about.highlight2Desc",
       color: "#22d3ee",
     },
     {
-      icon : FlaskConical,
+      icon : MessageCircle,
       titleKey: "about.highlight3Title",
       descKey : "about.highlight3Desc",
       color: "#86efac",

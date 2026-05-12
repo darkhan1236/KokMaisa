@@ -1,11 +1,14 @@
-# backend/app/api/users/user_api.py
-import sqlalchemy
 import base64
+import binascii
+import io
 import uuid
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
 from pathlib import Path
+
+import sqlalchemy
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from PIL import Image, UnidentifiedImageError
+from sqlalchemy.orm import Session
 
 from app.api.users.commands.create_user import execute as create_user_execute
 from app.api.users.commands.delete_account import (
@@ -13,292 +16,218 @@ from app.api.users.commands.delete_account import (
     request_delete_account,
 )
 from app.api.users.commands.login_user import execute as login_execute
-from app.api.users.commands.reset_password import request_reset, execute_reset
+from app.api.users.commands.reset_password import execute_reset, request_reset
 from app.api.users.commands.update_user import execute as update_user_execute
+from app.api.users.crud.user_crud import update_user_photo
 from app.api.users.schemas.user_schemas import (
+    AccountType,
     DeleteAccountConfirm,
     DeleteAccountRequest,
+    PasswordChange,
     PasswordReset,
     PasswordResetRequest,
     ProfilePhotoUpdate,
     UserCreate,
     UserLogin,
     UserRead,
+    UserRegister,
     UserUpdate,
 )
-from app.api.users.crud.user_crud import get_user_by_id, update_user_photo
-from database.db import get_db
-from core.security import CurrentUser, Token, create_access_token
 from core.config import settings
+from core.security import CurrentUser, Token, create_access_token, verify_password
+from database.db import get_db
 
 router = APIRouter()
 
+MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+}
+
+
+def _validate_image_bytes(contents: bytes, declared_mime_type: str | None) -> tuple[str, str]:
+    if len(contents) > MAX_PROFILE_PHOTO_SIZE:
+        raise HTTPException(status_code=400, detail="File is too large. Maximum size is 5MB")
+    if declared_mime_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported image type")
+    try:
+        with Image.open(io.BytesIO(contents)) as image:
+            image.verify()
+            image_format = (image.format or "").lower()
+    except (UnidentifiedImageError, OSError):
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    format_to_mime = {
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "gif": "image/gif",
+        "webp": "image/webp",
+    }
+    detected_mime = format_to_mime.get(image_format)
+    if detected_mime != declared_mime_type:
+        raise HTTPException(status_code=400, detail="Image content does not match declared MIME type")
+    return detected_mime, ALLOWED_IMAGE_TYPES[detected_mime]
+
+
+def _save_profile_photo(contents: bytes, mime_type: str) -> str:
+    _, extension = _validate_image_bytes(contents, mime_type)
+    filename = f"{uuid.uuid4()}.{extension}"
+    upload_dir = Path("uploads/profile_photos")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file_path = upload_dir / filename
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    return f"/uploads/profile_photos/{filename}"
+
 
 @router.post("/register", response_model=Token)
-def register_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db)
-):
+def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     try:
-        user = create_user_execute(db, user_data)
-        
-        access_token_expires = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+        create_data = UserCreate(**user_data.model_dump(), account_type=AccountType.farmer)
+        user = create_user_execute(db, create_data)
         access_token = create_access_token(
             data={"user_id": user.id},
-            expires_delta=access_token_expires
+            expires_delta=timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
         )
-        
         return Token(access_token=access_token, token_type="bearer")
-    
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
-    except sqlalchemy.exc.IntegrityError as e:
-        # Обработка уникального нарушения (телефон или email уже занят)
-        db.rollback()  # откатываем транзакцию
-        if "ix_users_phone" in str(e):
-            raise HTTPException(status_code=400, detail="Пользователь с таким номером телефона уже существует")
-        elif "ix_users_email" in str(e):
-            raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
-        else:
-            raise HTTPException(status_code=400, detail="Ошибка уникальности данных")
-    
-    except Exception as e:
+    except sqlalchemy.exc.IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера")
+        raise HTTPException(status_code=400, detail="User with this email or phone already exists")
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/login", response_model=Token)
 def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
-    try:
-        token_data = login_execute(db, login_data)
-        return token_data
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    return login_execute(db, login_data)
 
 
 @router.post("/password-reset-request")
-async def password_reset_request(
-    reset_request: PasswordResetRequest,
-    db: Session = Depends(get_db)
-):
-    try:
-        return await request_reset(db, reset_request)  # ← await
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+async def password_reset_request(reset_request: PasswordResetRequest, db: Session = Depends(get_db)):
+    return await request_reset(db, reset_request)
 
 
 @router.post("/password-reset")
-def password_reset(
-    reset_data: PasswordReset,
-    db: Session = Depends(get_db)
-):
-    try:
-        return execute_reset(db, reset_data)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+def password_reset(reset_data: PasswordReset, db: Session = Depends(get_db)):
+    return execute_reset(db, reset_data)
 
 
 @router.post("/me/delete-request")
-async def delete_account_request(
-    delete_request: DeleteAccountRequest,
-    current_user: CurrentUser,
-):
+async def delete_account_request(delete_request: DeleteAccountRequest, current_user: CurrentUser):
     try:
         return await request_delete_account(current_user, delete_request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception:
-        raise HTTPException(status_code=500, detail="Не удалось отправить код подтверждения")
+        raise HTTPException(status_code=500, detail="Could not send confirmation code")
 
 
 @router.post("/me/delete-confirm")
 def delete_account_confirm(
     delete_confirm: DeleteAccountConfirm,
     current_user: CurrentUser,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    try:
-        return confirm_delete_account(db, current_user, delete_confirm)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return confirm_delete_account(db, current_user, delete_confirm)
 
 
 @router.get("/me", response_model=UserRead)
 def get_current_user_info(current_user: CurrentUser):
     return UserRead.model_validate(current_user)
 
+
 @router.put("/me", response_model=UserRead)
 def update_current_user(
     user_data: UserUpdate,
     current_user: CurrentUser,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         updated_user = update_user_execute(db, current_user.id, user_data)
         return UserRead.model_validate(updated_user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Ошибка при обновлении профиля")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Profile update failed")
 
 
 @router.put("/me/password")
 def change_password(
-    password_data: dict,
+    password_data: PasswordChange,
     current_user: CurrentUser,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """
-    Изменение пароля
-    Пример тела запроса: {"old_password": "old", "new_password": "new"}
-    """
     try:
-        from core.security import verify_password
-        
-        # Проверяем старый пароль
-        if not verify_password(password_data.get("old_password", ""), current_user.hashed_password):
-            raise ValueError("Неверный старый пароль")
-        
-        # Обновляем пароль
+        if not verify_password(password_data.old_password, current_user.hashed_password):
+            raise ValueError("Invalid old password")
         from app.api.users.crud.user_crud import update_password
-        update_password(db, current_user, password_data["new_password"])
-        
-        return {"message": "Пароль успешно изменен"}
+
+        update_password(db, current_user, password_data.new_password)
+        return {"message": "Password changed successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Ошибка при изменении пароля")
-    
+    except Exception:
+        raise HTTPException(status_code=500, detail="Password change failed")
 
-@router.post("/me/photo")
+
+@router.post("/me/photo", response_model=UserRead)
 async def upload_profile_photo(
-    current_user: CurrentUser,      # Без значения по умолчанию - идет первым
-    file: UploadFile = File(...),   # Со значением по умолчанию
-    db: Session = Depends(get_db)   # Со значением по умолчанию
+    current_user: CurrentUser,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
-    """
-    Загрузка фото профиля
-    """
     try:
-        # Проверяем размер файла (максимум 5MB)
         contents = await file.read()
-        if len(contents) > 5 * 1024 * 1024:  # 5MB
-            raise HTTPException(status_code=400, detail="Файл слишком большой. Максимум 5MB")
-        
-        # Проверяем MIME тип
-        allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-        if file.content_type not in allowed_mime_types:
-            raise HTTPException(status_code=400, detail="Неподдерживаемый тип файла. Разрешены: JPEG, PNG, GIF, WebP")
-        
-        # Генерируем уникальное имя файла
-        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
-        filename = f"{uuid.uuid4()}.{file_extension}"
-        
-        # Создаем директорию для фото, если её нет
-        upload_dir = Path("uploads/profile_photos")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Сохраняем файл
-        file_path = upload_dir / filename
-        with open(file_path, "wb") as f:
-            f.write(contents)
-        
-        # Сохраняем путь к файлу в базе данных
-        photo_url = f"/uploads/profile_photos/{filename}"
-        from app.api.users.crud.user_crud import update_user_photo
+        photo_url = _save_profile_photo(contents, file.content_type)
         updated_user = update_user_photo(db, current_user.id, photo_url, file.content_type)
-        
         return UserRead.model_validate(updated_user)
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при загрузке фото: {str(e)}")
-
-
-@router.post("/me/photo-base64")
-async def upload_profile_photo_base64(
-    current_user: CurrentUser,  # Без значения по умолчанию - идет первым
-    photo_data: ProfilePhotoUpdate,  # Без значения по умолчанию - идет вторым
-    db: Session = Depends(get_db)    # Со значением по умолчанию
-):
-    """
-    Загрузка фото профиля в формате base64
-    """
-    try:
-        # Декодируем base64 строку
-        try:
-            image_data = base64.b64decode(photo_data.photo_base64)
-        except:
-            raise HTTPException(status_code=400, detail="Некорректный формат base64")
-        
-        # Проверяем размер (максимум 5MB)
-        if len(image_data) > 5 * 1024 * 1024:  # 5MB
-            raise HTTPException(status_code=400, detail="Изображение слишком большое. Максимум 5MB")
-        
-        # Определяем расширение файла по MIME типу
-        mime_to_extension = {
-            "image/jpeg": "jpg",
-            "image/png": "png",
-            "image/gif": "gif",
-            "image/webp": "webp"
-        }
-        
-        if photo_data.mime_type not in mime_to_extension:
-            raise HTTPException(status_code=400, detail="Неподдерживаемый MIME тип")
-        
-        extension = mime_to_extension[photo_data.mime_type]
-        
-        # Генерируем уникальное имя файла
-        filename = f"{uuid.uuid4()}.{extension}"
-        
-        # Создаем директорию для фото, если её нет
-        upload_dir = Path("uploads/profile_photos")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Сохраняем файл
-        file_path = upload_dir / filename
-        with open(file_path, "wb") as f:
-            f.write(image_data)
-        
-        # Сохраняем путь к файлу в базе данных
-        photo_url = f"/uploads/profile_photos/{filename}"
-        from app.api.users.crud.user_crud import update_user_photo
-        updated_user = update_user_photo(db, current_user.id, photo_url, photo_data.mime_type)
-        
-        return UserRead.model_validate(updated_user)
-        
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при загрузке фото: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Photo upload failed")
 
 
-@router.delete("/me/photo")
-async def delete_profile_photo(
-    current_user: CurrentUser,  # Без значения по умолчанию - идет первым
-    db: Session = Depends(get_db)  # Со значением по умолчанию
+@router.post("/me/photo-base64", response_model=UserRead)
+async def upload_profile_photo_base64(
+    current_user: CurrentUser,
+    photo_data: ProfilePhotoUpdate,
+    db: Session = Depends(get_db),
 ):
-    """
-    Удаление фото профиля
-    """
+    try:
+        try:
+            image_data = base64.b64decode(photo_data.photo_base64, validate=True)
+        except (binascii.Error, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid base64 image")
+        photo_url = _save_profile_photo(image_data, photo_data.mime_type)
+        updated_user = update_user_photo(db, current_user.id, photo_url, photo_data.mime_type)
+        return UserRead.model_validate(updated_user)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Photo upload failed")
+
+
+@router.delete("/me/photo", response_model=UserRead)
+async def delete_profile_photo(current_user: CurrentUser, db: Session = Depends(get_db)):
     try:
         from app.api.users.crud.user_crud import delete_user_photo
+
+        old_photo = current_user.profile_photo
         updated_user = delete_user_photo(db, current_user.id)
-        
-        # Удаляем файл с диска, если он существует
-        if current_user.profile_photo and current_user.profile_photo.startswith("/uploads/"):
+        if old_photo and old_photo.startswith("/uploads/"):
             try:
-                file_path = Path(current_user.profile_photo.lstrip("/"))
-                if file_path.exists():
+                file_path = Path(old_photo.lstrip("/")).resolve()
+                upload_root = Path("uploads").resolve()
+                if upload_root in file_path.parents and file_path.exists():
                     file_path.unlink()
-            except:
-                pass  # Игнорируем ошибки при удалении файла
-        
+            except OSError:
+                pass
         return UserRead.model_validate(updated_user)
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при удалении фото: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Photo deletion failed")

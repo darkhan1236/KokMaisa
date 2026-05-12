@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiErrorMessage } from "@/app/utils/apiErrors";
 
-const API = "http://127.0.0.1:8000/api";
+const API = "/api";
 
 /* ── CSS ───────────────────────────────────────────────────────────────── */
 const STYLE = `
@@ -78,10 +79,14 @@ const STYLE = `
   border-radius:10px;padding:9px 14px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;width:100%;}
 .inp-d::placeholder{color:rgba(255,255,255,.3);}
 .inp-d:focus{border-color:rgba(74,222,128,.5);box-shadow:0 0 0 3px rgba(74,222,128,.07);}
+.inp-d option{background:#061309;color:#f8fff9;}
+.inp-d option:checked,.inp-d option:hover{background:#0f2d1a;color:#fff;}
 .inp-l{background:#f8fdf8;border:1px solid rgba(34,197,94,.22);color:#1a3d20;
   border-radius:10px;padding:9px 14px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;width:100%;}
 .inp-l::placeholder{color:rgba(20,55,20,.35);}
 .inp-l:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.1);}
+.inp-l option{background:#ffffff;color:#12381b;}
+.inp-l option:checked,.inp-l option:hover{background:#dcfce7;color:#14532d;}
 
 .bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;
   font-size:10px;font-weight:700;letter-spacing:.05em;white-space:nowrap;}
@@ -353,7 +358,7 @@ export default function AdminPanel(){
       const res = await api.userCreate(newUF);
       if(res.id){ setNewUOk(true); setTimeout(()=>{ setNewU(false);setNewUOk(false);setNewUF({full_name:"",email:"",phone:"",password:"",account_type:"farmer",country:"",city:""})},1300); loadUsers();loadStats(); }
       else setNewUErr(res.detail||"Error");
-    }catch(e){ setNewUErr(e.message||"Connection error"); }
+    }catch(e){ setNewUErr(apiErrorMessage(e, i18n)); }
   };
 
   const doFarmEdit    = async()   =>{ if(!editFarm)return; setSaving(true); await api.farmUpdate(editFarm.id,editFarmF); setSaving(false); setEditFarm(null); loadFarms(); };
@@ -383,7 +388,6 @@ export default function AdminPanel(){
     {icon:Users,   val:stats.users?.active,  lbl:t("admin.activeUsers"),   a:"#34d399"},
     {icon:Wheat,   val:stats.farms,          lbl:t("admin.totalFarms"),    a:"#fbbf24"},
     {icon:MapPin,  val:stats.pastures,       lbl:t("admin.totalPastures"), a:"#f97316"},
-    {icon:Cpu,     val:stats.drones,         lbl:t("admin.totalDrones"),   a:"#818cf8"},
     {icon:Activity,val:stats.analyses,       lbl:t("admin.totalAnalyses"), a:"#f472b6"},
     {icon:MessageSquareText,val:stats.suggestions?.new, lbl:t("admin.newSuggestions"), a:"#2dd4bf"},
   ]:[];
@@ -393,7 +397,6 @@ export default function AdminPanel(){
     {id:"users",        icon:Users,     lbl:t("admin.users")},
     {id:"farms",        icon:Wheat,     lbl:t("admin.farms")},
     {id:"pastures",     icon:MapPin,    lbl:t("admin.pastures","Пастбища")},
-    {id:"drones",       icon:Cpu,       lbl:t("admin.drones","Дроны")},
     {id:"measurements", icon:Activity,  lbl:t("admin.measurements")},
     {id:"suggestions",  icon:MessageSquareText, lbl:t("admin.suggestions")},
   ];

@@ -9,6 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/app/components/Header";
 import { deriveMetrics as deriveBiomassMetrics } from "@/app/utils/biomassMetrics";
+import { apiErrorMessage } from "@/app/utils/apiErrors";
 import {
   Upload, X, Check, Loader2, Camera,
   TrendingUp, TrendingDown, Minus, Leaf,
@@ -503,8 +504,8 @@ const ANIMALS = [
  *   ≥ 18 c/ha → high
  *   ≥ 28 c/ha → very high / excellent
  *
- *   NDVI formula (recalibrated):
- *     ndvi = 0.15 + 0.025 × bm  (clamped 0.05–0.88)
+ *   Derived AI vegetation score (recalibrated):
+ *     score = 0.15 + 0.025 × bm  (clamped 0.05–0.88)
  *     5 c/ha → 0.275  (grade C, moderate — acceptable)
  *     10 c/ha → 0.40  (grade B, good ✓)
  *     20 c/ha → 0.65  (grade A, excellent ✓)
@@ -527,7 +528,7 @@ function deriveMetrics(biomass_c_ha, area_ha, t) {
   // ── per-hectare figures ──
   const biomassKgHa = bm * 100; // kg/ha
 
-  // NDVI — recalibrated for steppe conditions
+  // Derived AI vegetation score — recalibrated for steppe conditions
   // 5 c/ha → 0.275 | 10 → 0.40 | 20 → 0.65 | 30 → 0.90 (capped)
   const ndvi = Math.min(0.88, Math.max(0.05, 0.15 + 0.025 * bm));
 
@@ -541,7 +542,7 @@ function deriveMetrics(biomass_c_ha, area_ha, t) {
   const usableBiomassKg  = totalBiomassKg * 0.50; // 50% utilization coefficient
   const usableForWinterKg = totalBiomassKg * 0.40; // 40% for hay stock
 
-  // ── NDVI grade — thresholds recalibrated for steppe (lower than temperate) ──
+  // ── Vegetation score grade — thresholds recalibrated for steppe (lower than temperate) ──
   const ndviGrade =
     ndvi >= 0.65 ? { letter: "A", labelKey: "biomass.ndvi.excellent", color: "#22c55e", pct: 95 } :
     ndvi >= 0.42 ? { letter: "B", labelKey: "biomass.ndvi.good",      color: "#84cc16", pct: 72 } :
@@ -671,7 +672,7 @@ function HistoryRow({ m, onDelete, isDark, t }) {
         {m.status === "completed" && (
           <div style={{ fontSize: 12, color: sc, marginTop: 2, display: "flex", flexWrap: "wrap", gap: 10 }}>
             {m.biomass_value    != null && <span>🌱 {m.biomass_value.toFixed(1)} {t("biomass.unit")}</span>}
-            {m.ndvi_value       != null && <span>📡 NDVI {m.ndvi_value.toFixed(3)}</span>}
+            {m.ndvi_value       != null && <span>🌿 {t("biomass.results.aiScoreLabel", "AI score")} {Math.round((m.ndvi_value / 0.88) * 100)}%</span>}
             {m.coverage_percent != null && <span>🔲 {m.coverage_percent.toFixed(0)}%</span>}
           </div>
         )}
@@ -723,9 +724,9 @@ function ResultModal({ result, onClose, isDark, t }) {
 
   const metricItems = [
     {
-      emoji: "📡",
-      label: "NDVI",
-      value: metrics.ndvi.toFixed(3),
+      emoji: "🌿",
+      label: t("biomass.results.aiScoreLabel", "AI score"),
+      value: `${metrics.ndviGrade.pct}%`,
       color: metrics.ndviGrade.color,
       badge: metrics.ndviGrade.letter,
     },
@@ -1077,7 +1078,7 @@ function WinterCalculator({ usableForWinterKg, defaultArea, isDark, t }) {
 
 /* ─── Main Component ──────────────────────────────────────────────────────── */
 export default function BiomassMeasurementPage() {
-  const { t }     = useTranslation();
+  const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const D = theme === "dark";
   const {
@@ -1123,7 +1124,7 @@ export default function BiomassMeasurementPage() {
         const p = await getPastures();
         setPastures(p || []);
         if (p?.length) setSelPasture(p[0]);
-      } catch (e) { showToast("err", e.message || t("common.connectionError")); }
+      } catch (e) { showToast("err", apiErrorMessage(e, i18n)); }
       setLoading(false);
     })();
   }, [authLoading, isAuthenticated]);
@@ -1178,7 +1179,7 @@ export default function BiomassMeasurementPage() {
         showToast("ok", `✅ ${t("biomass.toast.success", { value: result.biomass_value?.toFixed(1), unit: t("biomass.unit") })}`);
       }
     } catch (e) {
-      showToast("err", e.message || t("common.connectionError"));
+      showToast("err", apiErrorMessage(e, i18n));
     }
     setSubmitting(false);
   };
@@ -1192,7 +1193,7 @@ export default function BiomassMeasurementPage() {
       const s = await getPastureStats(selPasture.id);
       setStats(s);
       showToast("ok", t("biomass.toast.deleted"));
-    } catch (e) { showToast("err", e.message); }
+    } catch (e) { showToast("err", apiErrorMessage(e, i18n)); }
   };
 
   const closeModal = () => { setModalOpen(false); setFile(null); setPreview(null); setDesc(""); };
@@ -1353,9 +1354,9 @@ export default function BiomassMeasurementPage() {
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingBottom: 6 }}>
                         <div style={{ padding: "10px 16px", borderRadius: 14, background: `${metrics.ndviGrade.color}14`, border: `1px solid ${metrics.ndviGrade.color}28` }}>
-                          <div style={{ fontSize: 10, color: sc, marginBottom: 2 }}>NDVI</div>
+                          <div style={{ fontSize: 10, color: sc, marginBottom: 2 }}>{t("biomass.results.aiScoreLabel", "AI score")}</div>
                           <div style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontWeight: 900, fontSize: "1.15rem", color: metrics.ndviGrade.color }}>
-                            {metrics.ndvi.toFixed(3)}
+                            {metrics.ndviGrade.pct}%
                           </div>
                         </div>
                         <div style={{ padding: "10px 16px", borderRadius: 14, background: `${metrics.grazingRec.color}14`, border: `1px solid ${metrics.grazingRec.color}28` }}>

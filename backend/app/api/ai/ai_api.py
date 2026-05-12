@@ -136,7 +136,7 @@ async def ai_chat(req: ChatRequest, user: User = Depends(get_current_user)):
                 raise HTTPException(status_code=503, detail="Ошибка авторизации OpenRouter (неверный ключ)")
             if resp.status_code == 429:
                 raise HTTPException(status_code=503, detail="Превышен лимит запросов AI. Попробуйте позже.")
-            raise HTTPException(status_code=500, detail=f"OpenRouter ошибка {resp.status_code}: {err_json}")
+            raise HTTPException(status_code=502, detail=f"AI provider error {resp.status_code}")
 
         data   = resp.json()
         answer = (data.get("choices", [{}])[0].get("message", {}) or {}).get("content", "").strip()
@@ -150,5 +150,5 @@ async def ai_chat(req: ChatRequest, user: User = Depends(get_current_user)):
         raise HTTPException(status_code=504, detail="AI не ответил вовремя. Попробуйте ещё раз.")
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="AI request failed")

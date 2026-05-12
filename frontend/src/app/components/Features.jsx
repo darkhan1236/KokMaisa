@@ -1,7 +1,7 @@
 // src/app/components/Features.jsx
 // Dark premium redesign — KokMaisa 2025
 
-import { Satellite, BarChart, Brain, Smartphone, Cloud, Zap } from "lucide-react";
+import { BarChart, Brain, Camera, Database, History, MessageCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const FEAT_STYLES = `
@@ -49,7 +49,7 @@ export default function Features() {
 
   const features = [
     {
-      icon: Satellite,
+      icon: Camera,
       title: t("features.feature1"),
       description: t("features.feature1Desc"),
       accent: "#4ade80",
@@ -67,19 +67,19 @@ export default function Features() {
       accent: "#a78bfa",
     },
     {
-      icon: Smartphone,
+      icon: MessageCircle,
       title: t("features.feature4"),
       description: t("features.feature4Desc"),
       accent: "#f472b6",
     },
     {
-      icon: Cloud,
+      icon: Database,
       title: t("features.feature5"),
       description: t("features.feature5Desc"),
       accent: "#fb923c",
     },
     {
-      icon: Zap,
+      icon: History,
       title: t("features.feature6"),
       description: t("features.feature6Desc"),
       accent: "#fbbf24",

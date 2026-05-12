@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
-from secrets import token_urlsafe
+import hmac
+from hashlib import sha256
+from secrets import randbelow, token_urlsafe
 from typing import Dict
 
 from fastapi import HTTPException, status
@@ -15,6 +17,10 @@ from core.config import settings
 
 DELETE_CONFIRMATION_TTL_MINUTES = 15
 _pending_delete_requests: Dict[str, dict] = {}
+
+
+def _hash_code(code: str) -> str:
+    return hmac.new(settings.JWT_SECRET_KEY.encode("utf-8"), code.encode("utf-8"), sha256).hexdigest()
 
 
 def _cleanup_expired_requests() -> None:
@@ -65,13 +71,13 @@ async def request_delete_account(current_user, delete_request: DeleteAccountRequ
 
     _cleanup_expired_requests()
 
-    code = f"{__import__('random').randint(0, 999999):06d}"
+    code = f"{randbelow(1_000_000):06d}"
     confirmation_token = token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=DELETE_CONFIRMATION_TTL_MINUTES)
 
     _pending_delete_requests[confirmation_token] = {
         "user_id": current_user.id,
-        "code": code,
+        "code_hash": _hash_code(code),
         "expires_at": expires_at,
     }
 
@@ -100,7 +106,7 @@ def confirm_delete_account(db: Session, current_user, delete_confirm: DeleteAcco
             detail="Этот код подтверждения принадлежит другому аккаунту",
         )
 
-    if pending["code"] != delete_confirm.code:
+    if not hmac.compare_digest(_hash_code(delete_confirm.code), pending["code_hash"]):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Неверный код подтверждения",

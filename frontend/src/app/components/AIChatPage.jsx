@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import Header from "@/app/components/Header";
+import { apiErrorMessage } from "@/app/utils/apiErrors";
 import {
   Bot, User, Send, RefreshCw, Copy, Check,
   Wheat, BarChart3, Leaf, Lightbulb, MessageSquareText,
@@ -99,7 +100,7 @@ const CHAT_STYLE = `
 const getSuggestions = (t) => [
   { icon: Wheat,     text: t("ai.suggestions.biomass"),        accent: "#4ade80" },
   { icon: BarChart3, text: t("ai.suggestions.rotation"),       accent: "#22d3ee" },
-  { icon: Leaf,      text: t("ai.suggestions.droneMonitoring"),accent: "#a78bfa" },
+  { icon: Leaf,      text: t("ai.suggestions.pastureHealth"),  accent: "#a78bfa" },
   { icon: Lightbulb, text: t("ai.suggestions.weatherImpact"),  accent: "#fbbf24" },
 ];
 
@@ -117,7 +118,7 @@ function TypingDots({ isDark }) {
 
 /* ─── Main Component ────────────────────────────────────────────────────────── */
 export default function AIChatPage() {
-  const { t }           = useTranslation();
+  const { t, i18n }     = useTranslation();
   const { theme }       = useTheme();
   const { user, chatAI }= useAuth();
   const navigate        = useNavigate();
@@ -197,7 +198,7 @@ export default function AIChatPage() {
       setMessages(prev => [...prev, {
         id:        (Date.now() + 1).toString(),
         role:      "assistant",
-        content:   `${t("common.connectionError")}: ${err.message}`,
+        content:   apiErrorMessage(err, i18n),
         timestamp: new Date(),
         isError:   true,
       }]);

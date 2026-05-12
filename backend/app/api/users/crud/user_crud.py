@@ -32,12 +32,17 @@ def get_user_by_id(db: Session, user_id: int) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
 
 
-def update_user(db: Session, user_id: int, data: UserUpdate) -> User:
-    user = db.query(User).filter(User.id == user_id).first()
+def update_user(db: Session, user_or_id: User | int, data: UserUpdate) -> User:
+    if isinstance(user_or_id, User):
+        user = user_or_id
+    else:
+        user = db.query(User).filter(User.id == user_or_id).first()
     if not user:
         raise ValueError("User not found")
 
     update_data = data.model_dump(exclude_none=True)
+    update_data.pop("is_active", None)
+    update_data.pop("profile_photo", None)
 
     if "password" in update_data:
         update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
@@ -74,6 +79,17 @@ def update_user_photo(db: Session, user_id: int, photo_url: str, mime_type: str)
         raise ValueError("User not found")
     user.profile_photo   = photo_url
     user.photo_mime_type = mime_type
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_user_photo(db: Session, user_id: int) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise ValueError("User not found")
+    user.profile_photo = None
+    user.photo_mime_type = None
     db.commit()
     db.refresh(user)
     return user

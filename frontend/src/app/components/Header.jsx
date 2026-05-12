@@ -5,10 +5,10 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Menu, X, Sun, Moon, Globe, ChevronDown,
+  Menu, X, Sun, Moon, ChevronDown, Globe,
   LogOut, User, LayoutDashboard, Map,
   Wheat, LandPlot, Leaf, MessageSquareText,
-  Settings, BarChart3, Plane,
+  Settings, BarChart3,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,6 +73,14 @@ const HEADER_STYLE = `
   .lb-al { background:rgba(22,163,74,.14);color:#16a34a; }
   .lb-il { background:transparent;color:rgba(20,55,20,.4); }
   .lb-il:hover { color:rgba(20,55,20,.8); }
+  .lang-dropdown {
+    position:absolute;right:0;top:calc(100% + 10px);
+    display:flex;gap:6px;padding:8px;border-radius:14px;
+    animation:dropIn .18s cubic-bezier(.22,1,.36,1) both;
+    z-index:210;
+  }
+  .lang-dd-d { background:rgba(6,19,9,.97);border:1px solid rgba(255,255,255,.1);box-shadow:0 14px 38px rgba(0,0,0,.4); }
+  .lang-dd-l { background:#fff;border:1px solid rgba(34,197,94,.18);box-shadow:0 10px 30px rgba(34,197,94,.12); }
 
   /* Theme btn */
   .tb { display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;border:none;cursor:pointer;transition:background .2s,transform .2s; }
@@ -156,6 +164,8 @@ const LANGS = [
   { code: "kk", label: "ҚАЗ" },
 ];
 
+const langLabel = (code, label) => code === "kk" ? "KAZ" : label;
+
 function UserAvatar({ user, size = 34 }) {
   const initials = user?.full_name
     ? user.full_name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
@@ -165,7 +175,7 @@ function UserAvatar({ user, size = 34 }) {
     return (
       <div className="user-avatar" style={{ width: size, height: size }}>
         <img
-          src={user.profile_photo.startsWith("http") ? user.profile_photo : `http://127.0.0.1:8000${user.profile_photo}`}
+          src={user.profile_photo.startsWith("http") ? user.profile_photo : user.profile_photo}
           alt={user.full_name || ""}
           onError={(e) => { e.target.style.display = "none"; }}
         />
@@ -191,7 +201,9 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const langRef = useRef(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
@@ -209,6 +221,13 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", fn);
   }, [userOpen]);
 
+  useEffect(() => {
+    if (!langOpen) return;
+    const fn = (e) => { if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false); };
+    document.addEventListener("mousedown", fn);
+    return () => document.removeEventListener("mousedown", fn);
+  }, [langOpen]);
+
   function handleNavClick(e, href) {
     if (isHomePage && href.startsWith("#")) {
       e.preventDefault();
@@ -224,17 +243,25 @@ export default function Header() {
     navigate("/");
   }
 
+  function changeLanguage(code) {
+    i18n.changeLanguage(code);
+    setLangOpen(false);
+  }
+
   const isAdmin = user?.account_type === "admin";
 
   // ── Полное меню пользователя (восстановлено как в оригинале) ──
- const userMenuItems = user ? [
+ const farmerMenuItems = [
   { label: t("nav.myFarms"), icon: LandPlot, href: "/farms", accent: isDark?"#4ade80":"#16a34a" },
   { label: t("nav.myPastures"), icon: Wheat, href: "/pastures", accent: isDark?"#4ade80":"#16a34a" },
-  { label: t("nav.myDrones"), icon: Plane, href: "/drones", accent: isDark?"#4ade80":"#16a34a" },
   { label: t("nav.biomass"), icon: Leaf, href: "/biomass", accent: isDark?"#fbbf24":"#d97706" },
   { type: "divider" },
   { label: t("nav.biomassDashboard"), icon: BarChart3, href: "/biomass-dashboard", accent: isDark?"#fbbf24":"#d97706" },
   { type: "divider" },
+ ];
+
+ const userMenuItems = user ? [
+  ...(!isAdmin ? farmerMenuItems : []),
   { label: t("nav.aiConsultant"), icon: MessageSquareText, href: "/ai-chat", accent: isDark?"#60a5fa":"#2563eb" },
   ...(isAdmin ? [{ label: "Admin Panel", icon: LayoutDashboard, href: "/admin", accent: isDark?"#a78bfa":"#7c3aed" }] : []),
   { label: t("nav.settings"), icon: Settings, href: "/settings", accent: isDark?"rgba(255,255,255,.4)":"rgba(20,55,20,.4)" },
@@ -271,9 +298,9 @@ export default function Header() {
             {/* Logo */}
             <AnimatedLogo isDark={isDark} />
 
-            {/* Desktop nav – only on home */}
+            {/* Desktop nav - only on home */}
             {isHomePage && (
-              <nav className="hidden md:flex items-center gap-6">
+              <nav className="hidden lg:flex items-center gap-6">
                 {navLinks.map(({ href, label }) => (
                   <a key={href} href={href} onClick={e => handleNavClick(e, href)} className={nl}>{label}</a>
                 ))}
@@ -281,20 +308,29 @@ export default function Header() {
             )}
 
             {/* Desktop right block */}
-            <div className="hidden md:flex items-center gap-2.5">
-
-              {/* Language switcher */}
-              <div className="flex items-center gap-0.5" style={{
-                background: isDark ? "rgba(255,255,255,.05)" : "rgba(20,55,20,.05)",
-                borderRadius: 8, padding: "2px 3px",
-              }}>
-                <Globe className="w-3 h-3 mx-1" style={{ color: isDark ? "rgba(255,255,255,.3)" : "rgba(20,55,20,.3)" }} />
-                {LANGS.map(({ code, label }) => (
-                  <button key={code} onClick={() => i18n.changeLanguage(code)}
-                    className={`lb ${i18n.language === code ? (isDark ? "lb-ad" : "lb-al") : (isDark ? "lb-id" : "lb-il")}`}>
-                    {label}
-                  </button>
-                ))}
+            <div className="hidden lg:flex items-center gap-2.5">
+              {/* Language */}
+              <div className="relative" ref={langRef}>
+                <button
+                  onClick={() => setLangOpen(v => !v)}
+                  className={`tb ${isDark ? "tb-d" : "tb-l"}`}
+                  aria-label="Change language"
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+                {langOpen && (
+                  <div className={`lang-dropdown ${isDark ? "lang-dd-d" : "lang-dd-l"}`}>
+                    {LANGS.map(({ code, label }) => (
+                      <button
+                        key={code}
+                        onClick={() => changeLanguage(code)}
+                        className={`lb ${i18n.language === code ? (isDark ? "lb-ad" : "lb-al") : (isDark ? "lb-id" : "lb-il")}`}
+                      >
+                        {langLabel(code, label)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Theme */}
@@ -379,7 +415,7 @@ export default function Header() {
 
             {/* Hamburger */}
             <button
-              className="md:hidden p-2 rounded-lg"
+              className="lg:hidden p-2 rounded-lg"
               style={{ color: isDark ? "rgba(255,255,255,.75)" : "rgba(20,55,20,.8)", background: "transparent", border: "none", cursor: "pointer" }}
               onClick={() => setMenuOpen(v => !v)}
               aria-label="Menu"
@@ -391,7 +427,7 @@ export default function Header() {
 
         {/* ── Mobile menu ── */}
         {menuOpen && (
-          <div className={`md:hidden ${isDark ? "mm-d" : "mm-l"} px-4 py-5`}>
+          <div className={`lg:hidden ${isDark ? "mm-d" : "mm-l"} px-4 py-5`}>
 
             {/* Nav links – only on home */}
             {isHomePage && (
@@ -409,7 +445,7 @@ export default function Header() {
               {/* Lang + theme */}
               <div className="flex items-center gap-2 mb-4 flex-wrap">
                 {LANGS.map(({ code, label }) => (
-                  <button key={code} onClick={() => i18n.changeLanguage(code)}
+                  <button key={code} onClick={() => changeLanguage(code)}
                     className={`lb ${i18n.language === code ? (isDark ? "lb-ad" : "lb-al") : (isDark ? "lb-id" : "lb-il")}`}>
                     {label}
                   </button>

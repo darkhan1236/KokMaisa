@@ -6,9 +6,10 @@ import { useTranslation } from "react-i18next";
 import { Upload, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { apiErrorMessage, extractApiDetail } from "@/app/utils/apiErrors";
 
 export default function ImageUploadAnalyzer({ onAnalysisComplete, pastureId }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -22,12 +23,12 @@ export default function ImageUploadAnalyzer({ onAnalysisComplete, pastureId }) {
 
     // Validate file
     if (!selectedFile.type.startsWith("image/")) {
-      setError(t("errors.invalidFileType") || "Invalid file type");
+      setError(apiErrorMessage("unsupported image", i18n));
       return;
     }
 
     if (selectedFile.size > 50 * 1024 * 1024) {
-      setError(t("errors.fileTooLarge") || "File is too large (max 50MB)");
+      setError(apiErrorMessage("too large", i18n));
       return;
     }
 
@@ -49,11 +50,15 @@ export default function ImageUploadAnalyzer({ onAnalysisComplete, pastureId }) {
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("photo", file);
       if (pastureId) formData.append("pasture_id", pastureId);
 
-      const token = localStorage.getItem("access_token");
-      const response = await fetch("/api/biomass/analyze", {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("session_expired");
+      }
+
+      const response = await fetch("/api/measurements/photo", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -62,9 +67,8 @@ export default function ImageUploadAnalyzer({ onAnalysisComplete, pastureId }) {
       });
 
       if (!response.ok) {
-        throw new Error(
-          t("errors.analysisError") || "Failed to analyze image"
-        );
+        const data = await response.json().catch(() => ({}));
+        throw new Error(extractApiDetail(data.detail || "analysis failed"));
       }
 
       const data = await response.json();
@@ -79,11 +83,7 @@ export default function ImageUploadAnalyzer({ onAnalysisComplete, pastureId }) {
 
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(
-        err.message ||
-          t("errors.analysisError") ||
-          "Failed to analyze image"
-      );
+      setError(apiErrorMessage(err, i18n));
     } finally {
       setIsLoading(false);
     }

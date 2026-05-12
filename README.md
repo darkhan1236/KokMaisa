@@ -221,8 +221,8 @@ DELETE /api/drones/{id}          - Удалить дрон
 
 ### Анализ биомассы (AI)
 ```
-POST   /api/biomass/analyze      - Загрузить снимок и получить анализ
-POST   /api/biomass/predict      - Получить прогноз биомассы
+POST   /api/measurements/photo   - Загрузить снимок и получить анализ
+POST   /api/measurements/drone   - Зарегистрировать измерение с дрона
 GET    /api/measurements         - История всех измерений
 ```
 
@@ -244,9 +244,9 @@ GET    /api/measurements         - История всех измерений
 ### Использование API для анализа
 
 ```bash
-curl -X POST "http://localhost:8000/api/biomass/analyze" \
+curl -X POST "http://localhost:8000/api/measurements/photo" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -F "file=@image.jpg" \
+  -F "photo=@image.jpg" \
   -F "pasture_id=1"
 
 # Ответ:
@@ -340,11 +340,11 @@ print(response.json())
 
 ### Загрузка и анализ изображения
 ```python
-files = {"file": open("drone_image.jpg", "rb")}
+files = {"photo": open("drone_image.jpg", "rb")}
 data = {"pasture_id": 1}
 
 response = requests.post(
-    "http://localhost:8000/api/biomass/analyze",
+    "http://localhost:8000/api/measurements/photo",
     files=files,
     data=data,
     headers=headers

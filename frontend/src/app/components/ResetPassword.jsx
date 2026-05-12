@@ -6,6 +6,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, Leaf } from "lucide-react";
+import { apiErrorMessage, extractApiDetail } from "@/app/utils/apiErrors";
 
 const STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
@@ -47,7 +48,7 @@ const STYLE = `
 `;
 
 export function ResetPassword() {
-  const { t }        = useTranslation();
+  const { t, i18n }  = useTranslation();
   const { theme }    = useTheme();
   const navigate     = useNavigate();
   const [params]     = useSearchParams();
@@ -66,8 +67,8 @@ export function ResetPassword() {
 
   const validate = () => {
     const errs = {};
-    if (form.newPassword.length < 6)
-      errs.newPassword = t("reset.passwordTooShort");
+    if (form.newPassword.length < 10)
+      errs.newPassword = apiErrorMessage("at least 10", i18n);
     if (form.newPassword !== form.confirmPassword)
       errs.confirmPassword = t("reset.passwordMismatch");
     setFieldErr(errs);
@@ -94,13 +95,13 @@ export function ResetPassword() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || t("reset.error"));
+        throw new Error(extractApiDetail(data.detail || t("reset.error")));
       }
       setStatus("success");
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       setStatus("error");
-      setErrMsg(err.message || t("reset.error"));
+      setErrMsg(apiErrorMessage(err, i18n));
     }
   };
 

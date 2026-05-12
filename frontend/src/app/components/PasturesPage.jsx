@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import Header from "@/app/components/Header";
+import { apiErrorMessage } from "@/app/utils/apiErrors";
 import {
   Plus, X, MapPin, Trash2, Edit3, Search, Leaf,
   AlertCircle, Loader2, Save, Eye, MousePointer,
@@ -1083,7 +1084,7 @@ export default function PasturesPage() {
       await load();
       setModal(null); setDrawnCoords(null); setEditId(null); setForm(blankForm());
     } catch(e) {
-      setApiError(e?.response?.data?.detail || t("pastures.err.saveFailed", "Ошибка сохранения"));
+      setApiError(apiErrorMessage(e?.response?.data?.detail || e, i18n));
     } finally { setSubmitting(false); }
   };
 
@@ -1563,7 +1564,7 @@ export default function PasturesPage() {
                           {(latest.method === "photo_upload"
                             ? t("pastures.measurements.methods.photo_upload", "AI photo")
                             : latest.method === "drone_video"
-                            ? t("pastures.measurements.methods.drone_video", "Drone")
+                            ? t("pastures.measurements.methods.photo_upload", "AI photo")
                             : latest.method || t("pastures.measurements.methods.unknown", "Measurement"))
                           }
                           {latest.status ? ` • ${t(`pastures.measurements.statuses.${latest.status}`, latest.status)}` : ""}

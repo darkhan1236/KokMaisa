@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 # Adjust import path to match your project structure
-from model.models import Measurement, Pasture, Drone
+from model.models import Measurement, Pasture, Drone, Farm
 
 
 def create_measurement(
@@ -67,6 +67,23 @@ def get_measurements_by_pasture(
     )
 
 
+def get_measurements_by_pasture_for_user(
+    db: Session,
+    pasture_id: int,
+    user_id: int,
+    limit: int = 50,
+) -> List[Measurement]:
+    return (
+        db.query(Measurement)
+        .join(Pasture, Measurement.pasture_id == Pasture.id)
+        .join(Farm, Pasture.farm_id == Farm.id)
+        .filter(Measurement.pasture_id == pasture_id, Farm.owner_id == user_id)
+        .order_by(desc(Measurement.created_at))
+        .limit(limit)
+        .all()
+    )
+
+
 def get_all_measurements(db: Session, limit: int = 200) -> List[Measurement]:
     return (
         db.query(Measurement)
@@ -76,8 +93,35 @@ def get_all_measurements(db: Session, limit: int = 200) -> List[Measurement]:
     )
 
 
+def get_measurements_for_user(db: Session, user_id: int, limit: int = 200) -> List[Measurement]:
+    return (
+        db.query(Measurement)
+        .join(Pasture, Measurement.pasture_id == Pasture.id)
+        .join(Farm, Pasture.farm_id == Farm.id)
+        .filter(Farm.owner_id == user_id)
+        .order_by(desc(Measurement.created_at))
+        .limit(limit)
+        .all()
+    )
+
+
 def delete_measurement(db: Session, measurement_id: int) -> bool:
     m = db.query(Measurement).filter(Measurement.id == measurement_id).first()
+    if not m:
+        return False
+    db.delete(m)
+    db.commit()
+    return True
+
+
+def delete_measurement_for_user(db: Session, measurement_id: int, user_id: int) -> bool:
+    m = (
+        db.query(Measurement)
+        .join(Pasture, Measurement.pasture_id == Pasture.id)
+        .join(Farm, Pasture.farm_id == Farm.id)
+        .filter(Measurement.id == measurement_id, Farm.owner_id == user_id)
+        .first()
+    )
     if not m:
         return False
     db.delete(m)

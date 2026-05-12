@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from 'react-i18next';
 import Header from "@/app/components/Header";
+import { apiErrorMessage } from "@/app/utils/apiErrors";
 import {
   Plane,
   Plus,
@@ -26,7 +27,7 @@ import {
 } from "lucide-react";
 
 export default function DronesPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { 
     user, 
     isAuthenticated, 
@@ -84,10 +85,10 @@ export default function DronesPage() {
       setDrones(dronesData || []);
       setFarms(farmsData || []);
     } catch (err) {
-      setError(err.message || "Не удалось загрузить данные");
+      setError(apiErrorMessage(err, i18n));
       console.error(err);
       
-      if (err.message.includes("Сессия истекла")) {
+      if (String(err.message).includes("session_expired")) {
         navigate("/login");
       }
     } finally {
@@ -132,7 +133,7 @@ export default function DronesPage() {
       setShowAddDrone(false);
       await loadData();
     } catch (err) {
-      setError(err.message || "Ошибка при сохранении");
+      setError(apiErrorMessage(err, i18n));
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -169,7 +170,7 @@ export default function DronesPage() {
       setError(null);
       
     } catch (err) {
-      setError(err.message || "Ошибка удаления");
+      setError(apiErrorMessage(err, i18n));
       // Восстанавливаем данные при ошибке
       await loadData();
     } finally {
@@ -192,7 +193,7 @@ export default function DronesPage() {
       await updateDroneStatus(droneId, newStatus);
       
     } catch (err) {
-      setError(err.message || "Ошибка изменения статуса");
+      setError(apiErrorMessage(err, i18n));
       await loadData();
     }
   };

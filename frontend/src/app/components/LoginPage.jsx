@@ -1,12 +1,13 @@
 // src/app/components/LoginPage.jsx
 // KokMaisa 2025 — controls inside card, no fixed header
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Eye, EyeOff, Leaf, ArrowRight, Mail, Lock, Sun, Moon, Globe } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiErrorMessage } from "@/app/utils/apiErrors";
 
 const STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
@@ -29,9 +30,20 @@ const STYLE = `
   .card-toprow { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
   .card-controls { display:flex; align-items:center; gap:8px; }
 
-  /* language pill */
-  .lang-pill-d { display:flex; align-items:center; gap:1px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:2px 4px; }
-  .lang-pill-l { display:flex; align-items:center; gap:1px; background:rgba(20,55,20,.05); border:1px solid rgba(34,197,94,.2);  border-radius:8px; padding:2px 4px; }
+  /* language dropdown */
+  .lang-wrap { position:relative; }
+  .lang-trigger { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:none; cursor:pointer; transition:background .2s,transform .2s; }
+  .lang-trigger:hover { transform:scale(1.08); }
+  .lang-trigger-d { background:rgba(255,255,255,.08); color:rgba(255,255,255,.72); }
+  .lang-trigger-l { background:rgba(20,55,20,.07); color:#475569; }
+  .lang-dropdown {
+    position:absolute; right:0; top:calc(100% + 10px);
+    display:flex; gap:6px; padding:8px; border-radius:14px;
+    animation:lf .18s cubic-bezier(.22,1,.36,1) both;
+    z-index:20;
+  }
+  .lang-dd-d { background:rgba(6,19,9,.97); border:1px solid rgba(255,255,255,.1); box-shadow:0 14px 38px rgba(0,0,0,.4); }
+  .lang-dd-l { background:#fff; border:1px solid rgba(34,197,94,.18); box-shadow:0 10px 30px rgba(34,197,94,.12); }
 
   .lb { padding:4px 9px; border-radius:6px; font-size:11px; font-weight:700; letter-spacing:.04em; cursor:pointer; border:none; outline:none; transition:background .15s,color .15s; font-family:'DM Sans',sans-serif; }
   .lb-act-d { background:rgba(74,222,128,.18); color:#4ade80; }
@@ -110,6 +122,8 @@ const LANGS = [
   { code:"kk",  label:"ҚАЗ" },
 ];
 
+const langLabel = (code, label) => code === "kk" ? "KAZ" : label;
+
 export function LoginPage() {
   const { t, i18n }   = useTranslation();
   const { theme, toggleTheme } = useTheme();
@@ -127,9 +141,25 @@ export function LoginPage() {
   const [resetEmail,   setResetEmail]   = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetMsg,     setResetMsg]     = useState("");
+  const [langOpen,     setLangOpen]     = useState(false);
+  const langRef = useRef(null);
 
   const cls = isDark ? "id" : "il";
   const ic  = isDark ? "rgba(255,255,255,.3)" : "rgba(20,55,20,.35)";
+
+  useEffect(() => {
+    if (!langOpen) return;
+    const close = (e) => {
+      if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [langOpen]);
+
+  const changeLanguage = (code) => {
+    i18n.changeLanguage(code);
+    setLangOpen(false);
+  };
 
   const submit = async () => {
     if (!email || !password) return;
@@ -145,7 +175,7 @@ export function LoginPage() {
         err?.detail ||
         err?.message ||
         null;
-      setApiError(detail ? String(detail) : t("login.invalidCredentials"));
+      setApiError(apiErrorMessage(detail || err, i18n));
     } finally {
       setLoading(false);
     }
@@ -194,20 +224,31 @@ export function LoginPage() {
             </Link>
 
             <div className="card-controls">
-              <Globe className="w-3.5 h-3.5" style={{ color: isDark?"rgba(255,255,255,.3)":"rgba(20,55,20,.35)" }} />
-              <div className={isDark ? "lang-pill-d" : "lang-pill-l"}>
-                {LANGS.map(({ code, label }) => (
-                  <button
-                    key={code}
-                    onClick={() => i18n.changeLanguage(code)}
-                    className={`lb ${i18n.language === code
-                      ? (isDark ? "lb-act-d" : "lb-act-l")
-                      : (isDark ? "lb-off-d" : "lb-off-l")
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="lang-wrap" ref={langRef}>
+                <button
+                  type="button"
+                  onClick={() => setLangOpen(v => !v)}
+                  className={`lang-trigger ${isDark ? "lang-trigger-d" : "lang-trigger-l"}`}
+                  aria-label="Change language"
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+                {langOpen && (
+                  <div className={`lang-dropdown ${isDark ? "lang-dd-d" : "lang-dd-l"}`}>
+                    {LANGS.map(({ code, label }) => (
+                      <button
+                        key={code}
+                        onClick={() => changeLanguage(code)}
+                        className={`lb ${i18n.language === code
+                          ? (isDark ? "lb-act-d" : "lb-act-l")
+                          : (isDark ? "lb-off-d" : "lb-off-l")
+                        }`}
+                      >
+                        {langLabel(code, label)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 onClick={toggleTheme}

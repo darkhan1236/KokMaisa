@@ -1,5 +1,5 @@
 # backend/core/config.py
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
+    def validate_jwt_secret(cls, value: str) -> str:
+        weak_values = {"secret", "changeme", "change-me", "admin123", "password", "jwt_secret"}
+        if len(value) < 32 or value.lower() in weak_values:
+            raise ValueError("JWT_SECRET_KEY must be a strong random value with at least 32 characters")
+        return value
 
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", 
                                   "http://127.0.0.1:5173",

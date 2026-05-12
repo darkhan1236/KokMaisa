@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle2, Lightbulb, Send } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTheme } from "@/contexts/ThemeContext";
 
-const API = "http://127.0.0.1:8000/api";
+const API = "/api";
 
 const STYLE = `
 .sg-root{min-height:100vh;padding:22px 16px 52px;font-family:'DM Sans',sans-serif;}

@@ -994,8 +994,8 @@ export default function BiomassDashboardPage() {
   const indicatorCards = [
     {
       key: "ndvi",
-      name: "NDVI",
-      value: avgNdvi ? avgNdvi.toFixed(3) : "0.000",
+      name: t("biomass.results.aiScoreLabel", "AI score"),
+      value: avgNdvi ? `${Math.round((avgNdvi / 0.88) * 100)}%` : "0%",
       description: t("biomass.dashboard.indicators.ndviDescription"),
       icon: Activity,
       color: "#22c55e",
@@ -1396,7 +1396,7 @@ export default function BiomassDashboardPage() {
                         <Line
                           type="monotone"
                           dataKey="ndvi"
-                          name="NDVI"
+                          name={t("biomass.results.aiScoreLabel", "AI score")}
                           stroke="#22d3ee"
                           strokeWidth={2.2}
                           dot={{ r: 3, strokeWidth: 0 }}

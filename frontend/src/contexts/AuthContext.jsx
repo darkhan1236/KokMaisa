@@ -1,5 +1,6 @@
 // src/contexts/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
+import { extractApiDetail } from '@/app/utils/apiErrors';
 
 const AuthContext = createContext(null);
 const API_BASE = '/api';
@@ -31,7 +32,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('token');
       setIsAuthenticated(false);
       setUser(null);
-      throw new Error('Сессия истекла. Пожалуйста, войдите заново.');
+      throw new Error('session_expired');
     }
     if (res.status === 204) return null;
 
@@ -47,7 +48,7 @@ export function AuthProvider({ children }) {
       } catch {
         errorData = { detail: `Ошибка ${res.status}: ${res.statusText}` };
       }
-      throw new Error(errorData.detail || `Ошибка ${res.status}`);
+      throw new Error(extractApiDetail(errorData.detail || `Ошибка ${res.status}`));
     }
 
     if (contentType?.includes('application/json') && hasContent) {
@@ -69,7 +70,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('token');
       setIsAuthenticated(false);
       setUser(null);
-      throw new Error('Сессия истекла. Пожалуйста, войдите заново.');
+      throw new Error('session_expired');
     }
 
     const contentType = res.headers.get('content-type');
@@ -84,7 +85,7 @@ export function AuthProvider({ children }) {
       } catch {
         errorData = { detail: `Ошибка ${res.status}: ${res.statusText}` };
       }
-      throw new Error(errorData.detail || `Ошибка ${res.status}`);
+      throw new Error(extractApiDetail(errorData.detail || `Ошибка ${res.status}`));
     }
 
     if (contentType?.includes('application/json') && hasContent) {
@@ -210,7 +211,7 @@ export function AuthProvider({ children }) {
       headers: { Authorization: `Bearer ${token}` },
       body:    formData,
     });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Ошибка при загрузке фото'); }
+    if (!res.ok) { const e = await res.json(); throw new Error(extractApiDetail(e.detail || 'Ошибка при загрузке фото')); }
     const data = await res.json();
     setUser(data);
     return data;
@@ -243,7 +244,7 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(credentials),
     });
-    if (!response.ok) { const e = await response.json(); throw new Error(e.detail || 'Ошибка входа'); }
+    if (!response.ok) { const e = await response.json(); throw new Error(extractApiDetail(e.detail || 'Ошибка входа')); }
     const data = await response.json();
     localStorage.setItem('token', data.access_token);
     await loadUser();
@@ -256,7 +257,7 @@ export function AuthProvider({ children }) {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(userData),
     });
-    if (!response.ok) { const e = await response.json(); throw new Error(e.detail || 'Ошибка регистрации'); }
+    if (!response.ok) { const e = await response.json(); throw new Error(extractApiDetail(e.detail || 'Ошибка регистрации')); }
     const data = await response.json();
     localStorage.setItem('token', data.access_token);
     await loadUser();
