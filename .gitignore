@@ -19,3 +19,8 @@ Thumbs.db
 # backend/.gitignore
 uploads/
 !uploads/.gitkeep
+
+# Local RAG training data
+generate_user_rag_pdf.cjs
+KokMaisa_Project_Knowledge_Base_RAG.md
+KokMaisa_Project_Knowledge_Base_RAG.pdf
