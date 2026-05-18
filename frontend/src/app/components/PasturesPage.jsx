@@ -368,7 +368,10 @@ function PastureMap({ pastures, active, onSelect, height = "100%" }) {
       });
 
       if (validCoords.length) {
-        map.fitBounds(validCoords, { padding: [24, 24] });
+        map.fitBounds(validCoords, {
+          padding: [42, 42],
+          maxZoom: 11,
+        });
       }
     }
   }, [pastures, active, onSelect, mapReady]);
@@ -377,8 +380,13 @@ function PastureMap({ pastures, active, onSelect, height = "100%" }) {
   useEffect(() => {
     const map = mapInst.current;
     if (!map || !mapReady || !active?.coordinates?.length) return;
-    const c = centroid(active.coordinates);
-    if (c) map.flyTo([c.lat, c.lng], 13, { duration:1.2 });
+    const bounds = active.coordinates.map((point) => [point.lat, point.lng]);
+    map.fitBounds(bounds, {
+      padding: [56, 56],
+      maxZoom: 12,
+      animate: true,
+      duration: 1.0,
+    });
   }, [active, mapReady]);
 
   return (

@@ -111,14 +111,74 @@ export function AuthProvider({ children }) {
   };
 
   // ── AI Chat ────────────────────────────────────────────────────────────────
-  const chatAI = (message, history = []) =>
+  const chatAI = (message, history = [], sessionId = null, pageContext = '') =>
   apiFetch('/ai/chat', {
     method: 'POST',
     body: JSON.stringify({
       message,
       history: history.map(m => ({ role: m.role, content: m.content })),
+      session_id: sessionId,
+      page_context: pageContext,
     }),
   });
+
+  const chatAIStream = async (message, history = [], onChunk, sessionId = null, pageContext = '') => {
+    const token = getToken();
+    const res = await fetch(`${API_BASE}/ai/chat/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({
+        message,
+        history: history.map(m => ({ role: m.role, content: m.content })),
+        session_id: sessionId,
+        page_context: pageContext,
+      }),
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem('token');
+      setIsAuthenticated(false);
+      setUser(null);
+      throw new Error('session_expired');
+    }
+
+    if (!res.ok || !res.body) {
+      throw new Error(`AI stream error ${res.status}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let fullText = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      fullText += chunk;
+      onChunk?.(chunk, fullText);
+    }
+
+    const tail = decoder.decode();
+    if (tail) {
+      fullText += tail;
+      onChunk?.(tail, fullText);
+    }
+
+    return {
+      answer: fullText,
+      session_id: Number(res.headers.get('X-Chat-Session-Id')) || null,
+    };
+  };
+
+  const getAIChatSessions = () => apiFetch('/ai/sessions');
+  const createAIChatSession = (title = 'New chat') =>
+    apiFetch('/ai/sessions', { method: 'POST', body: JSON.stringify({ title }) });
+  const getAIChatSession = (id) => apiFetch(`/ai/sessions/${id}`);
+  const deleteAIChatSession = (id) => apiFetch(`/ai/sessions/${id}`, { method: 'DELETE' });
 
   // ── Profile ────────────────────────────────────────────────────────────────
   const updateProfile = async (profileData) => {
@@ -272,7 +332,8 @@ export function AuthProvider({ children }) {
     getFarms, createFarm, updateFarm, deleteFarm,
     getPastures, getPasturesByFarm, createPasture, updatePasture, deletePasture,
     getDrones, getDronesByFarm, getDrone, createDrone, updateDrone, deleteDrone, updateDroneStatus,
-    chatAI,
+    chatAI, chatAIStream,
+    getAIChatSessions, createAIChatSession, getAIChatSession, deleteAIChatSession,
     // Biomass
     uploadBiomassPhoto,
     startDroneMeasurement,

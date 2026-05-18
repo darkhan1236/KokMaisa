@@ -14,6 +14,7 @@ import BiomassMeasurementPage from '@/app/components/BiomassMeasurementPage';
 import BiomassDashboardPage   from '@/app/components/BiomassDashboardPage';
 import AdminPanel             from '@/app/components/AdminPanel';
 import SuggestionPage         from '@/app/components/SuggestionPage';
+import FloatingAIConsultant   from '@/app/components/FloatingAIConsultant';
 import { ThemeProvider }      from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
@@ -36,7 +37,7 @@ function ProtectedRoute({ children, allowedTypes }) {
 
 function userHomePath(user) {
   if (user?.account_type === 'admin') return '/admin';
-  return '/pastures';
+  return '/farms';
 }
 
 function PublicOnlyRoute({ children }) {
@@ -57,42 +58,45 @@ function PublicOnlyRoute({ children }) {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/"               element={<HomePage />} />
-      <Route path="/register"       element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
-      <Route path="/login"          element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-      <Route path="/reset-password" element={<PublicOnlyRoute><ResetPassword /></PublicOnlyRoute>} />
-      <Route path="/suggestions" element={
-        <ProtectedRoute allowedTypes={['farmer','admin']}><SuggestionPage /></ProtectedRoute>
-      } />
+    <>
+      <Routes>
+        <Route path="/"               element={<HomePage />} />
+        <Route path="/register"       element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+        <Route path="/login"          element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+        <Route path="/reset-password" element={<PublicOnlyRoute><ResetPassword /></PublicOnlyRoute>} />
+        <Route path="/suggestions" element={
+          <ProtectedRoute allowedTypes={['farmer','admin']}><SuggestionPage /></ProtectedRoute>
+        } />
 
-      <Route path="/admin" element={
-        <ProtectedRoute allowedTypes={['admin']}><AdminPanel /></ProtectedRoute>
-      } />
+        <Route path="/admin" element={
+          <ProtectedRoute allowedTypes={['admin']}><AdminPanel /></ProtectedRoute>
+        } />
 
-      <Route path="/pastures" element={
-        <ProtectedRoute allowedTypes={['farmer']}><PasturesPage /></ProtectedRoute>
-      } />
-      <Route path="/ai-chat" element={
-        <ProtectedRoute allowedTypes={['farmer','admin']}><AIChatPage /></ProtectedRoute>
-      } />
-      <Route path="/settings" element={
-        <ProtectedRoute><SettingsPage /></ProtectedRoute>
-      } />
+        <Route path="/pastures" element={
+          <ProtectedRoute allowedTypes={['farmer']}><PasturesPage /></ProtectedRoute>
+        } />
+        <Route path="/ai-chat" element={
+          <ProtectedRoute allowedTypes={['farmer','admin']}><AIChatPage /></ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute><SettingsPage /></ProtectedRoute>
+        } />
 
-      <Route path="/biomass" element={
-        <ProtectedRoute allowedTypes={['farmer']}><BiomassMeasurementPage /></ProtectedRoute>
-      } />
-      <Route path="/farms" element={
-        <ProtectedRoute allowedTypes={['farmer']}><FarmsPage /></ProtectedRoute>
-      } />
-      <Route path="/biomass-dashboard" element={
-        <ProtectedRoute allowedTypes={['farmer']}><BiomassDashboardPage /></ProtectedRoute>
-      } />
+        <Route path="/biomass" element={
+          <ProtectedRoute allowedTypes={['farmer']}><BiomassMeasurementPage /></ProtectedRoute>
+        } />
+        <Route path="/farms" element={
+          <ProtectedRoute allowedTypes={['farmer']}><FarmsPage /></ProtectedRoute>
+        } />
+        <Route path="/biomass-dashboard" element={
+          <ProtectedRoute allowedTypes={['farmer']}><BiomassDashboardPage /></ProtectedRoute>
+        } />
 
-      <Route path="/profile"           element={<Navigate to="/" replace />} />
-      <Route path="*"                  element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="/profile"           element={<Navigate to="/" replace />} />
+        <Route path="*"                  element={<Navigate to="/" replace />} />
+      </Routes>
+      <FloatingAIConsultant />
+    </>
   );
 }
 

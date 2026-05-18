@@ -2,7 +2,7 @@
 // KokMaisa 2025 — Premium dark/light theme, full i18n (EN/RU/KK), responsive, backend-safe
 
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -11,6 +11,7 @@ import { apiErrorMessage } from "@/app/utils/apiErrors";
 import {
   Bot, User, Send, RefreshCw, Copy, Check,
   Wheat, BarChart3, Leaf, Lightbulb, MessageSquareText,
+  Plus, Trash2, Menu, X,
 } from "lucide-react";
 
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
@@ -40,11 +41,11 @@ const CHAT_STYLE = `
   .bubble-user { background: linear-gradient(135deg, #22c55e 0%, #0d9488 100%); color: #fff; }
 
   /* Input area */
-  .chat-input-dark  { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #fff; }
-  .chat-input-dark::placeholder { color: rgba(255,255,255,.3); }
+  .chat-input-dark  { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #fff; line-height: 1.45; min-height: 44px; }
+  .chat-input-dark::placeholder { color: rgba(255,255,255,.62); opacity: 1; }
   .chat-input-dark:focus { border-color: rgba(74,222,128,.5); box-shadow: 0 0 0 3px rgba(74,222,128,.08); }
-  .chat-input-light { background: rgba(255,255,255,.95); border: 1px solid rgba(34,197,94,.25); color: #1a3d20; }
-  .chat-input-light::placeholder { color: rgba(20,55,20,.35); }
+  .chat-input-light { background: rgba(255,255,255,.95); border: 1px solid rgba(34,197,94,.25); color: #1a3d20; line-height: 1.45; min-height: 44px; }
+  .chat-input-light::placeholder { color: rgba(20,55,20,.62); opacity: 1; }
   .chat-input-light:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
 
   /* Input bar wrapper */
@@ -90,9 +91,45 @@ const CHAT_STYLE = `
   .chat-scroll::-webkit-scrollbar { width: 4px; }
   .chat-scroll::-webkit-scrollbar-thumb { background: rgba(74,222,128,.25); border-radius: 4px; }
 
+  .chat-session-btn { width: 100%; text-align: left; border-radius: 12px; padding: 10px 12px; transition: background .2s, border-color .2s; }
+  .chat-session-dark { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); color: rgba(255,255,255,.76); }
+  .chat-session-dark:hover, .chat-session-dark.active { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.28); color: #fff; }
+  .chat-session-light { background: rgba(255,255,255,.82); border: 1px solid rgba(34,197,94,.14); color: rgba(20,55,20,.76); }
+  .chat-session-light:hover, .chat-session-light.active { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.28); color: #166534; }
+  .chat-sidebar-dark { background: rgba(4,13,6,.72); border-right: 1px solid rgba(74,222,128,.1); }
+  .chat-sidebar-light { background: rgba(240,250,242,.82); border-right: 1px solid rgba(34,197,94,.14); }
+  .chat-history-toggle { display: none; }
+  .chat-mobile-close { display: none; }
+  .chat-backdrop { display: none; }
+
   @media (max-width: 640px) {
     .chat-header-inner { padding: 10px 14px; }
     .chat-bar-inner    { padding: 10px 12px; }
+    .chat-input-dark, .chat-input-light { font-size: 16px; padding-top: 11px; padding-bottom: 11px; }
+    .chat-history-toggle { display: flex; }
+    .chat-mobile-close { display: flex; }
+    .chat-main-panel { width: 100%; min-width: 0; }
+    .chat-sidebar {
+      display: block;
+      position: fixed;
+      top: 64px;
+      bottom: 0;
+      left: 0;
+      width: min(86vw, 320px);
+      z-index: 50;
+      transform: translateX(-105%);
+      transition: transform .24s ease;
+      box-shadow: 20px 0 40px rgba(0,0,0,.28);
+    }
+    .chat-sidebar.open { transform: translateX(0); }
+    .chat-backdrop {
+      display: block;
+      position: fixed;
+      inset: 64px 0 0 0;
+      z-index: 45;
+      background: rgba(0,0,0,.38);
+      backdrop-filter: blur(3px);
+    }
   }
 `;
 
@@ -116,22 +153,107 @@ function TypingDots({ isDark }) {
   );
 }
 
+function renderInline(text) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={idx} className="font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+function MessageMarkdown({ content }) {
+  const lines = content.split("\n");
+  const blocks = [];
+  let listItems = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    blocks.push(
+      <ul key={`list-${blocks.length}`} className="my-2 ml-5 list-disc space-y-1">
+        {listItems.map((item, idx) => <li key={idx}>{renderInline(item)}</li>)}
+      </ul>
+    );
+    listItems = [];
+  };
+
+  lines.forEach((rawLine, idx) => {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      blocks.push(<div key={`space-${idx}`} className="h-2" />);
+      return;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushList();
+      blocks.push(
+        <div key={idx} className="mt-3 mb-2 font-semibold text-[15px]">
+          {renderInline(heading[2])}
+        </div>
+      );
+      return;
+    }
+
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    if (bullet) {
+      listItems.push(bullet[1]);
+      return;
+    }
+
+    const numbered = line.match(/^\d+\.\s+(.+)$/);
+    if (numbered) {
+      listItems.push(numbered[1]);
+      return;
+    }
+
+    const formulaLike = /NDVI\s*=|\/|\$/.test(line) && /[=()]/.test(line);
+    flushList();
+    blocks.push(
+      formulaLike ? (
+        <div key={idx} className="my-3 rounded-xl px-3 py-2 font-mono text-[13px] bg-black/10 overflow-x-auto">
+          {line.replace(/\$/g, "")}
+        </div>
+      ) : (
+        <p key={idx} className="mb-2 last:mb-0">{renderInline(line)}</p>
+      )
+    );
+  });
+
+  flushList();
+  return <>{blocks}</>;
+}
+
 /* ─── Main Component ────────────────────────────────────────────────────────── */
 export default function AIChatPage() {
   const { t, i18n }     = useTranslation();
   const { theme }       = useTheme();
-  const { user, chatAI }= useAuth();
+  const {
+    user,
+    chatAI,
+    chatAIStream,
+    getAIChatSessions,
+    getAIChatSession,
+    deleteAIChatSession,
+  } = useAuth();
   const navigate        = useNavigate();
+  const location        = useLocation();
   const isDark          = theme === "dark";
 
-  const [messages, setMessages] = useState([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: t("ai.welcome", { name: user?.full_name?.split(" ")[0] || "" }),
-      timestamp: new Date(),
-    },
-  ]);
+  const makeWelcomeMessage = () => ({
+    id: "welcome",
+    role: "assistant",
+    content: t("ai.welcome", { name: user?.full_name?.split(" ")[0] || "" }),
+    timestamp: new Date(),
+  });
+
+  const [messages, setMessages] = useState([makeWelcomeMessage()]);
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [input, setInput]       = useState("");
   const [isLoading, setLoading] = useState(false);
   const [copiedId, setCopied]   = useState(null);
@@ -141,6 +263,30 @@ export default function AIChatPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
+
+  const refreshSessions = async () => {
+    if (!user || !getAIChatSessions) return;
+    setSessionsLoading(true);
+    try {
+      const data = await getAIChatSessions();
+      setSessions(data || []);
+    } catch {
+      setSessions([]);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshSessions();
+  }, [user]);
+
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length === 1 && prev[0]?.id === "welcome") return [makeWelcomeMessage()];
+      return prev;
+    });
+  }, [i18n.language, user?.full_name]);
 
   /* ── Not logged in ── */
   if (!user) {
@@ -184,24 +330,73 @@ export default function AIChatPage() {
     setLoading(true);
 
     try {
-      // chatAI is provided by AuthContext — no direct fetch, backend-safe
-      const data       = await chatAI(text, messages.slice(1));
-      const answerText = data?.answer ?? t("ai.emptyAnswer", "No response.");
+      const assistantId = (Date.now() + 1).toString();
+      const startedAt = performance.now();
+      setMessages(prev => [...prev, {
+        id:        assistantId,
+        role:      "assistant",
+        content:   "",
+        timestamp: new Date(),
+        isStreaming: true,
+      }]);
 
-      setMessages(prev => [...prev, {
-        id:        (Date.now() + 1).toString(),
-        role:      "assistant",
-        content:   answerText,
-        timestamp: new Date(),
-      }]);
+      const history = messages.filter(m => m.id !== "welcome" && !m.isError);
+      let result = null;
+
+      if (chatAIStream) {
+        result = await chatAIStream(text, history, (_chunk, fullText) => {
+          setMessages(prev => prev.map(msg =>
+            msg.id === assistantId
+              ? {
+                  ...msg,
+                  content: fullText,
+                  thoughtSeconds: msg.thoughtSeconds ?? Math.max(0.1, (performance.now() - startedAt) / 1000),
+                }
+              : msg
+          ));
+        }, activeSessionId, pageContext);
+      } else {
+        const data       = await chatAI(text, history, activeSessionId, pageContext);
+        result = data;
+        const answerText = data?.answer ?? t("ai.emptyAnswer", "No response.");
+        setMessages(prev => prev.map(msg =>
+          msg.id === assistantId ? { ...msg, content: answerText } : msg
+        ));
+      }
+
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantId
+          ? {
+              ...msg,
+              isStreaming: false,
+              thoughtSeconds: msg.thoughtSeconds ?? Math.max(0.1, (performance.now() - startedAt) / 1000),
+            }
+          : msg
+      ));
+
+      if (result?.session_id) {
+        setActiveSessionId(result.session_id);
+      }
+      refreshSessions();
     } catch (err) {
-      setMessages(prev => [...prev, {
-        id:        (Date.now() + 1).toString(),
-        role:      "assistant",
-        content:   apiErrorMessage(err, i18n),
-        timestamp: new Date(),
-        isError:   true,
-      }]);
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && last.isStreaming) {
+          return prev.map(msg =>
+            msg.id === last.id
+              ? { ...msg, content: apiErrorMessage(err, i18n), isStreaming: false, isError: true }
+              : msg
+          );
+        }
+
+        return [...prev, {
+          id:        (Date.now() + 1).toString(),
+          role:      "assistant",
+          content:   apiErrorMessage(err, i18n),
+          timestamp: new Date(),
+          isError:   true,
+        }];
+      });
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -219,15 +414,60 @@ export default function AIChatPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const clearChat = () => {
-    setMessages([{
-      id: "welcome", role: "assistant",
-      content: t("ai.welcome", { name: user?.full_name?.split(" ")[0] || "" }),
-      timestamp: new Date(),
-    }]);
+  const startNewChat = () => {
+    setActiveSessionId(null);
+    setMessages([makeWelcomeMessage()]);
+    setInput("");
+    setHistoryOpen(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const openSession = async (sessionId) => {
+    if (isLoading || !getAIChatSession) return;
+    try {
+      const session = await getAIChatSession(sessionId);
+      setActiveSessionId(session.id);
+      const loaded = (session.messages || []).map(message => ({
+        id: String(message.id),
+        role: message.role,
+        content: message.content,
+        timestamp: message.created_at ? new Date(message.created_at) : new Date(),
+      }));
+      setMessages(loaded.length ? loaded : [makeWelcomeMessage()]);
+      setHistoryOpen(false);
+    } catch (err) {
+      setMessages([{
+        id: "load-error",
+        role: "assistant",
+        content: apiErrorMessage(err, i18n),
+        timestamp: new Date(),
+        isError: true,
+      }]);
+    }
+  };
+
+  const removeSession = async (event, sessionId) => {
+    event.stopPropagation();
+    if (!deleteAIChatSession) return;
+    try {
+      await deleteAIChatSession(sessionId);
+      if (activeSessionId === sessionId) startNewChat();
+      refreshSessions();
+    } catch {}
   };
 
   const suggestions = getSuggestions(t);
+  const searchParams = new URLSearchParams(location.search || "");
+  const pastureRef = searchParams.get("pasture_id") || searchParams.get("pasture") || "";
+  const farmRef = searchParams.get("farm_id") || searchParams.get("farm") || "";
+  const pageContext = [
+    "Page type: ai_chat.",
+    "Current page: full KokMaisa AI consultant chat.",
+    `Current route: ${location.pathname}${location.search || ""}.`,
+    pastureRef ? `Selected pasture reference from URL: ${pastureRef}.` : "",
+    farmRef ? `Selected farm reference from URL: ${farmRef}.` : "",
+    "The user is using the full AI chat page.",
+  ].filter(Boolean).join(" ");
 
   /* ── Colours ── */
   const nameColor    = isDark ? "rgba(255,255,255,.9)"  : "#1a3d20";
@@ -242,6 +482,14 @@ export default function AIChatPage() {
   const formatTime = (date) =>
     date.toLocaleTimeString(isDark ? "ru-RU" : "en-US", { hour: "2-digit", minute: "2-digit" });
 
+  const thoughtLabel = (msg) => {
+    if (msg.thoughtSeconds == null) return null;
+    const value = msg.thoughtSeconds.toFixed(1);
+    if (i18n.language === "kk") return `Ойланды ${value} сек`;
+    if (i18n.language === "en") return `Thought for ${value} seconds`;
+    return `Думал ${value} сек`;
+  };
+
   return (
     <>
       <style>{CHAT_STYLE}</style>
@@ -249,11 +497,103 @@ export default function AIChatPage() {
         <Header />
 
         {/* ── Chat layout ── */}
-        <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto px-0 sm:px-4 pt-16" style={{ minHeight: 0 }}>
+        <div className="flex-1 flex w-full pt-16" style={{ minHeight: 0 }}>
+          {isHistoryOpen && (
+            <button
+              type="button"
+              className="chat-backdrop"
+              onClick={() => setHistoryOpen(false)}
+              aria-label="Close chat history"
+            />
+          )}
+
+          <aside className={`chat-sidebar ${isHistoryOpen ? "open" : ""} w-72 flex-shrink-0 p-4 overflow-y-auto ${isDark ? "chat-sidebar-dark" : "chat-sidebar-light"}`}>
+            <div className="chat-mobile-close items-center justify-between mb-4">
+              <div className="text-sm font-bold" style={{ color: nameColor }}>
+                История
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(false)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{
+                  background: isDark ? "rgba(255,255,255,.07)" : "rgba(34,197,94,.1)",
+                  border: isDark ? "1px solid rgba(255,255,255,.1)" : "1px solid rgba(34,197,94,.2)",
+                  color: isDark ? "rgba(255,255,255,.7)" : "#16a34a",
+                }}
+                aria-label="Close chat history"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              onClick={startNewChat}
+              className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-white"
+              style={{ background: "linear-gradient(135deg,#22c55e,#0d9488)" }}
+            >
+              <Plus className="w-4 h-4" />
+              Новый чат
+            </button>
+
+            <div className="text-xs font-semibold mb-2 px-1" style={{ color: roleColor }}>
+              История
+            </div>
+
+            <div className="space-y-2">
+              {sessionsLoading && (
+                <div className="text-xs px-1" style={{ color: roleColor }}>Загрузка...</div>
+              )}
+              {!sessionsLoading && sessions.length === 0 && (
+                <div className="text-xs px-1" style={{ color: roleColor }}>Чатов пока нет</div>
+              )}
+              {sessions.map(session => (
+                <button
+                  key={session.id}
+                  onClick={() => openSession(session.id)}
+                  className={`chat-session-btn ${isDark ? "chat-session-dark" : "chat-session-light"} ${activeSessionId === session.id ? "active" : ""}`}
+                >
+                  <div className="flex items-start gap-2">
+                    <MessageSquareText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{session.title}</div>
+                      {session.last_message && (
+                        <div className="truncate text-xs mt-1 opacity-60">{session.last_message}</div>
+                      )}
+                    </div>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => removeSession(event, session.id)}
+                      className="p-1 rounded-lg opacity-50 hover:opacity-100"
+                      aria-label="Удалить чат"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <div className="chat-main-panel flex-1 flex flex-col max-w-4xl w-full mx-auto px-0 sm:px-4" style={{ minHeight: 0 }}>
 
           {/* ── Chat Header bar ── */}
           <div className={`chat-header-inner flex items-center justify-between px-4 sm:px-6 py-3 sticky top-16 z-10 ${isDark ? "chat-header-dark" : "chat-header-light"}`}>
             <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(true)}
+                className="chat-history-toggle w-10 h-10 rounded-xl items-center justify-center flex-shrink-0"
+                style={{
+                  background: isDark ? "rgba(255,255,255,.07)" : "rgba(34,197,94,.1)",
+                  border: isDark ? "1px solid rgba(255,255,255,.1)" : "1px solid rgba(34,197,94,.2)",
+                  color: isDark ? "rgba(255,255,255,.7)" : "#16a34a",
+                }}
+                aria-label="Open chat history"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
               <div className="ai-avatar w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Bot className="w-5 h-5 text-white" aria-hidden="true" />
               </div>
@@ -268,8 +608,8 @@ export default function AIChatPage() {
               </div>
             </div>
             <button
-              onClick={clearChat}
-              title={t("common.clearChat")}
+              onClick={startNewChat}
+              title="Новый чат"
               style={{
                 background: isDark ? "rgba(255,255,255,.07)" : "rgba(34,197,94,.1)",
                 border: isDark ? "1px solid rgba(255,255,255,.1)" : "1px solid rgba(34,197,94,.2)",
@@ -278,7 +618,7 @@ export default function AIChatPage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", transition: "background .2s",
               }}
-              aria-label={t("common.clearChat")}
+              aria-label="Новый чат"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -303,9 +643,23 @@ export default function AIChatPage() {
                   <div className={msg.role === "user" ? bubbleUsrCls : bubbleAiCls}
                     style={msg.isError ? { borderColor: "rgba(239,68,68,.4)", color: isDark ? "#fca5a5" : "#dc2626" } : undefined}
                   >
-                    {msg.content.split("\n").map((line, i) => (
-                      <p key={i} className={i > 0 ? "mt-2" : ""}>{line || "\u00A0"}</p>
-                    ))}
+                    {msg.role === "assistant" && thoughtLabel(msg) && (
+                      <div className="text-xs mb-3 flex items-center gap-2" style={{ color: isDark ? "rgba(255,255,255,.45)" : "rgba(20,55,20,.5)" }}>
+                        <Lightbulb className="w-3.5 h-3.5" />
+                        <span>{thoughtLabel(msg)}</span>
+                      </div>
+                    )}
+
+                    {msg.isStreaming && !msg.content ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: isDark ? "rgba(255,255,255,.45)" : "rgba(20,55,20,.5)" }}>
+                          {t("ai.thinking")}
+                        </span>
+                        <TypingDots isDark={isDark} />
+                      </div>
+                    ) : (
+                      <MessageMarkdown content={msg.content} />
+                    )}
                   </div>
 
                   {/* Copy + timestamp */}
@@ -337,21 +691,6 @@ export default function AIChatPage() {
                 )}
               </div>
             ))}
-
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="flex gap-3 justify-start">
-                <div className="ai-avatar w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-white" aria-hidden="true" />
-                </div>
-                <div className={bubbleAiCls}>
-                  <span className="text-xs mr-2" style={{ color: isDark ? "rgba(255,255,255,.4)" : "rgba(20,55,20,.5)" }}>
-                    {t("ai.thinking")}
-                  </span>
-                  <TypingDots isDark={isDark} />
-                </div>
-              </div>
-            )}
 
             <div ref={endRef} />
           </div>
@@ -405,6 +744,7 @@ export default function AIChatPage() {
             <p className="text-center text-xs mt-2" style={{ color: isDark ? "rgba(255,255,255,.2)" : "rgba(20,55,20,.35)" }}>
               {t("ai.dataUsageNote")}
             </p>
+          </div>
           </div>
         </div>
       </div>

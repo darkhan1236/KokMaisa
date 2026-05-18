@@ -35,6 +35,8 @@ from .crud.measurement_crud import (
     delete_measurement_for_user,
     enrich_with_names,
 )
+from .metrics import derive_biomass_metrics
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/measurements", tags=["measurements"])
@@ -130,11 +132,16 @@ async def create_photo_measurement(
         mark_measurement_failed(db, measurement.id)
         raise HTTPException(status_code=500, detail=f"Inference error: {exc}") from exc
 
+    biomass_value = round(biomass, 2)
+    metrics = derive_biomass_metrics(biomass_value)
+
     # Persist result
     measurement = update_measurement_result(
         db,
         measurement_id = measurement.id,
-        biomass_value  = round(biomass, 2),
+        biomass_value  = biomass_value,
+        coverage_percent=metrics["coverage_percent"],
+        quality_score=metrics["quality_score"],
         status         = "completed",
     )
 

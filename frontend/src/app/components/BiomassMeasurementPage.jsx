@@ -672,7 +672,7 @@ function HistoryRow({ m, onDelete, isDark, t }) {
         {m.status === "completed" && (
           <div style={{ fontSize: 12, color: sc, marginTop: 2, display: "flex", flexWrap: "wrap", gap: 10 }}>
             {m.biomass_value    != null && <span>🌱 {m.biomass_value.toFixed(1)} {t("biomass.unit")}</span>}
-            {m.ndvi_value       != null && <span>🌿 {t("biomass.results.aiScoreLabel", "AI score")} {Math.round((m.ndvi_value / 0.88) * 100)}%</span>}
+            {m.quality_score    != null && <span>🌿 {t("biomass.results.aiScoreLabel", "AI score")} {m.quality_score.toFixed(0)}%</span>}
             {m.coverage_percent != null && <span>🔲 {m.coverage_percent.toFixed(0)}%</span>}
           </div>
         )}
