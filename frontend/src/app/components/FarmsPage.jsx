@@ -1029,6 +1029,18 @@ const STYLE = `
 .fp-field-error{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;font-weight:600;color:#f87171;}
 .fp-select-error{border-radius:11px;border:1px solid #ef4444!important;box-shadow:0 0 0 3px rgba(239,68,68,.12)!important;}
 
+.fp-reference{border-radius:14px;padding:12px;margin-bottom:16px;border:1px solid;}
+.fp-reference-d{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.08);}
+.fp-reference-l{background:#f4faf5;border-color:rgba(34,197,94,.12);}
+.fp-reference-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.fp-reference-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;}
+.fp-reference-list{display:flex;flex-direction:column;gap:7px;max-height:150px;overflow-y:auto;padding-right:2px;}
+.fp-reference-item{border-radius:10px;padding:9px 10px;border:1px solid;display:flex;align-items:flex-start;gap:8px;}
+.fp-reference-item-d{background:rgba(0,0,0,.16);border-color:rgba(255,255,255,.07);}
+.fp-reference-item-l{background:#fff;border-color:rgba(34,197,94,.1);}
+.fp-reference-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.fp-reference-empty{font-size:12px;font-weight:600;font-style:italic;}
+
 .fp-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:12px;font-weight:500;}
 .fp-tag-d{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.2);}
 .fp-tag-l{background:rgba(34,197,94,.1);color:#16a34a;border:1px solid rgba(34,197,94,.2);}
@@ -1571,6 +1583,44 @@ export default function FarmsPage() {
                 )}
 
                 {/* SECTION: Основное */}
+                {!editId && (
+                  <div className={`fp-reference ${d ? "fp-reference-d" : "fp-reference-l"}`}>
+                    <div className="fp-reference-head">
+                      <div className="fp-reference-title" style={{ color: tc }}>
+                        <Building2 style={{ width: 14, height: 14, color: d ? "#4ade80" : "#16a34a" }} />
+                        {t("farms.reference.currentTitle", "Уже созданные фермы")}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: d ? "#4ade80" : "#16a34a" }}>
+                        {farms.length}
+                      </span>
+                    </div>
+                    {farms.length > 0 ? (
+                      <div className="fp-reference-list">
+                        {farms.slice(0, 6).map((farm) => {
+                          const area = Number(farm.area_ha || farm.area || 0);
+                          return (
+                            <div key={farm.id} className={`fp-reference-item ${d ? "fp-reference-item-d" : "fp-reference-item-l"}`}>
+                              <span className="fp-reference-dot" style={{ background: farm.color || "#22c55e" }} />
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: tc, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {farm.name}
+                                </div>
+                                <div style={{ fontSize: 11, color: sc, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {farm.region || farm.address || t("farms.reference.noLocation", "Место не указано")} · {Number.isFinite(area) ? area.toFixed(1) : "0.0"} {t("farms.units.hectaresShort", "га")}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="fp-reference-empty" style={{ color: sc }}>
+                        {t("farms.reference.empty", "Ферм пока нет. Эта ферма будет первой в списке.")}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className={`fp-section ${d ? "fp-section-d" : "fp-section-l"}`}>
                   <Home style={{ width: 13, height: 13 }} />
                   {t("farms.section.basic", "Основное")}

@@ -5,6 +5,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/app/components/Header";
@@ -18,7 +20,7 @@ import {
   Sun, Wind, ArrowRight,
   Activity, Zap, Shield, Eye, Calculator,
   ChevronDown, ChevronUp, Minus as MinusIcon, Plus,
-  Sparkles, Star,
+  Sparkles, Star, FileText, ClipboardCheck, Download,
 } from "lucide-react";
 
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
@@ -72,13 +74,17 @@ const S = `
   .bm-hero-title {
     font-family: 'Cabinet Grotesk', sans-serif;
     font-size: clamp(2.4rem, 6vw, 5.5rem);
-    font-weight: 900; line-height: 1.0; letter-spacing: -.03em;
+    font-weight: 900; line-height: 1.14; letter-spacing: 0;
     color: #fff; margin: 0 0 10px;
+    overflow: visible;
   }
   .bm-l .bm-hero-title { color: #102316; }
   .bm-hero-title em {
     font-family: 'Instrument Serif', serif;
     font-style: italic; font-weight: 400;
+    display: inline-block;
+    line-height: 1.18;
+    padding-bottom: .08em;
     background: linear-gradient(90deg,#4ade80,#22d3ee);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -255,6 +261,103 @@ const S = `
   .bm-calc-result-ok-l { background: rgba(34,197,94,.06); border: 1px solid rgba(34,197,94,.18); }
   .bm-calc-result-err-d { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); }
   .bm-calc-result-err-l { background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.18); }
+
+  /* AI agronomist report */
+  .bm-report {
+    border-radius: 24px; overflow: hidden; margin-bottom: 20px;
+    font-family: Arial, "Segoe UI", "Noto Sans", sans-serif;
+  }
+  .bm-report * { font-family: Arial, "Segoe UI", "Noto Sans", sans-serif !important; }
+  .bm-report-d { background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.08); }
+  .bm-report-l { background: #fff; border: 1px solid rgba(34,197,94,.14); box-shadow: 0 2px 24px rgba(34,197,94,.07); }
+  .bm-report-head {
+    padding: 22px 24px; display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; border-bottom: 1px solid;
+  }
+  .bm-report-head-d { border-bottom-color: rgba(255,255,255,.07); }
+  .bm-report-head-l { border-bottom-color: rgba(34,197,94,.1); }
+  .bm-report-body { padding: 22px 24px 24px; }
+  .bm-report-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 10px; margin-bottom: 18px; }
+  .bm-report-stat { border-radius: 16px; padding: 14px 15px; }
+  .bm-report-stat-d { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); }
+  .bm-report-stat-l { background: #f5fbf6; border: 1px solid rgba(34,197,94,.1); }
+  .bm-report-box { border-radius: 18px; padding: 16px 18px; margin-bottom: 12px; }
+  .bm-report-box-d { background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); }
+  .bm-report-box-l { background: #f8fdf8; border: 1px solid rgba(34,197,94,.1); }
+  .bm-report-list { display: grid; gap: 8px; margin-top: 10px; }
+  .bm-report-row {
+    display: grid; grid-template-columns: minmax(105px,.8fr) repeat(4,minmax(74px,1fr));
+    gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid;
+    font-size: 12px;
+  }
+  .bm-report-row:last-child { border-bottom: none; }
+  .bm-report-row-d { border-bottom-color: rgba(255,255,255,.06); }
+  .bm-report-row-l { border-bottom-color: rgba(34,197,94,.08); }
+  .bm-download-btn {
+    border: none; border-radius: 13px; padding: 10px 14px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    font-family: 'DM Sans',sans-serif; font-size: 13px; font-weight: 700;
+    background: linear-gradient(135deg,#22c55e,#0d9488); color: #fff;
+  }
+  .bm-download-btn:disabled { opacity: .65; cursor: wait; }
+  .bm-report-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .bm-pdf-export .bm-report,
+  .bm-pdf-export .bm-report-d,
+  .bm-pdf-export .bm-report-l {
+    background: #ffffff !important;
+    border: 1px solid #d9eadc !important;
+    box-shadow: none !important;
+    color: #111827 !important;
+  }
+  .bm-pdf-export .bm-report-head,
+  .bm-pdf-export .bm-report-head-d,
+  .bm-pdf-export .bm-report-head-l {
+    background: #ffffff !important;
+    border-bottom-color: #d9eadc !important;
+  }
+  .bm-pdf-export .bm-report-box,
+  .bm-pdf-export .bm-report-box-d,
+  .bm-pdf-export .bm-report-box-l,
+  .bm-pdf-export .bm-report-stat,
+  .bm-pdf-export .bm-report-stat-d,
+  .bm-pdf-export .bm-report-stat-l {
+    background: #f8fdf8 !important;
+    border-color: #d9eadc !important;
+  }
+  .bm-pdf-export .bm-report *,
+  .bm-pdf-export .bm-report h2,
+  .bm-pdf-export .bm-report p,
+  .bm-pdf-export .bm-report span,
+  .bm-pdf-export .bm-report strong,
+  .bm-pdf-export .bm-report div {
+    color: #111827 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+  .bm-pdf-export .bm-report svg { color: #16a34a !important; }
+  .bm-pdf-export .bm-download-btn { display: none !important; }
+  @media(max-width:640px) {
+    .bm-report-head { padding: 18px; flex-direction: column; }
+    .bm-report-body { padding: 18px; }
+    .bm-report-row { grid-template-columns: 1fr; gap: 6px; padding: 12px 0; }
+    .bm-report-row-head { display: none; }
+    .bm-report-row > span,
+    .bm-report-row > strong {
+      display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+      min-width: 0; overflow-wrap: anywhere;
+    }
+    .bm-report-row > span::before,
+    .bm-report-row > strong::before {
+      content: attr(data-label); color: rgba(17,26,18,.48); font-weight: 700; flex-shrink: 0;
+    }
+    .bm-report-d .bm-report-row > span::before,
+    .bm-report-d .bm-report-row > strong::before { color: rgba(232,245,234,.48); }
+  }
+  @media print {
+    .bm-hero, .bm-dropzone, .bm-calc, .bm-hrow button, .bm-download-btn, header { display: none !important; }
+    .bm, .bm-d, .bm-l { background: #fff !important; color: #111 !important; }
+    .bm-report { box-shadow: none !important; border: 1px solid #d9eadc !important; break-inside: avoid; }
+  }
 
   .bm-calc-metric { text-align: center; }
   .bm-calc-metric-val {
@@ -494,30 +597,38 @@ const ANIMALS = [
   { key: "camel", emoji: "🐪", dailyKg: 15.0, i18nKey: "biomass.calc.animals.camel" },
 ];
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 /* ─── FIXED AGRONOMIC FORMULAS ────────────────────────────────────────── */
 /**
  * Derive all pasture metrics from biomass (c/ha).
  *
  * CALIBRATION for Kazakhstan steppes (FIXED):
- *   ≥ 5 c/ha  → moderate/positive (yellow-green)
- *   ≥ 10 c/ha → good (green, optimal grazing)
- *   ≥ 18 c/ha → high
- *   ≥ 28 c/ha → very high / excellent
+ *   ≥ 5 c/ha   → moderate/positive (yellow-green)
+ *   ≥ 7.5 c/ha → good (green, controlled grazing)
+ *   ≥ 15 c/ha  → very high / excellent
  *
  *   Derived AI vegetation score (recalibrated):
- *     score = 0.15 + 0.025 × bm  (clamped 0.05–0.88)
- *     5 c/ha → 0.275  (grade C, moderate — acceptable)
- *     10 c/ha → 0.40  (grade B, good ✓)
- *     20 c/ha → 0.65  (grade A, excellent ✓)
+ *     score = 0.12 + 0.04 × bm  (clamped 0.05–0.88)
+ *     5 c/ha → 0.32  (grade C, moderate — acceptable)
+ *     7.5 c/ha → 0.42  (grade B, good ✓)
+ *     14 c/ha → 0.68  (grade A, excellent ✓)
  *
  *   Coverage formula (recalibrated):
- *     coverage = bm × 6.8 + 8   (clamped 5–95%)
- *     5 c/ha → 42%  (moderate — OK)
- *     10 c/ha → 76% (good ✓)
- *     15 c/ha → 94% (dense ✓)
+ *     coverage = 55 + (bm - 5) × 6.5 for bm ≥ 5
+ *     5 c/ha → 55%  (moderate — OK)
+ *     7.5 c/ha → 71% (good ✓)
+ *     12 c/ha → 97% (dense ✓)
  *
  *   Grazing threshold (relaxed):
- *     optimal  → bm ≥ 10 AND coverage ≥ 50%
+ *     optimal  → bm ≥ 7.5 AND coverage ≥ 50%
  *     caution  → bm ≥  5 AND coverage ≥ 30%
  *     rest     → otherwise
  */
@@ -529,18 +640,18 @@ function deriveMetrics(biomass_c_ha, area_ha, t) {
   const biomassKgHa = bm * 100; // kg/ha
 
   // Derived AI vegetation score — recalibrated for steppe conditions
-  // 5 c/ha → 0.275 | 10 → 0.40 | 20 → 0.65 | 30 → 0.90 (capped)
-  const ndvi = Math.min(0.88, Math.max(0.05, 0.15 + 0.025 * bm));
+  // 5 c/ha → 0.32 | 7.5 → 0.42 | 14 → 0.68 | 19 → 0.88 (capped)
+  const ndvi = Math.min(0.88, Math.max(0.05, 0.12 + 0.04 * bm));
 
   // Vegetation coverage % — keep low biomass in the "bare/sparse" zone
   const coverage = bm >= 5
-    ? Math.min(97, 65 + (bm - 5) * 3.2)
-    : Math.max(5, bm * 12);
+    ? Math.min(97, 55 + (bm - 5) * 6.5)
+    : Math.max(5, bm * 10);
 
   // ── whole-pasture figures ──
   const totalBiomassKg   = biomassKgHa * ha;
-  const usableBiomassKg  = totalBiomassKg * 0.50; // 50% utilization coefficient
-  const usableForWinterKg = totalBiomassKg * 0.40; // 40% for hay stock
+  const usableBiomassKg  = totalBiomassKg;
+  const usableForWinterKg = totalBiomassKg;
 
   // ── Vegetation score grade — thresholds recalibrated for steppe (lower than temperate) ──
   const ndviGrade =
@@ -552,9 +663,8 @@ function deriveMetrics(biomass_c_ha, area_ha, t) {
 
   // ── Biomass quality rating — recalibrated (5+ c/ha = positive) ──
   const biomassRating =
-    bm >= 28 ? { labelKey: "biomass.rating.veryHigh", color: "#22c55e", tipKey: "biomass.rating.veryHighTip" } :
-    bm >= 18 ? { labelKey: "biomass.rating.high",     color: "#4ade80", tipKey: "biomass.rating.highTip"     } :
-    bm >= 10 ? { labelKey: "biomass.rating.high",     color: "#4ade80", tipKey: "biomass.rating.highTip"     } :
+    bm >= 15 ? { labelKey: "biomass.rating.veryHigh", color: "#22c55e", tipKey: "biomass.rating.veryHighTip" } :
+    bm >= 7.5 ? { labelKey: "biomass.rating.high",     color: "#4ade80", tipKey: "biomass.rating.highTip"     } :
     bm >=  5 ? { labelKey: "biomass.rating.moderate", color: "#84cc16", tipKey: "biomass.rating.moderateTip" } :
     bm >=  2 ? { labelKey: "biomass.rating.low",      color: "#f97316", tipKey: "biomass.rating.lowTip"      } :
                { labelKey: "biomass.rating.critical", color: "#ef4444", tipKey: "biomass.rating.criticalTip" };
@@ -573,7 +683,7 @@ function deriveMetrics(biomass_c_ha, area_ha, t) {
 
   // ── Grazing recommendation — relaxed thresholds ──
   const grazingRec =
-    bm >= 10 && coverage >= 50
+    bm >= 7.5 && coverage >= 50
       ? { status: "optimal",  labelKey: "biomass.grazing.ready",   color: "#22c55e", icon: "✓" }
     : bm >=  5 && coverage >= 30
       ? { status: "caution",  labelKey: "biomass.grazing.caution", color: "#fbbf24", icon: "⚠" }
@@ -994,8 +1104,10 @@ function WinterCalculator({ usableForWinterKg, defaultArea, isDark, t }) {
                   </button>
                   <input
                     type="number"
+                    inputMode="numeric"
                     className={`bm-stepper-val ${isDark ? "bm-stepper-val-d" : "bm-stepper-val-l"}`}
-                    value={animalCounts[a.key]}
+                    value={animalCounts[a.key] || ""}
+                    placeholder="0"
                     min={0} max={9999}
                     onChange={(e) => setCount(a.key, e.target.value)}
                   />
@@ -1071,6 +1183,359 @@ function WinterCalculator({ usableForWinterKg, defaultArea, isDark, t }) {
             {t("biomass.calc.addAnimals", "Добавьте животных чтобы рассчитать потребность в кормах")}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function buildAgronomistReport(measurements, pasture, areaHa, t) {
+  const completed = (measurements || [])
+    .filter((m) => m.status === "completed" && m.biomass_value != null)
+    .slice()
+    .sort((a, b) => new Date(b.created_at || b.measured_at || 0) - new Date(a.created_at || a.measured_at || 0));
+
+  if (!completed.length) return null;
+
+  const values = completed.map((m) => Number(m.biomass_value) || 0);
+  const latest = completed[0];
+  const previous = completed[1] || null;
+  const latestMetrics = deriveBiomassMetrics(latest.biomass_value, areaHa);
+  const avgBiomass = values.reduce((sum, v) => sum + v, 0) / values.length;
+  const maxBiomass = Math.max(...values);
+  const minBiomass = Math.min(...values);
+  const trendValue = previous ? latest.biomass_value - previous.biomass_value : 0;
+  const trendPct = previous?.biomass_value ? (trendValue / previous.biomass_value) * 100 : 0;
+
+  const condition =
+    latest.biomass_value >= 7.5 && latestMetrics.coverage >= 50
+      ? {
+          label: t("biomass.report.condition.ready.label", "Готово к контролируемому выпасу"),
+          color: "#22c55e",
+          summary: t("biomass.report.condition.ready.summary", "Пастбище выглядит рабочим: запас травостоя достаточный, можно планировать выпас с ограничением нагрузки."),
+        }
+      : latest.biomass_value >= 5
+        ? {
+            label: t("biomass.report.condition.caution.label", "Нужен осторожный режим"),
+            color: "#f59e0b",
+            summary: t("biomass.report.condition.caution.summary", "Запас есть, но пастбищу лучше дать мягкую нагрузку и чаще проверять восстановление травостоя."),
+          }
+        : {
+            label: t("biomass.report.condition.rest.label", "Рекомендуется отдых"),
+            color: "#ef4444",
+            summary: t("biomass.report.condition.rest.summary", "Биомасса низкая: выпас сейчас может ускорить деградацию и снизить восстановление растений."),
+          };
+
+  const trendText =
+    !previous
+      ? t("biomass.report.trend.single", "Пока есть только один завершенный замер, поэтому тренд будет точнее после следующего измерения.")
+      : trendValue > 1
+        ? t("biomass.report.trend.up", "Биомасса выросла на {{value}} ц/га ({{pct}}%). Это хороший сигнал восстановления.", {
+            value: trendValue.toFixed(1),
+            pct: trendPct.toFixed(0),
+          })
+        : trendValue < -1
+          ? t("biomass.report.trend.down", "Биомасса снизилась на {{value}} ц/га ({{pct}}%). Нагрузка или погодный стресс могли быть выше нормы.", {
+              value: Math.abs(trendValue).toFixed(1),
+              pct: Math.abs(trendPct).toFixed(0),
+            })
+          : t("biomass.report.trend.flat", "Динамика почти ровная: состояние пастбища стабильное, резких изменений по последним замерам нет.");
+
+  const recommendations = [
+    latest.biomass_value >= 7.5
+      ? t("biomass.report.recommendations.grazingReady", "Разрешить выпас небольшими загонами и оставлять не менее 40-50% травостоя после прохода.")
+      : t("biomass.report.recommendations.grazingRest", "Отложить интенсивный выпас и использовать участок только короткими заходами либо оставить на восстановление."),
+    latestMetrics.coverage < 50
+      ? t("biomass.report.recommendations.coverLow", "Усилить контроль оголенных пятен: после дождей стоит проверить всходы и при необходимости провести подсев устойчивых трав.")
+      : t("biomass.report.recommendations.coverGood", "Покров выглядит достаточным, но после выпаса лучше повторить фотоанализ через 7-14 дней."),
+    trendValue < -1
+      ? t("biomass.report.recommendations.trendDown", "Если снижение повторится, уменьшить плотность поголовья или сократить время нахождения на этом участке.")
+      : t("biomass.report.recommendations.monitor", "Сохранять регулярный мониторинг, чтобы поймать момент, когда рост замедлится или начнется просадка биомассы."),
+    t("biomass.report.recommendations.disclaimer", "Для отчета используйте эти значения как оперативную оценку; финальное решение лучше сверять с погодой, фазой роста трав и фактической нагрузкой на пастбище."),
+  ];
+
+  return {
+    completed,
+    latest,
+    latestMetrics,
+    avgBiomass,
+    maxBiomass,
+    minBiomass,
+    trendText,
+    condition,
+    recommendations,
+    pastureName: pasture?.name || t("biomass.report.fallbackPasture", "Пастбище"),
+  };
+}
+
+function AgronomistReport({ measurements, pasture, areaHa, isDark, locale, t, onToast }) {
+  const reportRef = useRef(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const report = useMemo(
+    () => buildAgronomistReport(measurements, pasture, areaHa, t),
+    [measurements, pasture, areaHa, t]
+  );
+
+  if (!report) return null;
+
+  const tc = isDark ? "rgba(232,245,234,.9)" : "#111a12";
+  const sc = isDark ? "rgba(232,245,234,.48)" : "rgba(17,26,18,.52)";
+  const dateLocale = locale === "kk" ? "kk-KZ" : locale === "en" ? "en-US" : "ru-RU";
+  const fmtDate = (m) => new Date(m.created_at || m.measured_at || Date.now()).toLocaleDateString(dateLocale);
+  const fmtNum = (v, digits = 1) => Number(v || 0).toFixed(digits);
+  const unit = t("biomass.unit", "ц/га");
+
+  const handleDownloadPdf = async () => {
+    if (pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const date = new Date().toLocaleString(dateLocale);
+      const rowsHtml = report.completed.map((m, i) => {
+        const rowMetrics = deriveBiomassMetrics(m.biomass_value, areaHa);
+        const rowStatus = rowMetrics.grazingRec.status === "optimal"
+          ? t("biomass.report.status.ready", "Можно пасти")
+          : rowMetrics.grazingRec.status === "caution"
+            ? t("biomass.report.status.caution", "Осторожно")
+            : t("biomass.report.status.rest", "Отдых");
+
+        return `
+          <tr style="background:${i % 2 === 0 ? "#f8fdf8" : "#ffffff"};">
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#374151;font-size:11px;">${escapeHtml(fmtDate(m))}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:${rowMetrics.biomassRating.color};font-weight:700;font-size:11px;">${escapeHtml(`${fmtNum(m.biomass_value)} ${unit}`)}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#374151;font-size:11px;">${escapeHtml(`${fmtNum(m.coverage_percent ?? rowMetrics.coverage, 0)}%`)}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#374151;font-size:11px;">${escapeHtml(`${fmtNum(m.quality_score ?? rowMetrics.ndviGrade.pct, 0)}%`)}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:${rowMetrics.grazingRec.color};font-weight:700;font-size:11px;">${escapeHtml(rowStatus)}</td>
+          </tr>`;
+      }).join("");
+
+      const statCardsHtml = statItems.map((item) => `
+        <div style="border:1px solid #bbf7d0;border-radius:12px;background:#f0fdf4;padding:12px 14px;">
+          <div style="font-size:10px;color:#6b7280;margin-bottom:5px;">${escapeHtml(item.label)}</div>
+          <div style="font-size:18px;font-weight:800;color:${item.color};">${escapeHtml(item.value)}</div>
+        </div>
+      `).join("");
+
+      const recommendationsHtml = report.recommendations.map((rec) => `
+        <div style="display:flex;gap:8px;margin-bottom:8px;font-size:12px;line-height:1.55;color:#111827;">
+          <span style="color:#16a34a;font-weight:800;">›</span>
+          <span>${escapeHtml(rec)}</span>
+        </div>
+      `).join("");
+
+      const container = document.createElement("div");
+      container.style.cssText = `
+        position:fixed; left:-9999px; top:0;
+        width:794px; background:#ffffff;
+        font-family:Arial,"Segoe UI",sans-serif; color:#111827;
+      `;
+      container.innerHTML = `
+        <div style="background:linear-gradient(135deg,#166534,#0d9488);color:white;padding:26px 38px;display:flex;justify-content:space-between;align-items:flex-start;gap:24px;">
+          <div>
+            <div style="font-size:26px;font-weight:800;">KokMaisa</div>
+            <div style="font-size:12px;opacity:.9;margin-top:4px;">${escapeHtml(t("biomass.report.kicker", "Отчет ИИ-агронома"))}</div>
+          </div>
+          <div style="font-size:11px;opacity:.85;text-align:right;line-height:1.5;">${escapeHtml(date)}</div>
+        </div>
+
+        <div style="padding:30px 38px 34px;">
+          <div style="font-size:22px;font-weight:800;color:#14532d;margin-bottom:6px;">
+            ${escapeHtml(t("biomass.report.title", "{{pasture}}: анализ всех измерений", { pasture: report.pastureName }))}
+          </div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.55;margin-bottom:20px;">
+            ${escapeHtml(t("biomass.report.subtitle", "Сформировано по завершенным измерениям пастбища. Последний замер: {{date}}.", { date: fmtDate(report.latest) }))}
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+            ${statCardsHtml}
+          </div>
+
+          <div style="border:1px solid #bbf7d0;border-radius:14px;background:#f8fdf8;padding:16px 18px;margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:10px;">
+              ${escapeHtml(t("biomass.report.aiTextTitle", "Текст ИИ-агронома"))}
+            </div>
+            <div style="font-size:15px;font-weight:800;color:${report.condition.color};margin-bottom:8px;">
+              ${escapeHtml(report.condition.label)}
+            </div>
+            <div style="font-size:13px;line-height:1.65;color:#111827;margin-bottom:8px;">
+              ${escapeHtml(report.condition.summary)}
+            </div>
+            <div style="font-size:12px;line-height:1.6;color:#4b5563;">
+              ${escapeHtml(report.trendText)}
+            </div>
+          </div>
+
+          <div style="border:1px solid #bbf7d0;border-radius:14px;background:#f8fdf8;padding:16px 18px;margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:10px;">
+              ${escapeHtml(t("biomass.report.adviceTitle", "Мысли и советы ИИ-агронома"))}
+            </div>
+            ${recommendationsHtml}
+          </div>
+
+          <div style="border:1px solid #bbf7d0;border-radius:14px;background:#ffffff;padding:16px 18px;">
+            <div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:10px;">
+              ${escapeHtml(t("biomass.report.evidenceTitle", "Таблица измерений, подтверждающая вывод"))}
+            </div>
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:#ecfdf5;">
+                  <th style="text-align:left;padding:8px 10px;border-bottom:1px solid #bbf7d0;color:#166534;font-size:10px;">${escapeHtml(t("biomass.report.table.date", "Дата"))}</th>
+                  <th style="text-align:left;padding:8px 10px;border-bottom:1px solid #bbf7d0;color:#166534;font-size:10px;">${escapeHtml(t("biomass.report.table.biomass", "Биомасса"))}</th>
+                  <th style="text-align:left;padding:8px 10px;border-bottom:1px solid #bbf7d0;color:#166534;font-size:10px;">${escapeHtml(t("biomass.report.table.coverage", "Покров"))}</th>
+                  <th style="text-align:left;padding:8px 10px;border-bottom:1px solid #bbf7d0;color:#166534;font-size:10px;">${escapeHtml(t("biomass.report.table.aiScore", "AI-оценка"))}</th>
+                  <th style="text-align:left;padding:8px 10px;border-bottom:1px solid #bbf7d0;color:#166534;font-size:10px;">${escapeHtml(t("biomass.report.table.status", "Статус"))}</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:28px;padding-top:12px;border-top:1px solid #e5e7eb;text-align:center;font-size:10px;color:#9ca3af;">
+            KokMaisa · ${escapeHtml(date)}
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(container);
+
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const safeName = report.pastureName.replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, "") || "pasture";
+      pdf.save(`kokmaisa_${safeName}_report.pdf`);
+    } catch (error) {
+      console.error(error);
+      onToast?.("err", t("biomass.report.pdfError", "Не удалось скачать PDF"));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const statItems = [
+    { label: t("biomass.report.stats.count", "Замеров в отчете"), value: report.completed.length, color: "#22c55e" },
+    { label: t("biomass.report.stats.avg", "Средняя биомасса"), value: `${fmtNum(report.avgBiomass)} ${unit}`, color: "#22d3ee" },
+    { label: t("biomass.report.stats.range", "Диапазон"), value: `${fmtNum(report.minBiomass)}-${fmtNum(report.maxBiomass)} ${unit}`, color: "#a78bfa" },
+    { label: t("biomass.report.stats.reserve", "Запас по площади"), value: `${fmtNum(report.latestMetrics.totalBiomassKg / 1000, 2)} ${t("biomass.totalYield.tons", "т")}`, color: "#f59e0b" },
+  ];
+
+  return (
+    <div ref={reportRef} className={`bm-report ${isDark ? "bm-report-d" : "bm-report-l"} bm-a3`}>
+      <div className={`bm-report-head ${isDark ? "bm-report-head-d" : "bm-report-head-l"}`}>
+        <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+          <div style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(34,197,94,.13)", border: "1px solid rgba(74,222,128,.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <FileText style={{ width: 19, height: 19, color: "#22c55e" }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: "#22c55e", marginBottom: 5 }}>
+              {t("biomass.report.kicker", "Отчет ИИ-агронома")}
+            </div>
+            <h2 style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: "1.35rem", fontWeight: 900, color: tc, margin: 0 }}>
+              {t("biomass.report.title", "{{pasture}}: анализ всех измерений", { pasture: report.pastureName })}
+            </h2>
+            <p style={{ fontSize: 13, color: sc, margin: "6px 0 0", lineHeight: 1.55 }}>
+              {t("biomass.report.subtitle", "Сформировано по завершенным измерениям пастбища. Последний замер: {{date}}.", { date: fmtDate(report.latest) })}
+            </p>
+          </div>
+        </div>
+        <button className="bm-download-btn" onClick={handleDownloadPdf} disabled={pdfLoading} data-html2canvas-ignore="true">
+          {pdfLoading ? <Loader2 className="bm-spin" style={{ width: 14, height: 14 }} /> : <Download style={{ width: 14, height: 14 }} />}
+          {pdfLoading ? t("biomass.report.downloading", "Готовим PDF...") : t("biomass.report.downloadPdf", "Скачать PDF")}
+        </button>
+      </div>
+
+      <div className="bm-report-body">
+        <div className="bm-report-grid">
+          {statItems.map((item) => (
+            <div key={item.label} className={`bm-report-stat ${isDark ? "bm-report-stat-d" : "bm-report-stat-l"}`}>
+              <div style={{ fontSize: 11, color: sc, marginBottom: 5 }}>{item.label}</div>
+              <div style={{ fontFamily: "'Cabinet Grotesk',sans-serif", fontWeight: 900, fontSize: "1.2rem", color: item.color }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className={`bm-report-box ${isDark ? "bm-report-box-d" : "bm-report-box-l"}`}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: sc, marginBottom: 10 }}>
+            {t("biomass.report.aiTextTitle", "Текст ИИ-агронома")}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <ClipboardCheck style={{ width: 16, height: 16, color: report.condition.color }} />
+            <strong style={{ color: report.condition.color, fontSize: 15 }}>{report.condition.label}</strong>
+          </div>
+          <p style={{ margin: 0, color: tc, fontSize: 14, lineHeight: 1.65 }}>{report.condition.summary}</p>
+          <p style={{ margin: "8px 0 0", color: sc, fontSize: 13, lineHeight: 1.6 }}>{report.trendText}</p>
+        </div>
+
+        <div className={`bm-report-box ${isDark ? "bm-report-box-d" : "bm-report-box-l"}`}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: sc, marginBottom: 10 }}>
+            {t("biomass.report.adviceTitle", "Мысли и советы ИИ-агронома")}
+          </div>
+          <div style={{ display: "grid", gap: 9 }}>
+            {report.recommendations.map((rec) => (
+              <div key={rec} style={{ display: "flex", gap: 9, alignItems: "flex-start", color: tc, fontSize: 13, lineHeight: 1.55 }}>
+                <ArrowRight style={{ width: 14, height: 14, color: "#22c55e", flexShrink: 0, marginTop: 2 }} />
+                <span>{rec}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={`bm-report-box ${isDark ? "bm-report-box-d" : "bm-report-box-l"}`} style={{ marginBottom: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", color: sc, marginBottom: 4 }}>
+            {t("biomass.report.evidenceTitle", "Таблица измерений, подтверждающая вывод")}
+          </div>
+          <div className="bm-report-table">
+            <div className="bm-report-list">
+            <div className={`bm-report-row bm-report-row-head ${isDark ? "bm-report-row-d" : "bm-report-row-l"}`} style={{ color: sc, fontWeight: 700 }}>
+              <span>{t("biomass.report.table.date", "Дата")}</span>
+              <span>{t("biomass.report.table.biomass", "Биомасса")}</span>
+              <span>{t("biomass.report.table.coverage", "Покров")}</span>
+              <span>{t("biomass.report.table.aiScore", "AI-оценка")}</span>
+              <span>{t("biomass.report.table.status", "Статус")}</span>
+            </div>
+            {report.completed.map((m) => {
+              const rowMetrics = deriveBiomassMetrics(m.biomass_value, areaHa);
+              const rowStatus = rowMetrics.grazingRec.status === "optimal"
+                ? t("biomass.report.status.ready", "Можно пасти")
+                : rowMetrics.grazingRec.status === "caution"
+                  ? t("biomass.report.status.caution", "Осторожно")
+                  : t("biomass.report.status.rest", "Отдых");
+              return (
+                <div key={m.id} className={`bm-report-row ${isDark ? "bm-report-row-d" : "bm-report-row-l"}`} style={{ color: tc }}>
+                  <span data-label={t("biomass.report.table.date", "Дата")}>{fmtDate(m)}</span>
+                  <strong data-label={t("biomass.report.table.biomass", "Биомасса")} style={{ color: rowMetrics.biomassRating.color }}>{fmtNum(m.biomass_value)} {unit}</strong>
+                  <span data-label={t("biomass.report.table.coverage", "Покров")}>{fmtNum(m.coverage_percent ?? rowMetrics.coverage, 0)}%</span>
+                  <span data-label={t("biomass.report.table.aiScore", "AI-оценка")}>{fmtNum(m.quality_score ?? rowMetrics.ndviGrade.pct, 0)}%</span>
+                  <span data-label={t("biomass.report.table.status", "Статус")} style={{ color: rowMetrics.grazingRec.color }}>
+                    {rowStatus}
+                  </span>
+                </div>
+              );
+            })}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1334,9 +1799,6 @@ export default function BiomassMeasurementPage() {
                           {" × "}
                           <strong style={{ color: tc }}>{pastureAreaHa} {t("biomass.unitHa")}</strong>
                         </div>
-                        <div className="bm-chip" style={{ background: "rgba(34,197,94,.12)", color: "#22c55e" }}>
-                          {t("biomass.totalYield.usable", "Используемо")}: {(metrics.usableBiomassKg / 1000).toFixed(2)} {t("biomass.totalYield.tons", "т")}
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -1424,6 +1886,16 @@ export default function BiomassMeasurementPage() {
                       sub={t(metrics.biomassRating.tipKey)}
                     />
                   </div>
+
+                  <AgronomistReport
+                    measurements={measurements}
+                    pasture={selPasture}
+                    areaHa={pastureAreaHa}
+                    isDark={D}
+                    locale={i18n.language}
+                    t={t}
+                    onToast={showToast}
+                  />
 
                   {/* ── WINTER FODDER CALCULATOR ── */}
                   <SectionLabel text={t("biomass.calc.sectionLabel", "Калькулятор зимнего кормления")} isDark={D} />

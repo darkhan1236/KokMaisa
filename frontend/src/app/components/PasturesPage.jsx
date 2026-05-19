@@ -401,11 +401,12 @@ function PastureMap({ pastures, active, onSelect, height = "100%" }) {
    MODAL DRAW MAP — рисование полигона с undo/redo
 ═══════════════════════════════════════════════════════════ */
 const ModalDrawMap = forwardRef(function ModalDrawMap(
-  { coords, onCoordsChange, onPointCountChange, existingPastures=[], editingId=null, flyTo },
+  { coords, onCoordsChange, onPointCountChange, existingPastures=[], editingId=null, selectedFarm=null, flyTo },
   ref
 ) {
   const mapRef  = useRef(null);
   const mapInst = useRef(null);
+  const farmLayerRef = useRef(null);
   const stateRef = useRef({ pts:[], future:[], markers:[], numLabels:[], line:null, poly:null });
   const onCoordsRef     = useRef(onCoordsChange);
   const onCountRef      = useRef(onPointCountChange);
@@ -509,6 +510,28 @@ const ModalDrawMap = forwardRef(function ModalDrawMap(
     if (!flyTo || !mapInst.current) return;
     mapInst.current.flyTo(flyTo.latlng, flyTo.zoom ?? 8, { duration:1.1 });
   }, [flyTo]);
+
+  useEffect(() => {
+    const map = mapInst.current;
+    if (!map) return;
+    const Lf = map._Lf;
+    if (farmLayerRef.current) {
+      try { map.removeLayer(farmLayerRef.current); } catch (_) {}
+      farmLayerRef.current = null;
+    }
+    if (!selectedFarm?.coordinates?.length) return;
+
+    const latlngs = selectedFarm.coordinates.map((c) => [c.lat, c.lng]);
+    farmLayerRef.current = Lf.polygon(latlngs, {
+      color: selectedFarm.color || "#22c55e",
+      fillColor: selectedFarm.color || "#22c55e",
+      fillOpacity: 0.08,
+      weight: 3,
+      opacity: 0.95,
+      dashArray: "8 5",
+      interactive: false,
+    }).addTo(map);
+  }, [selectedFarm]);
 
   return <div ref={mapRef} style={{ width:"100%", height:"100%", borderRadius:"inherit" }} />;
 });
@@ -838,6 +861,18 @@ const STYLE = `
 .pp-div-d{background:rgba(255,255,255,.07);}
 .pp-div-l{background:rgba(34,197,94,.1);}
 
+.pp-reference{border-radius:14px;padding:12px;margin:0 0 14px;border:1px solid;}
+.pp-reference-d{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.08);}
+.pp-reference-l{background:#f4faf5;border-color:rgba(34,197,94,.12);}
+.pp-reference-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.pp-reference-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;}
+.pp-reference-list{display:flex;flex-direction:column;gap:7px;max-height:148px;overflow-y:auto;padding-right:2px;}
+.pp-reference-item{border-radius:10px;padding:9px 10px;border:1px solid;display:flex;align-items:flex-start;gap:8px;}
+.pp-reference-item-d{background:rgba(0,0,0,.16);border-color:rgba(255,255,255,.07);}
+.pp-reference-item-l{background:#fff;border-color:rgba(34,197,94,.1);}
+.pp-reference-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.pp-reference-empty{font-size:12px;font-weight:600;font-style:italic;line-height:1.45;}
+
 .pp-swatch{width:26px;height:26px;border-radius:7px;cursor:pointer;transition:transform .15s;border:2px solid transparent;flex-shrink:0;}
 .pp-swatch:hover{transform:scale(1.18);}
 .pp-swatch.sel{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.4);}
@@ -959,7 +994,10 @@ export default function PasturesPage() {
           };
         })
       );
-      setFarms(fData||[]);
+      setFarms((fData||[]).map((f) => ({
+        ...f,
+        coordinates: normalizeCoords(f.coordinates),
+      })));
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -1012,6 +1050,18 @@ export default function PasturesPage() {
   const farmLabel = useCallback((id) =>
     farms.find((f) => String(f.id) === String(id))?.name || "—",
     [farms]
+  );
+
+  const selectedFarm = useMemo(
+    () => farms.find((f) => String(f.id) === String(form.farm_id)) || null,
+    [farms, form.farm_id]
+  );
+
+  const selectedFarmPastures = useMemo(
+    () => form.farm_id
+      ? pastures.filter((p) => String(p.farm_id) === String(form.farm_id) && String(p.id) !== String(editId))
+      : [],
+    [pastures, form.farm_id, editId]
   );
 
   /* ── CRUD ───────────────────────────────────────────────── */
@@ -1340,9 +1390,81 @@ export default function PasturesPage() {
                 <div style={{ marginBottom:12 }}>
                   <label className={`pp-lbl ${d?"pp-lbl-d":"pp-lbl-l"}`}>{t("pastures.field.farm","Ферма")} *</label>
                   <div className={formErrors.farm_id ? "pp-inp-error" : ""} style={{ borderRadius:11 }}>
-                    <StyledSelect isDark={d} value={form.farm_id} onChange={(v)=>setF("farm_id",v)} options={farmOptions} placeholder={t("pastures.placeholder.farm","Выберите ферму")} />
+                    <StyledSelect
+                      isDark={d}
+                      value={form.farm_id}
+                      onChange={(v) => {
+                        setF("farm_id", v);
+                        const farm = farms.find((f) => String(f.id) === String(v));
+                        if (farm?.coordinates?.length) {
+                          const c = centroid(farm.coordinates);
+                          if (c) setFlyTo({ latlng: [c.lat, c.lng], zoom: 12, ts: Date.now() });
+                        }
+                      }}
+                      options={farmOptions}
+                      placeholder={t("pastures.placeholder.farm","Выберите ферму")}
+                    />
                   </div>
                   {formErrors.farm_id && <div className="pp-field-error"><AlertCircle style={{ width:12, height:12 }} />{formErrors.farm_id}</div>}
+                </div>
+
+                <div className={`pp-reference ${d ? "pp-reference-d" : "pp-reference-l"}`}>
+                  <div className="pp-reference-head">
+                    <div className="pp-reference-title" style={{ color: tc }}>
+                      <Home style={{ width: 14, height: 14, color: d ? "#4ade80" : "#16a34a" }} />
+                      {selectedFarm
+                        ? t("pastures.reference.selectedFarm", "Выбранная ферма")
+                        : t("pastures.reference.chooseFarmTitle", "Сначала выберите ферму")}
+                    </div>
+                    {selectedFarm && (
+                      <span style={{ fontSize: 12, fontWeight: 800, color: d ? "#4ade80" : "#16a34a" }}>
+                        {selectedFarmPastures.length}
+                      </span>
+                    )}
+                  </div>
+                  {selectedFarm ? (
+                    <>
+                      <div className={`pp-reference-item ${d ? "pp-reference-item-d" : "pp-reference-item-l"}`} style={{ marginBottom: 8 }}>
+                        <span className="pp-reference-dot" style={{ background: selectedFarm.color || "#22c55e" }} />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: tc, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {selectedFarm.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: sc, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {selectedFarm.region || selectedFarm.address || t("pastures.reference.noLocation", "Место не указано")}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: sc, textTransform: "uppercase", letterSpacing: ".06em", margin: "8px 0 6px" }}>
+                        {t("pastures.reference.relatedPastures", "Пастбища этой фермы")}
+                      </div>
+                      {selectedFarmPastures.length > 0 ? (
+                        <div className="pp-reference-list">
+                          {selectedFarmPastures.slice(0, 6).map((pasture) => (
+                            <div key={pasture.id} className={`pp-reference-item ${d ? "pp-reference-item-d" : "pp-reference-item-l"}`}>
+                              <span className="pp-reference-dot" style={{ background: pasture.color || "#22c55e" }} />
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: tc, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {pasture.name}
+                                </div>
+                                <div style={{ fontSize: 11, color: sc }}>
+                                  {(pasture.area_ha || pasture.area || 0).toFixed?.(1) || pasture.area_ha || pasture.area || 0} {t("pastures.units.hectaresShort", "ha")} · {statusLabel(pasture.status)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="pp-reference-empty" style={{ color: sc }}>
+                          {t("pastures.reference.noRelatedPastures", "У этой фермы пока нет других пастбищ.")}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="pp-reference-empty" style={{ color: sc }}>
+                      {t("pastures.reference.chooseFarmHint", "После выбора фермы карта перейдет к ее контуру, а здесь появятся пастбища этой фермы.")}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pp-2col">
@@ -1451,8 +1573,9 @@ export default function PasturesPage() {
                       coords={drawnCoords}
                       onCoordsChange={handleCoordsChange}
                       onPointCountChange={handlePointCount}
-                      existingPastures={pastures}
+                      existingPastures={form.farm_id ? selectedFarmPastures : pastures}
                       editingId={editId}
+                      selectedFarm={selectedFarm}
                       flyTo={searchFlyTo || flyTo}
                     />
                   </div>

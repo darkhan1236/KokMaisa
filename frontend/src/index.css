@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -63,12 +65,25 @@
 /* Глобальные стили проекта (можно добавить свои) */
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Noto Sans', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   background-color: #f8fafc;  /* светлый фон, если нужно */
 }
 
 #root {
   min-height: 100vh;
+}
+
+body {
+  font-family: 'Noto Sans', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-synthesis-weight: none;
+}
+
+body :not(code):not(pre):not(kbd):not(samp),
+button,
+input,
+textarea,
+select {
+  font-family: 'Noto Sans', system-ui, -apple-system, "Segoe UI", Arial, sans-serif !important;
 }
 
 

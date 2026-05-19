@@ -134,6 +134,22 @@
   "biomass": {
     "title": "Pasture Biomass Analysis with AI",
     "subtitle": "Get accurate biomass predictions for optimal pasture management",
+    "unitHa": "ha",
+    "hero": {
+      "badge": "AI biomass analysis",
+      "titleLine1": "Measure",
+      "titleLine2": "pasture biomass",
+      "subtitle": "Upload a pasture photo and get a real-time biomass prediction with agronomic recommendations.",
+      "selectPasture": "Select pasture"
+    },
+    "selectPasturePrompt": "Select a pasture above to start the analysis",
+    "upload": {
+      "sectionLabel": "Photo analysis",
+      "title": "Upload pasture photo",
+      "hint": "Drag an image here or click — AI will predict biomass in seconds",
+      "formats": "JPG · PNG · WEBP",
+      "ariaLabel": "Upload pasture photo"
+    },
     "analyzeImage": "Analyze Image",
     "dragDrop": "Drag and drop image here",
     "orClickToSelect": "or click to select",
@@ -241,7 +257,7 @@
         "heightDescription": "Approximate grass height derived from the current biomass prediction.",
         "capacity": "Carrying capacity",
         "capacityValue": "{{count}} cows/ha",
-        "capacityDescription": "Estimated grazing load for a 30-day rotation using the latest usable biomass."
+        "capacityDescription": "Estimated grazing load for a 30-day rotation using the full latest predicted biomass."
       },
       "units": {
         "tons": "t",
@@ -249,17 +265,199 @@
       }
     },
     "results": {
+      "sectionLabel": "Latest result",
+      "biomassLabel": "Biomass",
+      "grazingLabel": "Grazing",
+      "coverLabel": "Cover",
+      "empty": "No measurements yet — upload a photo to start",
       "aiScoreLabel": "AI score"
     },
+    "totalYield": {
+      "title": "Total pasture yield",
+      "tons": "tons"
+    },
+    "result": {
+      "badge": "Measurement completed",
+      "subtitle": "Pasture biomass has been detected",
+      "close": "Close",
+      "viewDetails": "View details"
+    },
+    "calc": {
+      "sectionLabel": "Winter feed calculator",
+      "title": "Wintering calculator",
+      "subtitle": "Enter the number of animals and calculate winter feed needs",
+      "availableHay": "Available hay",
+      "tons": "tons",
+      "winterDays": "Wintering days",
+      "infoLabel": "Daily rates (kg hay)",
+      "animal": "Animal",
+      "required": "Required",
+      "count": "Count",
+      "kgPerDay": "kg/day",
+      "tonsShort": "t",
+      "availableLabel": "Available (tons)",
+      "requiredLabel": "Required (tons)",
+      "surplusLabel": "Surplus (tons)",
+      "deficitLabel": "Deficit (tons)",
+      "totalAnimals": "Total animals",
+      "addAnimals": "Add animals to calculate feed needs",
+      "animals": {
+        "cow": "Cow",
+        "horse": "Horse",
+        "sheep": "Sheep",
+        "goat": "Goat",
+        "camel": "Camel"
+      }
+    },
     "insights": {
+      "carrying": {
+        "title": "How many animals can graze here",
+        "value": "{{count}} cows per hectare",
+        "sub": "Calculated from the full predicted volume for 30 days"
+      },
+      "rotation": {
+        "title": "How many days this pasture can be grazed",
+        "value": "~{{days}} grazing days",
+        "sub": "Before the grass needs rest"
+      },
       "ndvi": {
         "title": "Vegetation cover condition",
         "grade": "Grade",
         "sub": "Condition score from AI analysis: {{pct}}%"
+      },
+      "regrowth": {
+        "title": "Recovery time after grazing",
+        "value": "~{{days}} days",
+        "sub": "Time for grass to regrow"
+      },
+      "winter": {
+        "title": "Winter feed reserve (1 ha)",
+        "value": "{{tons}} t",
+        "sub": "Can feed about {{cows}} cows or {{sheep}} sheep for 180 days",
+        "sufficient": "Enough",
+        "low": "Low"
+      },
+      "recommendation": {
+        "title": "System recommendation"
       }
     },
+    "ndvi": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "moderate": "Moderate",
+      "weak": "Weak",
+      "critical": "Critical"
+    },
+    "rating": {
+      "veryHigh": "Very high",
+      "veryHighTip": "Peak productivity. Ideal for starting rotation.",
+      "high": "High",
+      "highTip": "Good biomass. The pasture is ready for grazing.",
+      "moderate": "Moderate",
+      "moderateTip": "Acceptable. Monitor closely and plan rotation.",
+      "low": "Low",
+      "lowTip": "Below optimum. Allow at least 3 weeks of rest before grazing.",
+      "critical": "Critical",
+      "criticalTip": "Severe depletion. Grazing is prohibited — urgent intervention is needed."
+    },
+    "grazing": {
+      "ready": "Ready for grazing",
+      "caution": "Graze with caution",
+      "rest": "Rest required"
+    },
+    "cover": {
+      "dense": "Dense cover",
+      "good": "Good cover",
+      "sparse": "Sparse cover",
+      "bare": "Bare patches"
+    },
+    "history": {
+      "sectionLabel": "Measurement history",
+      "refresh": "Refresh",
+      "refreshAriaLabel": "Refresh measurements",
+      "photoUpload": "Photo upload",
+      "done": "Done",
+      "processing": "Processing",
+      "failed": "Failed",
+      "empty": "No measurements for this pasture yet",
+      "confirmDelete": "Delete this measurement?",
+      "deleteAriaLabel": "Delete"
+    },
+    "modal": {
+      "title": "Upload photo",
+      "closeAriaLabel": "Close",
+      "chooseFile": "Click to choose a photo",
+      "previewAlt": "Preview",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "Add context...",
+      "analyzing": "Analyzing...",
+      "submit": "Run AI analysis"
+    },
+    "toast": {
+      "success": "Biomass: {{value}} {{unit}}",
+      "deleted": "Measurement deleted"
+    },
     "measNdvi": "AI score",
-    "ndviValue": "AI score"
+    "ndviValue": "AI score",
+    "report": {
+      "kicker": "AI agronomist report",
+      "title": "{{pasture}}: all measurements analysis",
+      "subtitle": "Generated from completed pasture measurements. Latest measurement: {{date}}.",
+      "downloadPdf": "Download PDF",
+      "downloading": "Preparing PDF...",
+      "pdfError": "Could not download PDF",
+      "fallbackPasture": "Pasture",
+      "aiTextTitle": "AI agronomist text",
+      "adviceTitle": "AI agronomist thoughts and advice",
+      "evidenceTitle": "Measurement table supporting the conclusion",
+      "stats": {
+        "count": "Measurements in report",
+        "avg": "Average biomass",
+        "range": "Range",
+        "reserve": "Area reserve"
+      },
+      "condition": {
+        "ready": {
+          "label": "Ready for controlled grazing",
+          "summary": "The pasture looks operational: forage stock is sufficient, so grazing can be planned with controlled load."
+        },
+        "caution": {
+          "label": "Caution mode needed",
+          "summary": "There is some forage stock, but the pasture should receive a light load and more frequent recovery checks."
+        },
+        "rest": {
+          "label": "Rest is recommended",
+          "summary": "Biomass is low: grazing now may accelerate degradation and reduce plant recovery."
+        }
+      },
+      "trend": {
+        "single": "There is only one completed measurement so far, so the trend will become more reliable after the next measurement.",
+        "up": "Biomass increased by {{value}} c/ha ({{pct}}%). This is a good recovery signal.",
+        "down": "Biomass decreased by {{value}} c/ha ({{pct}}%). Grazing load or weather stress may have been above normal.",
+        "flat": "The trend is nearly flat: pasture condition is stable, with no sharp changes in the latest measurements."
+      },
+      "recommendations": {
+        "grazingReady": "Allow grazing in small paddocks and leave at least 40-50% of the stand after animals pass through.",
+        "grazingRest": "Postpone intensive grazing and use the area only for short entries or leave it for recovery.",
+        "coverLow": "Increase control of bare patches: after rainfall, check regrowth and reseed resilient grasses if needed.",
+        "coverGood": "Vegetation cover looks sufficient, but repeat photo analysis 7-14 days after grazing.",
+        "trendDown": "If the decline repeats, reduce stocking density or shorten the time animals spend on this area.",
+        "monitor": "Keep regular monitoring to catch the moment when growth slows or biomass starts to drop.",
+        "disclaimer": "Use these values as an operational estimate; final decisions should be checked against weather, plant growth stage, and actual pasture load."
+      },
+      "table": {
+        "date": "Date",
+        "biomass": "Biomass",
+        "coverage": "Cover",
+        "aiScore": "AI score",
+        "status": "Status"
+      },
+      "status": {
+        "ready": "Can graze",
+        "caution": "Caution",
+        "rest": "Rest"
+      }
+    }
   },
   "pastures": {
     "biomass": "Biomass",
@@ -370,6 +568,14 @@
       "createTitle": "New pasture",
       "editHint": "Change data and redraw boundaries if needed",
       "createHint": "Fill in the data and draw pasture boundaries on the map →"
+    },
+    "reference": {
+      "selectedFarm": "Selected farm",
+      "chooseFarmTitle": "Choose a farm first",
+      "relatedPastures": "Pastures in this farm",
+      "noRelatedPastures": "This farm has no other pastures yet.",
+      "chooseFarmHint": "After choosing a farm, the map will move to its boundary and this block will show pastures from that farm.",
+      "noLocation": "Location not specified"
     },
     "map": {
       "drawHint": "Click to mark boundaries",
@@ -976,6 +1182,11 @@
     "confirmDelete": "Delete this farm? This action cannot be undone.",
     "label": {
       "farm": "Farm"
+    },
+    "reference": {
+      "currentTitle": "Existing farms",
+      "noLocation": "Location not specified",
+      "empty": "No farms yet. This farm will be the first one in the list."
     },
     "modal": {
       "createTitle": "New Farm",
