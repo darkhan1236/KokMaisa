@@ -23,6 +23,18 @@ import {
   Sparkles, Star, FileText, ClipboardCheck, Download,
 } from "lucide-react";
 
+const PASTURE_TRANSLATABLE_FIELDS = ["name", "pasture_type", "description"];
+
+const localizeRecord = (record, lang, fields) => {
+  const translations = record?.translations;
+  if (!translations || typeof translations !== "object") return record;
+  return fields.reduce((next, field) => {
+    const value = translations?.[field]?.[lang];
+    if (value === undefined || value === null || value === "") return next;
+    return { ...next, [field]: value };
+  }, record);
+};
+
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
 const S = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -890,7 +902,7 @@ function ResultModal({ result, onClose, isDark, t }) {
           <div className="bm-result-big">{displayVal.toFixed(1)}</div>
         </div>
         <div style={{ fontSize: 15, fontWeight: 600, color: sc, marginBottom: 22, position: "relative", zIndex: 1 }}>
-          {t("biomass.unit", "ц/га")} &nbsp;/&nbsp; {t("biomass.unitHa", "га")}
+          {t("biomass.unit", "ц/га")}
         </div>
 
         {/* Rating badge */}
@@ -978,7 +990,7 @@ function ResultModal({ result, onClose, isDark, t }) {
 
 /* ─── Winter Fodder Calculator ────────────────────────────────────────── */
 function WinterCalculator({ usableForWinterKg, defaultArea, isDark, t }) {
-  const [winterDays, setWinterDays] = useState(180);
+  const [winterDaysInput, setWinterDaysInput] = useState("180");
   const [customArea, setCustomArea] = useState(defaultArea || 1);
   const [animalCounts, setAnimalCounts] = useState({
     cow: 0, horse: 0, sheep: 0, goat: 0, camel: 0
@@ -992,6 +1004,22 @@ function WinterCalculator({ usableForWinterKg, defaultArea, isDark, t }) {
   const sc = isDark ? "rgba(232,245,234,.42)" : "rgba(17,26,18,.48)";
 
   const effectiveAvailableKg = usableForWinterKg;
+  const clampWinterDays = (value) => Math.max(60, Math.min(365, value));
+  const parsedWinterDays = parseInt(winterDaysInput, 10);
+  const winterDays = Number.isFinite(parsedWinterDays) ? clampWinterDays(parsedWinterDays) : 180;
+
+  const handleWinterDaysChange = (e) => {
+    const next = e.target.value.replace(/\D/g, "");
+    if (next === "") {
+      setWinterDaysInput("");
+      return;
+    }
+    setWinterDaysInput(String(Math.min(365, parseInt(next, 10))));
+  };
+
+  const normalizeWinterDays = () => {
+    setWinterDaysInput(String(winterDays));
+  };
 
   const setCount = (key, val) => {
     const v = Math.max(0, Math.min(9999, parseInt(val) || 0));
@@ -1042,9 +1070,10 @@ function WinterCalculator({ usableForWinterKg, defaultArea, isDark, t }) {
             <input
               type="number"
               className={`bm-cinp ${isDark ? "bm-cinp-d" : "bm-cinp-l"}`}
-              value={winterDays}
+              value={winterDaysInput}
               min={60} max={365}
-              onChange={(e) => setWinterDays(Math.max(60, Math.min(365, parseInt(e.target.value) || 180)))}
+              onChange={handleWinterDaysChange}
+              onBlur={normalizeWinterDays}
             />
           </div>
           <div style={{ flex: 1, minWidth: 160 }}>
@@ -1587,12 +1616,18 @@ export default function BiomassMeasurementPage() {
       setLoading(true);
       try {
         const p = await getPastures();
-        setPastures(p || []);
-        if (p?.length) setSelPasture(p[0]);
+        const localized = (p || []).map((item) => localizeRecord(item, i18n.language, PASTURE_TRANSLATABLE_FIELDS));
+        setPastures(localized);
+        if (localized?.length) setSelPasture(localized[0]);
       } catch (e) { showToast("err", apiErrorMessage(e, i18n)); }
       setLoading(false);
     })();
   }, [authLoading, isAuthenticated]);
+
+  useEffect(() => {
+    setPastures((items) => items.map((item) => localizeRecord(item, i18n.language, PASTURE_TRANSLATABLE_FIELDS)));
+    setSelPasture((item) => item ? localizeRecord(item, i18n.language, PASTURE_TRANSLATABLE_FIELDS) : item);
+  }, [i18n.language]);
 
   // ── Load pasture data ──
   useEffect(() => {
@@ -1812,7 +1847,7 @@ export default function BiomassMeasurementPage() {
                           {t("biomass.results.biomassLabel")}
                         </div>
                         <div className="bm-big-num">{rawBiomass.toFixed(1)}</div>
-                        <div style={{ fontSize: 14, color: sc, marginTop: 4, fontWeight: 600 }}>{t("biomass.unit")} / {t("biomass.unitHa")}</div>
+                        <div style={{ fontSize: 14, color: sc, marginTop: 4, fontWeight: 600 }}>{t("biomass.unit")}</div>
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingBottom: 6 }}>
                         <div style={{ padding: "10px 16px", borderRadius: 14, background: `${metrics.ndviGrade.color}14`, border: `1px solid ${metrics.ndviGrade.color}28` }}>

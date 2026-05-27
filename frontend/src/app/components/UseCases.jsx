@@ -38,7 +38,7 @@ const UC_STYLES = `
 
   /* Image pill */
   .uc-img-wrap {
-    width: 100%;
+    width: calc(100% - 2rem);
     aspect-ratio: 16/9;
     overflow: hidden;
     border-radius: 16px;
@@ -114,6 +114,31 @@ const UC_STYLES = `
     display: inline-flex; align-items: center; gap: 6px;
     padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
     letter-spacing: .04em;
+  }
+
+  @media (max-width: 640px) {
+    .uc-card {
+      border-radius: 18px;
+    }
+    .uc-img-wrap {
+      width: calc(100% - 1.5rem);
+      margin-left: .75rem;
+      margin-right: .75rem;
+      margin-top: .75rem;
+      aspect-ratio: 4/3;
+      border-radius: 14px;
+    }
+    .uc-card:hover {
+      transform: none;
+    }
+    .uc-card:hover .uc-img-wrap img {
+      transform: none;
+    }
+    .uc-title,
+    .uc-desc,
+    .uc-tag {
+      overflow-wrap: anywhere;
+    }
   }
 `;
 

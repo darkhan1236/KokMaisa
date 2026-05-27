@@ -39,6 +39,19 @@ const sanitizeForm = (obj) =>
     ])
   );
 
+const FARM_TRANSLATABLE_FIELDS = ["name", "region", "address", "description", "farm_type", "crops", "equipment"];
+const PASTURE_TRANSLATABLE_FIELDS = ["name", "pasture_type", "description"];
+
+const localizeRecord = (record, lang, fields) => {
+  const translations = record?.translations;
+  if (!translations || typeof translations !== "object") return record;
+  return fields.reduce((next, field) => {
+    const value = translations?.[field]?.[lang];
+    if (value === undefined || value === null || value === "") return next;
+    return { ...next, [field]: value };
+  }, record);
+};
+
 const validateForm = (form, t, coords) => {
   const errors = {};
 
@@ -540,7 +553,7 @@ const ModalDrawMap = forwardRef(function ModalDrawMap(
    MAP SEARCH — Nominatim геокодер (как на странице фермы)
 ═══════════════════════════════════════════════════════════ */
 function MapSearch({ onSelect, isDark, placeholder }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query,   setQuery  ] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -562,9 +575,10 @@ function MapSearch({ onSelect, isDark, placeholder }) {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     setLoading(true);
+    const lang = i18n.language || "ru";
     fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=kz&q=${encodeURIComponent(trimmed)}&accept-language=ru`,
-      { signal:abortRef.current.signal, headers:{ "Accept-Language":"ru" } }
+      `https://nominatim.openstreetmap.org/search?format=json&limit=6&countrycodes=kz&q=${encodeURIComponent(trimmed)}&accept-language=${encodeURIComponent(lang)}`,
+      { signal:abortRef.current.signal, headers:{ "Accept-Language":lang } }
     )
       .then((r) => r.json())
       .then((data) => {
@@ -576,7 +590,7 @@ function MapSearch({ onSelect, isDark, placeholder }) {
         setResults(safe); setOpen(safe.length>0); setLoading(false);
       })
       .catch((e) => { if (e.name!=="AbortError") setLoading(false); });
-  }, []);
+  }, [i18n.language]);
 
   const handleChange = (e) => {
     const v = e.target.value.slice(0,120);
@@ -976,6 +990,14 @@ export default function PasturesPage() {
     load();
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    setPastures((items) => items.map((item) => {
+      const localized = localizeRecord(item, i18n.language, PASTURE_TRANSLATABLE_FIELDS);
+      return { ...localized, grass_type: localized.grass_type ?? localized.pasture_type ?? "" };
+    }));
+    setFarms((items) => items.map((item) => localizeRecord(item, i18n.language, FARM_TRANSLATABLE_FIELDS)));
+  }, [i18n.language]);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -983,9 +1005,11 @@ export default function PasturesPage() {
       setPastures(
         (pData||[]).map((p) => {
           const coordinates = normalizeCoords(p.coordinates);
+          const localized = localizeRecord(p, i18n.language, PASTURE_TRANSLATABLE_FIELDS);
           return {
             ...p,
-            grass_type: p.grass_type ?? p.pasture_type ?? "",
+            ...localized,
+            grass_type: localized.grass_type ?? localized.pasture_type ?? "",
             coordinates,
             coordinates_lat: toNumber(p.coordinates_lat),
             coordinates_lng: toNumber(p.coordinates_lng),
@@ -996,6 +1020,7 @@ export default function PasturesPage() {
       );
       setFarms((fData||[]).map((f) => ({
         ...f,
+        ...localizeRecord(f, i18n.language, FARM_TRANSLATABLE_FIELDS),
         coordinates: normalizeCoords(f.coordinates),
       })));
     } catch(e) { console.error(e); }

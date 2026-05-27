@@ -2,10 +2,12 @@
 import json
 import os
 import re
+import time
 from datetime import datetime, timezone
 from typing import AsyncIterator, List, Optional
 
 import httpx
+from fastapi import BackgroundTasks
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -21,44 +23,29 @@ from core.security import get_current_user
 from model.models import AIChatMessage, AIChatSession, User
 
 router = APIRouter(prefix="/ai", tags=["AI"])
+CONTEXT_CACHE_TTL_SECONDS = 45
+MAX_HISTORY_MESSAGES = 4
+MAX_HISTORY_CHARS = 500
+MAX_AI_TOKENS = 650
+OLLAMA_OPTIONS = {
+    "num_ctx": 2048,
+    "num_predict": MAX_AI_TOKENS,
+    "temperature": 0.2,
+    "top_p": 0.85,
+    "repeat_penalty": 1.08,
+}
+_USER_CONTEXT_CACHE: dict[int, tuple[float, str, str]] = {}
 
 SYSTEM_PROMPT = """
-You are the KokMaisa agricultural AI consultant for farmers in Kazakhstan.
-
-Always answer in the same language as the current user message: Russian, Kazakh, or English.
-Use clean Markdown when it helps readability: short headings, bold key terms, bullet lists, and numbered lists are allowed.
-Do not use emoji.
-Avoid large LaTeX blocks unless the user specifically asks for mathematical notation.
-For personal dashboard questions, answer briefly in 120-250 words.
-For educational agronomy questions, answer in 300-700 words if needed.
-
-Answer format:
-1. Short conclusion.
-2. Clear explanation.
-3. Practical recommendation.
-
-The answer must be complete. Do not stop in the middle of a sentence.
-Do not invent private user data, farms, pastures, measurements, email, phone, or data from other users.
-If private farm context is not provided, say that you do not have access to that data yet.
-If you are not sure, say that you do not know the exact answer yet and explain what data is needed.
-If the user asks about KokMaisa documentation, platform behavior, agronomy knowledge, or project knowledge that is not present in the retrieved knowledge-base context, answer exactly: "Пока не знаю точного ответа по этой теме в моей базе знаний."
-Knowledge priority:
-- First use the authenticated user's KokMaisa database context for private farms, pastures, and measurements.
-- Then use the KokMaisa RAG knowledge-base context for documentation, Kazakhstan pasture background, and agronomy reference points.
-- Do not use random web knowledge as a substitute for missing RAG evidence. Web search is a later fallback only after RAG retrieval has been attempted and explicitly provided.
-
-For personal farm, pasture, and biomass measurement questions:
-- Focus only on data present in the user context.
-- Do not mention NDVI unless the user explicitly asks about NDVI.
-- Do not mention drones unless the user has drone data in the context or explicitly asks about drones.
-- Do not show internal database IDs in the final answer.
-- Refer to measurements as "latest measurement", "previous measurement", "first measurement", or by date.
-- Focus on biomass, plant coverage, AI quality score, pasture name, farm name, date, and trend.
-- Do not invent causes such as rain, wind, overgrazing, or undergrazing unless they are present in the context.
-
-Agriculture reference points:
-- Pasture monitoring is usually useful every 7-14 days during the active season.
-- Safe grazing often uses no more than 50-60% of available biomass, but the exact norm depends on region, season, livestock type, and pasture load.
+You are KokMaisa AI, a concise agricultural consultant for farmers in Kazakhstan.
+Answer in the user's language only. No emoji.
+Keep answers useful but not too long: usually 6-10 sentences unless the user asks for detail.
+Use only provided private context for the user's farms, pastures, and measurements.
+Do not invent private data, causes, weather, or measurements.
+Do not mention drones. Do not show internal database IDs.
+If required context is missing, say what data is needed.
+For KokMaisa documentation questions without RAG evidence, answer exactly:
+"Пока не знаю точного ответа по этой теме в моей базе знаний."
 """.strip()
 
 
@@ -146,7 +133,59 @@ def clean_page_context(text: str | None) -> str:
         return "No frontend page context was provided."
 
     cleaned = re.sub(r"\s+", " ", text).strip()
-    return cleaned[:1200]
+    return cleaned[:500]
+
+
+def compact_chat_content(text: str, limit: int = MAX_HISTORY_CHARS) -> str:
+    cleaned = re.sub(r"\s+", " ", text or "").strip()
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "..."
+
+
+def should_use_rag(message: str, page_context: str | None = None) -> bool:
+    text = (message or "").lower()
+    keywords = (
+        "документ", "база знаний", "rag", "инструкц", "как работает", "kokmaisa",
+        "платформ", "система", "агроном", "норма", "рекомендац", "пастбищ",
+        "биомасс", "деградац", "эроз", "животновод", "казахстан", "fao", "usda",
+        "documentation", "knowledge", "platform", "agronomy", "recommendation",
+        "pasture", "biomass", "degradation", "kazakhstan", "жайылым", "биомасса",
+        "ұсыныс", "қазақстан",
+    )
+    return any(keyword in text for keyword in keywords)
+
+
+def should_use_private_context(message: str) -> bool:
+    text = (message or "").lower()
+    keywords = (
+        "моя", "мой", "мои", "менің", "my",
+        "ферм", "қожалық", "farm",
+        "паст", "жайылым", "pasture",
+        "измер", "өлшем", "measurement",
+        "биомасс", "biomass",
+        "покров", "coverage",
+        "дашборд", "dashboard",
+        "анализ", "аналит", "trend", "тренд",
+        "скот", "коров", "сиыр", "мал", "livestock", "cattle",
+    )
+    return any(keyword in text for keyword in keywords)
+
+
+def get_cached_contexts(db: Session, user_id: int) -> tuple[str, str]:
+    now = time.monotonic()
+    cached = _USER_CONTEXT_CACHE.get(user_id)
+    if cached and cached[0] > now:
+        return cached[1], cached[2]
+
+    user_context = build_user_context(db, user_id)
+    analytics_context = build_analytics_context(db, user_id)
+    _USER_CONTEXT_CACHE[user_id] = (
+        now + CONTEXT_CACHE_TTL_SECONDS,
+        user_context,
+        analytics_context,
+    )
+    return user_context, analytics_context
 
 
 def get_ai_settings() -> tuple[str, str, str]:
@@ -213,6 +252,18 @@ def _save_chat_exchange(db: Session, session: AIChatSession, user_message: str, 
     db.commit()
 
 
+def _save_chat_exchange_by_id(session_id: int, user_message: str, assistant_message: str) -> None:
+    from database.db import SessionLocal
+
+    db = SessionLocal()
+    try:
+        session = db.query(AIChatSession).filter(AIChatSession.id == session_id).first()
+        if session:
+            _save_chat_exchange(db, session, user_message, assistant_message)
+    finally:
+        db.close()
+
+
 def build_messages(
     req: ChatRequest,
     user: User,
@@ -231,9 +282,9 @@ def build_messages(
     page_context = clean_page_context(req.page_context)
 
     history = req.history or []
-    recent_history = history[-10:] if len(history) > 10 else history
+    recent_history = history[-MAX_HISTORY_MESSAGES:] if len(history) > MAX_HISTORY_MESSAGES else history
 
-    return [
+    messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {
             "role": "system",
@@ -242,47 +293,56 @@ def build_messages(
         {
             "role": "system",
             "content": (
-                "Current authenticated user's KokMaisa database context:\n"
+                f"Frontend page context: {page_context}\n"
+                f"Answer only in {response_language}."
+            ),
+        },
+    ]
+    if user_context or analytics_context:
+        messages.append({
+            "role": "system",
+            "content": (
+                "Private KokMaisa context for this user:\n"
                 f"{user_context}\n\n"
-                "Current authenticated user's precomputed KokMaisa analytics:\n"
-                f"{analytics_context}\n\n"
-                "Prefer the precomputed analytics for trends, averages, strongest pasture, "
-                "weakest pasture, and latest-vs-previous comparisons. "
-                "Use only this context for private farms, pastures, drones, and measurements. "
-                "If the answer requires private user data and it is not present here, "
-                "say that you do not have enough data yet."
+                "Precomputed analytics:\n"
+                f"{analytics_context}"
             ),
-        },
-        {
+        })
+    if rag_context:
+        messages.append({
             "role": "system",
             "content": (
-                "Current frontend page context:\n"
-                f"{page_context}\n\n"
-                "Use this to understand where the user is asking from. "
-                "If the user says 'this page', 'here', 'these measurements', or similar, "
-                "interpret it through this page context and the authenticated database context."
-            ),
-        },
-        {
-            "role": "system",
-            "content": (
-                "Current retrieved KokMaisa RAG knowledge-base context:\n"
+                "RAG knowledge-base context:\n"
                 f"{rag_context}\n\n"
                 f"RAG snippets found: {rag_has_results}. "
-                "For KokMaisa documentation or project-knowledge questions, use this RAG context first. "
-                f'If no relevant snippet was found and the answer depends on the knowledge base, answer exactly: "{UNKNOWN_RAG_ANSWER_RU}"'
+                f'If documentation knowledge is needed and snippets are not relevant, answer exactly: "{UNKNOWN_RAG_ANSWER_RU}"'
             ),
-        },
-        {
-            "role": "system",
-            "content": (
-                f"The current user message language is {response_language}. "
-                f"Answer only in {response_language}. Do not switch languages."
-            ),
-        },
-        *[{"role": m.role, "content": m.content} for m in recent_history],
-        {"role": "user", "content": f"/no_think\nAnswer only in {response_language}.\n\n{msg}"},
-    ]
+        })
+    messages.extend({"role": m.role, "content": compact_chat_content(m.content)} for m in recent_history)
+    messages.append({
+        "role": "user",
+        "content": (
+            f"/no_think\nAnswer only in {response_language}. "
+            "Give a complete answer in 6-10 clear sentences. Finish the last sentence.\n\n"
+            f"{msg}"
+        ),
+    })
+    return messages
+
+
+def build_ai_payload(model: str, messages: list[dict[str, str]], stream: bool = False) -> dict:
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": MAX_AI_TOKENS,
+    }
+    if stream:
+        payload["stream"] = True
+    if "localhost:11434" in (getattr(settings, "openai_base_url", "") or os.getenv("OPENAI_BASE_URL", "")):
+        payload["options"] = OLLAMA_OPTIONS
+        payload["keep_alive"] = "10m"
+    return payload
 
 
 def provider_headers(api_key: str) -> dict[str, str]:
@@ -303,18 +363,15 @@ async def ai_chat(
     api_key, model, base_url = get_ai_settings()
     msg = (req.message or "").strip()
     session = _get_or_create_session(db, user.id, msg, req.session_id)
-    user_context = build_user_context(db, user.id)
-    analytics_context = build_analytics_context(db, user.id)
     page_context = clean_page_context(req.page_context)
-    rag = build_rag_context(msg, page_context=page_context)
-    messages = build_messages(req, user, user_context, analytics_context, rag.context, rag.has_results)
+    use_private_context = should_use_private_context(msg)
+    user_context, analytics_context = get_cached_contexts(db, user.id) if use_private_context else ("", "")
+    rag = build_rag_context(msg, top_k=2, page_context=page_context) if not use_private_context and should_use_rag(msg, page_context) else None
+    rag_context = rag.context if rag else ""
+    rag_has_results = rag.has_results if rag else False
+    messages = build_messages(req, user, user_context, analytics_context, rag_context, rag_has_results)
 
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": 1600,
-    }
+    payload = build_ai_payload(model, messages)
 
     try:
         async with httpx.AsyncClient(timeout=90) as client:
@@ -401,8 +458,8 @@ async def stream_and_persist_chat_completion(
     payload: dict,
     api_key: str,
     base_url: str,
-    db: Session,
-    session: AIChatSession,
+    background_tasks: BackgroundTasks,
+    session_id: int,
     user_message: str,
 ) -> AsyncIterator[str]:
     full_text = ""
@@ -412,35 +469,33 @@ async def stream_and_persist_chat_completion(
 
     answer = clean_ai_answer(full_text)
     if answer:
-        _save_chat_exchange(db, session, user_message, answer)
+        background_tasks.add_task(_save_chat_exchange_by_id, session_id, user_message, answer)
 
 
 @router.post("/chat/stream")
 async def ai_chat_stream(
     req: ChatRequest, 
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),):
     api_key, model, base_url = get_ai_settings()
     msg = (req.message or "").strip()
     session = _get_or_create_session(db, user.id, msg, req.session_id)
-    user_context = build_user_context(db, user.id)
-    analytics_context = build_analytics_context(db, user.id)
     page_context = clean_page_context(req.page_context)
-    rag = build_rag_context(msg, page_context=page_context)
-    messages = build_messages(req, user, user_context, analytics_context, rag.context, rag.has_results)
+    use_private_context = should_use_private_context(msg)
+    user_context, analytics_context = get_cached_contexts(db, user.id) if use_private_context else ("", "")
+    rag = build_rag_context(msg, top_k=2, page_context=page_context) if not use_private_context and should_use_rag(msg, page_context) else None
+    rag_context = rag.context if rag else ""
+    rag_has_results = rag.has_results if rag else False
+    messages = build_messages(req, user, user_context, analytics_context, rag_context, rag_has_results)
 
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": 1600,
-        "stream": True,
-    }
+    payload = build_ai_payload(model, messages, stream=True)
 
     return StreamingResponse(
-        stream_and_persist_chat_completion(payload, api_key, base_url, db, session, msg),
+        stream_and_persist_chat_completion(payload, api_key, base_url, background_tasks, session.id, msg),
         media_type="text/plain; charset=utf-8",
         headers={"X-Chat-Session-Id": str(session.id)},
+        background=background_tasks,
     )
 
 

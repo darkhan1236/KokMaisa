@@ -3,6 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from model.models import Pasture, Farm
 from app.api.pastures.schemas.pasture_schemas import PastureCreate, PastureUpdate
+from app.services.i18n.db_translations import update_translations
+
+
+PASTURE_TRANSLATABLE_FIELDS = ("name", "pasture_type", "description")
 
 
 def _serialize_coords(coords):
@@ -31,7 +35,7 @@ def get_pastures_by_farm(db: Session, farm_id: int, user_id: int) -> List[Pastur
     
     return db.query(Pasture).filter(Pasture.farm_id == farm_id).all()
 
-def create_pasture(db: Session, pasture_data: PastureCreate, user_id: int) -> Pasture:
+def create_pasture(db: Session, pasture_data: PastureCreate, user_id: int, source_lang: str | None = None) -> Pasture:
     """Создать новое пастбище"""
     # Проверяем, что ферма принадлежит пользователю
     farm = db.query(Farm).filter(Farm.id == pasture_data.farm_id, Farm.owner_id == user_id).first()
@@ -41,12 +45,23 @@ def create_pasture(db: Session, pasture_data: PastureCreate, user_id: int) -> Pa
     payload = pasture_data.model_dump()
     payload["coordinates"] = _serialize_coords(pasture_data.coordinates)
     db_pasture = Pasture(**payload)
+    update_translations(
+        db_pasture,
+        {field: getattr(pasture_data, field, None) for field in PASTURE_TRANSLATABLE_FIELDS},
+        source_lang,
+    )
     db.add(db_pasture)
     db.commit()
     db.refresh(db_pasture)
     return db_pasture
 
-def update_pasture(db: Session, pasture_id: int, pasture_data: PastureUpdate, user_id: int) -> Optional[Pasture]:
+def update_pasture(
+    db: Session,
+    pasture_id: int,
+    pasture_data: PastureUpdate,
+    user_id: int,
+    source_lang: str | None = None,
+) -> Optional[Pasture]:
     """Обновить пастбище"""
     db_pasture = get_pasture(db, pasture_id, user_id)
     if not db_pasture:
@@ -68,6 +83,9 @@ def update_pasture(db: Session, pasture_id: int, pasture_data: PastureUpdate, us
     
     for field, value in update_data.items():
         setattr(db_pasture, field, value)
+
+    changed = {field: update_data[field] for field in PASTURE_TRANSLATABLE_FIELDS if field in update_data}
+    update_translations(db_pasture, changed, source_lang)
     
     db.commit()
     db.refresh(db_pasture)

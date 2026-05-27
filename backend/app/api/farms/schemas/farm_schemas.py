@@ -2,7 +2,7 @@
 # KokMaisa 2025 — добавлены polygon coordinates + color
 
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 from datetime import date, datetime
 
 
@@ -28,6 +28,7 @@ class FarmCreate(BaseModel):
     established_date: Optional[date]      = None
     crops          : Optional[List[str]]  = None
     equipment      : Optional[List[str]]  = None
+    translations   : Optional[Dict[str, Dict[str, Any]]] = None
     status         : Optional[str]        = "active"
     photos         : Optional[List[str]]  = None
 
@@ -49,6 +50,7 @@ class FarmUpdate(BaseModel):
     established_date: Optional[date]      = None
     crops          : Optional[List[str]]  = None
     equipment      : Optional[List[str]]  = None
+    translations   : Optional[Dict[str, Dict[str, Any]]] = None
     status         : Optional[str]        = None
     photos         : Optional[List[str]]  = None
 
@@ -71,6 +73,7 @@ class FarmResponse(BaseModel):
     established_date: Optional[date]
     crops          : Optional[List[str]]
     equipment      : Optional[List[str]]
+    translations   : Optional[Dict[str, Dict[str, Any]]] = None
     status         : Optional[str]
     photos         : Optional[List[str]]
     created_at     : Optional[datetime]

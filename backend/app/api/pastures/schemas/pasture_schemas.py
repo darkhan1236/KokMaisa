@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
@@ -22,6 +22,7 @@ class PastureBase(BaseModel):
     coordinates: Optional[List[CoordPoint]] = None
     color: Optional[str] = "#22c55e"
     description: Optional[str] = None
+    translations: Optional[Dict[str, Dict[str, Any]]] = None
     status: str = "active"
 
 
@@ -46,6 +47,7 @@ class PastureUpdate(BaseModel):
     coordinates: Optional[List[CoordPoint]] = None
     color: Optional[str] = None
     description: Optional[str] = None
+    translations: Optional[Dict[str, Dict[str, Any]]] = None
     status: Optional[str] = None
 
     @model_validator(mode="after")
@@ -66,6 +68,7 @@ class PastureResponse(BaseModel):
     coordinates: Optional[List[CoordPoint]]
     color: Optional[str]
     description: Optional[str]
+    translations: Optional[Dict[str, Dict[str, Any]]] = None
     status: Optional[str]
     created_at: datetime
     updated_at: datetime

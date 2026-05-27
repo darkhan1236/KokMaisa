@@ -38,6 +38,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { deriveMetrics } from "@/app/utils/biomassMetrics";
 
+const PASTURE_TRANSLATABLE_FIELDS = ["name", "pasture_type", "description"];
+
+const localizeRecord = (record, lang, fields) => {
+  const translations = record?.translations;
+  if (!translations || typeof translations !== "object") return record;
+  return fields.reduce((next, field) => {
+    const value = translations?.[field]?.[lang];
+    if (value === undefined || value === null || value === "") return next;
+    return { ...next, [field]: value };
+  }, record);
+};
+
 const DASHBOARD_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@400;500;700&display=swap');
 
@@ -728,19 +740,6 @@ function StatCard({ isDark, title, value, subtitle, icon: Icon, iconBg, iconColo
   );
 }
 
-function IndicatorCard({ isDark, name, value, description, icon: Icon, color }) {
-  return (
-    <div className="bd-indicator">
-      <div className="bd-indicator-top">
-        <span className="bd-indicator-name">{name}</span>
-        <Icon style={{ width: 18, height: 18, color }} />
-      </div>
-      <p className="bd-indicator-value" style={{ color }}>{value}</p>
-      <p className="bd-indicator-desc">{description}</p>
-    </div>
-  );
-}
-
 export default function BiomassDashboardPage() {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -771,7 +770,9 @@ export default function BiomassDashboardPage() {
 
     try {
       const pastureList = await getPastures();
-      const safePastures = Array.isArray(pastureList) ? pastureList : [];
+      const safePastures = Array.isArray(pastureList)
+        ? pastureList.map((pasture) => localizeRecord(pasture, i18n.language, PASTURE_TRANSLATABLE_FIELDS))
+        : [];
       setPastures(safePastures);
 
       if (!safePastures.length) {
@@ -806,7 +807,11 @@ export default function BiomassDashboardPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [getPastureMeasurements, getPastures, t]);
+  }, [getPastureMeasurements, getPastures]);
+
+  useEffect(() => {
+    setPastures((items) => items.map((item) => localizeRecord(item, i18n.language, PASTURE_TRANSLATABLE_FIELDS)));
+  }, [i18n.language]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -966,11 +971,7 @@ export default function BiomassDashboardPage() {
 
   const avgBiomass = average(visibleMeasurements.map((measurement) => measurement.biomass_value ?? 0));
   const totalArea = visiblePastures.reduce((sum, pasture) => sum + (pasture.areaHa || 0), 0);
-  const avgNdvi = average(latestMetrics.map((metric) => metric.ndvi));
-  const avgCoverage = average(latestMetrics.map((metric) => metric.coverage));
-  const avgCapacity = average(latestMetrics.map((metric) => metric.cowsPerHa));
   const avgRotation = average(latestMetrics.map((metric) => metric.daysUntilRotation));
-  const avgHeight = avgBiomass ? Math.max(8, avgBiomass * 1.8 + 6) : 0;
   const winterReserveTons = latestMetrics.reduce((sum, metric) => sum + metric.totalBiomassKg, 0) / 1000;
   const avgTrendPct = average(
     measuredPastures
@@ -990,43 +991,6 @@ export default function BiomassDashboardPage() {
 
   const healthTone = toneFromScore(healthScore);
   const healthToneLabel = t(`biomass.dashboard.healthStates.${healthTone}`);
-
-  const indicatorCards = [
-    {
-      key: "ndvi",
-      name: t("biomass.results.aiScoreLabel", "AI score"),
-      value: avgNdvi ? `${Math.round((avgNdvi / 0.88) * 100)}%` : "0%",
-      description: t("biomass.dashboard.indicators.ndviDescription"),
-      icon: Activity,
-      color: "#22c55e",
-    },
-    {
-      key: "cover",
-      name: t("biomass.coverDensity"),
-      value: `${Math.round(avgCoverage || 0)}%`,
-      description: t("biomass.dashboard.indicators.coverDescription"),
-      icon: Leaf,
-      color: "#0d9488",
-    },
-    {
-      key: "height",
-      name: t("biomass.grassHeight"),
-      value: `${Math.round(avgHeight || 0)} cm`,
-      description: t("biomass.dashboard.indicators.heightDescription"),
-      icon: Wheat,
-      color: "#f59e0b",
-    },
-    {
-      key: "capacity",
-      name: t("biomass.dashboard.indicators.capacity"),
-      value: t("biomass.dashboard.indicators.capacityValue", {
-        count: formatValue(avgCapacity || 0, 1, i18n.language),
-      }),
-      description: t("biomass.dashboard.indicators.capacityDescription"),
-      icon: Target,
-      color: "#60a5fa",
-    },
-  ];
 
   const alerts = useMemo(() => {
     const result = [];
@@ -1528,124 +1492,47 @@ export default function BiomassDashboardPage() {
                 </div>
               </div>
 
-              <div className="bd-layout-2">
-                <div className="bd-card">
-                  <div className="bd-card-header">
-                    <div>
-                      <h2 className="bd-card-title">{t("biomass.healthIndicators")}</h2>
-                      <p className="bd-card-desc">{t("biomass.dashboard.indicatorsDescription")}</p>
-                    </div>
-                  </div>
-                  <div className="bd-indicators">
-                    {indicatorCards.map((indicator) => (
-                      <IndicatorCard
-                        key={indicator.key}
-                        isDark={isDark}
-                        name={indicator.name}
-                        value={indicator.value}
-                        description={indicator.description}
-                        icon={indicator.icon}
-                        color={indicator.color}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bd-card">
-                  <div className="bd-card-header">
-                    <div>
-                      <h2 className="bd-card-title">{t("biomass.notifications")}</h2>
-                      <p className="bd-card-desc">{t("biomass.dashboard.alertsDescription")}</p>
-                    </div>
-                  </div>
-                  <div className="bd-alerts">
-                    {alerts.map((alert, index) => {
-                      const tone = alert.type === "warning"
-                        ? { bg: "rgba(245,158,11,.1)", border: "rgba(245,158,11,.18)", color: "#f59e0b", icon: AlertTriangle }
-                        : alert.type === "success"
-                          ? { bg: "rgba(34,197,94,.1)", border: "rgba(34,197,94,.18)", color: "#22c55e", icon: CheckCircle2 }
-                          : { bg: "rgba(96,165,250,.1)", border: "rgba(96,165,250,.18)", color: "#60a5fa", icon: Activity };
-                      const Icon = tone.icon;
-
-                      return (
-                        <div key={`${alert.title}-${index}`} className="bd-alert" style={{ background: tone.bg, borderColor: tone.border }}>
-                          <div className="bd-icon-chip" style={{ width: 40, height: 40, borderRadius: 14, background: `${tone.color}18` }}>
-                            <Icon style={{ width: 18, height: 18, color: tone.color }} />
-                          </div>
-                          <div>
-                            <p className="bd-alert-title">{alert.title}</p>
-                            <p className="bd-alert-text">{alert.text}</p>
-                            <div className="bd-alert-date">{alert.date}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <button
-                    type="button"
-                    className={`bd-inline-btn ${activeSecondaryBtn}`}
-                    style={{ width: "100%", justifyContent: "center", marginTop: 14 }}
-                    onClick={() => navigate("/biomass")}
-                  >
-                    {t("biomass.dashboard.openMeasurements")}
-                    <ArrowRight style={{ width: 14, height: 14 }} />
-                  </button>
-                </div>
-              </div>
-
               <div className="bd-card">
                 <div className="bd-card-header">
                   <div>
-                    <h2 className="bd-card-title">{t("biomass.dashboard.stats.winterReserve")}</h2>
-                    <p className="bd-card-desc">
-                      {t("biomass.dashboard.stats.reserveHint", { ratio: 100 })}
-                    </p>
-                  </div>
-                  <div className="bd-tone-good">
-                    <BarChart3 style={{ width: 14, height: 14 }} />
-                    {formatValue(avgRotation || 0, 0, i18n.language)} {t("biomass.dashboard.units.days")}
+                    <h2 className="bd-card-title">{t("biomass.notifications")}</h2>
+                    <p className="bd-card-desc">{t("biomass.dashboard.alertsDescription")}</p>
                   </div>
                 </div>
-                <p className="bd-card-desc" style={{ marginTop: -4, marginBottom: 16 }}>
-                  {t("biomass.dashboard.stats.rotationHint")}
-                </p>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: 12,
-                  }}
+                <div className="bd-alerts">
+                  {alerts.map((alert, index) => {
+                    const tone = alert.type === "warning"
+                      ? { bg: "rgba(245,158,11,.1)", border: "rgba(245,158,11,.18)", color: "#f59e0b", icon: AlertTriangle }
+                      : alert.type === "success"
+                        ? { bg: "rgba(34,197,94,.1)", border: "rgba(34,197,94,.18)", color: "#22c55e", icon: CheckCircle2 }
+                        : { bg: "rgba(96,165,250,.1)", border: "rgba(96,165,250,.18)", color: "#60a5fa", icon: Activity };
+                    const Icon = tone.icon;
+
+                    return (
+                      <div key={`${alert.title}-${index}`} className="bd-alert" style={{ background: tone.bg, borderColor: tone.border }}>
+                        <div className="bd-icon-chip" style={{ width: 40, height: 40, borderRadius: 14, background: `${tone.color}18` }}>
+                          <Icon style={{ width: 18, height: 18, color: tone.color }} />
+                        </div>
+                        <div>
+                          <p className="bd-alert-title">{alert.title}</p>
+                          <p className="bd-alert-text">{alert.text}</p>
+                          <div className="bd-alert-date">{alert.date}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className={`bd-inline-btn ${activeSecondaryBtn}`}
+                  style={{ width: "100%", justifyContent: "center", marginTop: 14 }}
+                  onClick={() => navigate("/biomass")}
                 >
-                  <div className="bd-indicator">
-                    <div className="bd-indicator-name">{t("biomass.dashboard.stats.winterReserve")}</div>
-                    <p className="bd-indicator-value" style={{ color: "#22c55e" }}>
-                      {formatValue(winterReserveTons || 0, 1, i18n.language)} {t("biomass.dashboard.units.tons")}
-                    </p>
-                    <p className="bd-indicator-desc">{t("biomass.dashboard.stats.winterReserveDescription")}</p>
-                  </div>
-                  <div className="bd-indicator">
-                    <div className="bd-indicator-name">{t("biomass.dashboard.indicators.capacity")}</div>
-                    <p className="bd-indicator-value" style={{ color: "#60a5fa" }}>
-                      {formatValue(avgCapacity || 0, 1, i18n.language)}
-                    </p>
-                    <p className="bd-indicator-desc">{t("biomass.dashboard.indicators.capacityDescription")}</p>
-                  </div>
-                  <div className="bd-indicator">
-                    <div className="bd-indicator-name">{t("biomass.dashboard.recentTitle")}</div>
-                    <p className="bd-indicator-value" style={{ color: "#f59e0b" }}>
-                      {recentData.length}
-                    </p>
-                    <p className="bd-indicator-desc">{t("biomass.dashboard.stats.recentMeasurementsDescription")}</p>
-                  </div>
-                  <div className="bd-indicator">
-                    <div className="bd-indicator-name">{t("biomass.dashboard.stats.healthScore")}</div>
-                    <p className="bd-indicator-value" style={{ color: "#a78bfa" }}>
-                      {healthScore}%
-                    </p>
-                    <p className="bd-indicator-desc">{t("biomass.dashboard.stats.healthScoreDescription", { state: healthToneLabel.toLowerCase?.() ? healthToneLabel.toLowerCase() : healthToneLabel })}</p>
-                  </div>
-                </div>
+                  {t("biomass.dashboard.openMeasurements")}
+                  <ArrowRight style={{ width: 14, height: 14 }} />
+                </button>
               </div>
+
             </>
           )}
         </div>

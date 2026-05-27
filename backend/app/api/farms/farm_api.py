@@ -2,7 +2,7 @@
 # KokMaisa 2025 — поддержка polygon coordinates + color
 
 import math
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -10,8 +10,14 @@ from database.db import get_db
 from core.security import CurrentUser
 from model.models import Farm
 from app.api.farms.schemas.farm_schemas import FarmCreate, FarmUpdate, FarmResponse
+from app.services.i18n.db_translations import (
+    localized_dict,
+    normalize_lang,
+    update_translations,
+)
 
 router = APIRouter(prefix="/farms", tags=["farms"])
+FARM_TRANSLATABLE_FIELDS = ("name", "region", "address", "description", "farm_type", "crops", "equipment")
 
 
 # ── Геодезическое вычисление площади из полигона (на сервере для верификации) ──
@@ -47,17 +53,37 @@ def _centroid(coords):
     return sum(lats) / len(lats), sum(lngs) / len(lngs)
 
 
+def _request_lang(lang: str | None, accept_language: str | None) -> str:
+    return normalize_lang(lang or accept_language)
+
+
+def _localize_farm(db: Session, farm: Farm, lang: str) -> dict:
+    return localized_dict(farm, FARM_TRANSLATABLE_FIELDS, lang)
+
+
 # ── CRUD ───────────────────────────────────────────────────────────────────────
 
 @router.get("/", response_model=List[FarmResponse])
-def list_farms(current_user: CurrentUser, db: Session = Depends(get_db)):
+def list_farms(
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+    lang: str | None = Query(default=None),
+    accept_language: str | None = Header(default=None),
+):
     """Вернуть все фермы текущего пользователя."""
+    selected_lang = _request_lang(lang, accept_language)
     farms = db.query(Farm).filter(Farm.owner_id == current_user.id).all()
-    return farms
+    return [_localize_farm(db, farm, selected_lang) for farm in farms]
 
 
 @router.post("/", response_model=FarmResponse, status_code=201)
-def create_farm(data: FarmCreate, current_user: CurrentUser, db: Session = Depends(get_db)):
+def create_farm(
+    data: FarmCreate,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+    lang: str | None = Query(default=None),
+    accept_language: str | None = Header(default=None),
+):
     if current_user.account_type not in ("farmer",):
         raise HTTPException(403, "Only farmers can create farms")
 
@@ -91,21 +117,40 @@ def create_farm(data: FarmCreate, current_user: CurrentUser, db: Session = Depen
         equipment       = data.equipment,
         status          = data.status or "active",
         photos          = data.photos,
+        translations    = data.translations,
+    )
+    update_translations(
+        farm,
+        {field: getattr(data, field, None) for field in FARM_TRANSLATABLE_FIELDS},
+        _request_lang(lang, accept_language),
     )
     db.add(farm)
     db.commit()
     db.refresh(farm)
-    return farm
+    return _localize_farm(db, farm, _request_lang(lang, accept_language))
 
 
 @router.get("/{farm_id}", response_model=FarmResponse)
-def get_farm(farm_id: int, current_user: CurrentUser, db: Session = Depends(get_db)):
+def get_farm(
+    farm_id: int,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+    lang: str | None = Query(default=None),
+    accept_language: str | None = Header(default=None),
+):
     farm = _get_owned(farm_id, current_user, db)
-    return farm
+    return _localize_farm(db, farm, _request_lang(lang, accept_language))
 
 
 @router.put("/{farm_id}", response_model=FarmResponse)
-def update_farm(farm_id: int, data: FarmUpdate, current_user: CurrentUser, db: Session = Depends(get_db)):
+def update_farm(
+    farm_id: int,
+    data: FarmUpdate,
+    current_user: CurrentUser,
+    db: Session = Depends(get_db),
+    lang: str | None = Query(default=None),
+    accept_language: str | None = Header(default=None),
+):
     farm = _get_owned(farm_id, current_user, db)
 
     update = data.model_dump(exclude_none=True)
@@ -124,9 +169,12 @@ def update_farm(farm_id: int, data: FarmUpdate, current_user: CurrentUser, db: S
     for k, v in update.items():
         setattr(farm, k, v)
 
+    changed = {field: update[field] for field in FARM_TRANSLATABLE_FIELDS if field in update}
+    update_translations(farm, changed, _request_lang(lang, accept_language))
+
     db.commit()
     db.refresh(farm)
-    return farm
+    return _localize_farm(db, farm, _request_lang(lang, accept_language))
 
 
 @router.delete("/{farm_id}", status_code=204)

@@ -65,6 +65,7 @@ class Farm(Base):
     established_date = Column(Date)
     crops            = Column(JSON)
     equipment        = Column(JSON)
+    translations     = Column(JSON, nullable=True)
     status           = Column(String, default="active")
     photos           = Column(JSON)
     created_at       = Column(DateTime, default=datetime.datetime.utcnow)
@@ -92,6 +93,7 @@ class Pasture(Base):
     coordinates     = Column(JSON, nullable=True)
     color           = Column(String(20), nullable=True, default="#22c55e")
     description     = Column(Text)
+    translations    = Column(JSON, nullable=True)
     status          = Column(String, default="active")
     created_at      = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at      = Column(

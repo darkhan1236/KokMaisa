@@ -1,6 +1,7 @@
 // src/contexts/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import { extractApiDetail } from '@/app/utils/apiErrors';
+import i18n from '@/i18n/config';
 
 const AuthContext = createContext(null);
 const API_BASE = '/api';
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
     const token = getToken();
     const headers = {
       'Content-Type': 'application/json',
+      'Accept-Language': i18n.language || 'ru',
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     };
@@ -62,7 +64,10 @@ export function AuthProvider({ children }) {
     const token = getToken();
     const res   = await fetch(`${API_BASE}${endpoint}`, {
       method:  'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: {
+        'Accept-Language': i18n.language || 'ru',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body:    formData,
     });
 

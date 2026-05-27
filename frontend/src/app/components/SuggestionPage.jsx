@@ -20,8 +20,10 @@ const STYLE = `
 .sg-field-full{grid-column:1/-1;}
 .sg-label{display:block;font-size:12px;font-weight:700;margin-bottom:7px;}
 .sg-input{width:100%;border-radius:12px;padding:11px 13px;font-size:14px;outline:none;}
-.sg-input-d{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:#fff;}
-.sg-input-l{background:#f8fdf8;border:1px solid rgba(34,197,94,.22);color:#1a3d20;}
+.sg-input-d{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:#fff;color-scheme:dark;}
+.sg-input-l{background:#f8fdf8;border:1px solid rgba(34,197,94,.22);color:#1a3d20;color-scheme:light;}
+.sg-input-d option{background:#0b1d10;color:#f4fff6;}
+.sg-input-l option{background:#ffffff;color:#1a3d20;}
 .sg-input:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.12);}
 .sg-btn{border:none;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#22c55e,#0d9488);color:#fff;}
 .sg-btn:disabled{opacity:.65;cursor:not-allowed;}

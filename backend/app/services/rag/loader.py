@@ -5,7 +5,6 @@ from pathlib import Path
 
 DEFAULT_DOC_NAMES = (
     "KokMaisa_Project_Knowledge_Base_RAG.md",
-    "KokMaisa_Project_Knowledge_Base_RAG.pdf",
     "backend/app/services/rag/knowledge/kazakhstan_pastures_agriculture_2026.md",
 )
 

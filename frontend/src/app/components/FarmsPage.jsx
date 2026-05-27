@@ -32,6 +32,17 @@ const sanitizeForm = (obj) =>
 
 // Basic phone validation
 const validPhone = (p) => !p || /^[+\d\s\-()]{7,20}$/.test(p);
+const FARM_TRANSLATABLE_FIELDS = ["name", "region", "address", "description", "farm_type", "crops", "equipment"];
+
+const localizeRecord = (record, lang, fields) => {
+  const translations = record?.translations;
+  if (!translations || typeof translations !== "object") return record;
+  return fields.reduce((next, field) => {
+    const value = translations?.[field]?.[lang];
+    if (value === undefined || value === null || value === "") return next;
+    return { ...next, [field]: value };
+  }, record);
+};
 
 /* ═══════════════════════════════════════════════════════════
    SERVER ERROR → i18n KEY MAPPER
@@ -146,7 +157,9 @@ function FarmMap({ farms, activeFarm, onFarmSelect, height = "100%" }) {
 
   useEffect(() => {
     if (mapInst.current || !mapRef.current) return;
+    let cancelled = false;
     import("leaflet").then((L) => {
+      if (cancelled || mapInst.current || !mapRef.current) return;
       const Lf = L.default || L;
       delete Lf.Icon.Default.prototype._getIconUrl;
       Lf.Icon.Default.mergeOptions({
@@ -186,6 +199,7 @@ function FarmMap({ farms, activeFarm, onFarmSelect, height = "100%" }) {
       }
     });
     return () => {
+      cancelled = true;
       if (mapInst.current) {
         mapInst.current._ro?.disconnect();
         mapInst.current.remove();
@@ -333,7 +347,9 @@ const ModalDrawMap = forwardRef(function ModalDrawMap(
   /* ── init map ── */
   useEffect(() => {
     if (mapInst.current || !mapRef.current) return;
+    let cancelled = false;
     import("leaflet").then((L) => {
+      if (cancelled || mapInst.current || !mapRef.current) return;
       const Lf = L.default || L;
       delete Lf.Icon.Default.prototype._getIconUrl;
       Lf.Icon.Default.mergeOptions({
@@ -393,6 +409,7 @@ const ModalDrawMap = forwardRef(function ModalDrawMap(
       }
     });
     return () => {
+      cancelled = true;
       if (mapInst.current) {
         mapInst.current._ro?.disconnect();
         mapInst.current.off("click", mapInst.current._onClick);
@@ -418,6 +435,7 @@ const ModalDrawMap = forwardRef(function ModalDrawMap(
    MAP SEARCH — Nominatim geocoder overlay (no API key needed)
 ═══════════════════════════════════════════════════════════ */
 function MapSearch({ onSelect, isDark, placeholder = "Найти место..." }) {
+  const { i18n } = useTranslation();
   const [query,   setQuery  ] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -448,11 +466,12 @@ function MapSearch({ onSelect, isDark, placeholder = "Найти место..." 
     abortRef.current = new AbortController();
 
     setLoading(true);
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=7&countrycodes=kz&q=${encodeURIComponent(trimmed)}&accept-language=ru`;
+    const lang = i18n.language || "ru";
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=7&countrycodes=kz&q=${encodeURIComponent(trimmed)}&accept-language=${encodeURIComponent(lang)}`;
 
     fetch(url, {
       signal: abortRef.current.signal,
-      headers: { "Accept-Language": "ru" },
+      headers: { "Accept-Language": lang },
     })
       .then((r) => r.json())
       .then((data) => {
@@ -473,7 +492,7 @@ function MapSearch({ onSelect, isDark, placeholder = "Найти место..." 
       .catch((e) => {
         if (e.name !== "AbortError") setLoading(false);
       });
-  }, []);
+  }, [i18n.language]);
 
   const handleChange = (e) => {
     const v = e.target.value.slice(0, 120); // max length guard
@@ -1158,6 +1177,10 @@ export default function FarmsPage() {
     load();
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    setFarms((items) => items.map((item) => localizeRecord(item, i18n.language, FARM_TRANSLATABLE_FIELDS)));
+  }, [i18n.language]);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -1165,6 +1188,7 @@ export default function FarmsPage() {
       setFarms(
         (data || []).map((f) => ({
           ...f,
+          ...localizeRecord(f, i18n.language, FARM_TRANSLATABLE_FIELDS),
           area_ha: f.coordinates?.length >= 3 ? calcHectares(f.coordinates) : (f.area || 0),
           color:   f.color || FARM_COLORS[0],
         }))
@@ -1247,8 +1271,8 @@ export default function FarmsPage() {
     addressAbortRef.current = ac;
 
     fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=16&accept-language=ru`,
-      { signal: ac.signal, headers: { "Accept-Language": "ru" } }
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=16&accept-language=${encodeURIComponent(i18n.language || "ru")}`,
+      { signal: ac.signal, headers: { "Accept-Language": i18n.language || "ru" } }
     )
       .then((r) => {
         if (!r.ok) throw new Error("reverse_geocode");
@@ -1276,7 +1300,7 @@ export default function FarmsPage() {
       });
 
     return () => ac.abort();
-  }, [drawnCoords, modal]);
+  }, [drawnCoords, i18n.language, modal]);
 
   const computedHa = useMemo(() => {
     if (drawnCoords?.length >= 3) return calcHectares(drawnCoords);

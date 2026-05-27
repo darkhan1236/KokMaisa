@@ -61,6 +61,10 @@ const METRICS_STYLES = `
     background: linear-gradient(135deg, rgba(34,197,94,.1) 0%, rgba(34,211,238,.07) 100%);
     border: 1px solid rgba(34,197,94,.2);
   }
+  .metrics-cta-title {
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
 
   /* Light theme overrides */
   [data-theme="light"] .metrics-root {
@@ -97,6 +101,25 @@ const METRICS_STYLES = `
   @media (max-width: 640px) {
     .metric-card { padding: 24px 18px; }
     .metric-value { font-size: 2.25rem; }
+    .metrics-cta {
+      border-radius: 20px;
+      padding: 28px 18px;
+      margin-left: auto;
+      margin-right: auto;
+      max-width: 100%;
+    }
+    .metrics-cta-title {
+      font-size: clamp(1.45rem, 8vw, 1.9rem);
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+    .metrics-cta-link {
+      width: 100%;
+      max-width: 280px;
+      justify-content: center;
+      white-space: normal;
+      text-align: center;
+    }
   }
 `;
 
@@ -180,7 +203,7 @@ export default function Metrics() {
           {/* ── CTA banner — fully i18n ── */}
           <div className="metrics-cta mt-12 sm:mt-14 rounded-3xl p-8 sm:p-10 md:p-14 text-center">
             <h3
-              className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4"
+              className="metrics-cta-title text-2xl sm:text-3xl md:text-4xl font-extrabold mb-4"
               style={{ fontFamily: "Syne, sans-serif", color: labelColor }}
             >
               {t("metrics.cta.title")}
@@ -190,7 +213,7 @@ export default function Metrics() {
             </p>
             <Link
               to="/register"
-              className="inline-flex items-center gap-3 px-7 sm:px-8 py-3.5 sm:py-4 rounded-full font-semibold text-white text-sm sm:text-base"
+              className="metrics-cta-link inline-flex items-center gap-3 px-7 sm:px-8 py-3.5 sm:py-4 rounded-full font-semibold text-white text-sm sm:text-base"
               style={{
                 background: "linear-gradient(135deg, #22c55e 0%, #0d9488 100%)",
                 boxShadow: "0 8px 32px rgba(34,197,94,.3)",
